@@ -1,0 +1,4 @@
+String  vNotification  "NOTIFICATION [%s]"
+String vError "ERROR** [%s]"
+String vLog "INFO** [%s]"
+String vSpeech "vSpeech"

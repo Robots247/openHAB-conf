@@ -1,0 +1,88 @@
+<div ng-init="ServerPath='http://10.0.0.122:8080/static'; IconSet='underground'">
+</div>
+
+<table border=0>
+<tr>
+<td>
+<table id="weather-table" border=0>
+  <tr>
+    <td colspan="3" align="center">Current Conditions</td>
+  </tr>
+	<tr>
+		<td rowspan="2"><img id="weather-icon" src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('WU_Cond_id').replace(' ','-') | lowercase }}.png"/><br>{{itemValue('WU_Cond_des')}}</br></td>
+		<td id="weather-temp">{{'%.1f' | sprintf:itemValue('Temperature')}}</td>
+		<td id="weather-temp-sign">°C</td>
+	</tr>
+	<tr>
+		<td colspan="2">
+			<table id="weather-table-details" border=0 align="left">
+				<tr>
+					<td align="left"><img src="{{ServerPath}}/images/{{IconSet}}/humidity.png"/></td>
+					<td align="left">&nbsp;{{'%.0f' | sprintf:itemValue('Humidity')}} %</td>
+				</tr>
+        <tr>
+          <td align="left"><img src="{{ServerPath}}/images/{{IconSet}}/umbrella.png"/></td>
+          <td align="left">&nbsp;{{'%.0f' | sprintf:itemValue('Precip_Probability0')}} %</td>
+        </tr>
+        <tr>
+          <td align="left"><img src="{{ServerPath}}/images/{{IconSet}}/wind.png" height="32" width="32"/></td>
+          <td align="left">&nbsp;{{'%.0f' | sprintf:itemValue('Wind_Speed')}} Km</td>
+        </tr>
+			</table>
+		</td>
+	</tr>
+</table>
+</td>
+<td>
+<table id="weather-forecast-table" border=0>
+	<tr>
+		<td/>
+		<td>Today</td>
+		<td>{{itemValue('ObservationTime1') | date:'EEEE'}}</td>
+		<td>{{itemValue('ObservationTime2') | date:'EEEE'}}</td>
+    <td>{{itemValue('ObservationTime3') | date:'EEEE'}}</td>
+    <td>{{itemValue('ObservationTime4') | date:'EEEE'}}</td>
+	</tr>
+	<tr>
+		<td/>
+		<td>
+      <img src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('Condition0').replace(' ','-') | lowercase }}.png"/>
+			<p>{{itemValue('TCondition0')}}</p>
+		</td>
+		<td>
+			<img src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('Condition1').replace(' ','-') | lowercase }}.png"/>
+			<p>{{itemValue('TCondition1')}}</p>
+		</td>
+		<td>
+			<img src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('Condition2').replace(' ','-') | lowercase }}.png"/>
+			<p>{{itemValue('TCondition2')}}</p>
+		</td>
+    <td>
+			<img src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('Condition3').replace(' ','-') | lowercase }}.png"/>
+			<p>{{itemValue('TCondition3')}}</p>
+		</td>
+    <td>
+			<img src="{{ServerPath}}/images/{{IconSet}}/{{itemValue('Condition4').replace(' ','-') | lowercase }}.png"/>
+			<p>{{itemValue('TCondition4')}}</p>
+		</td>
+  </tr>
+	<tr>
+		<td style="text-align:right">&nbsp;&nbsp;&nbsp;&nbsp;High</td>
+		<td class="col-xs-4" style="color:tomato">{{'%.0f' | sprintf:itemValue('Temp_Max0')}} °C</td>
+		<td class="col-xs-4" style="color:tomato">{{'%.0f' | sprintf:itemValue('Temp_Max1')}} °C</td>
+		<td class="col-xs-4" style="color:tomato">{{'%.0f' | sprintf:itemValue('Temp_Max2')}} °C</td>
+    <td class="col-xs-4" style="color:tomato">{{'%.0f' | sprintf:itemValue('Temp_Max3')}} °C</td>
+    <td class="col-xs-4" style="color:tomato">{{'%.0f' | sprintf:itemValue('Temp_Max4')}} °C</td>
+	</tr>
+	<tr>
+		<td style="text-align:right">&nbsp;&nbsp;&nbsp;&nbsp;Low</td>
+		<td class="col-xs-4" style="color:#0db9f0">{{'%.0f' | sprintf:itemValue('Temp_Min0')}} °C</td>
+		<td class="col-xs-4" style="color:#0db9f0">{{'%.0f' | sprintf:itemValue('Temp_Min1')}} °C</td>
+		<td class="col-xs-4" style="color:#0db9f0">{{'%.0f' | sprintf:itemValue('Temp_Min2')}} °C</td>
+    <td class="col-xs-4" style="color:#0db9f0">{{'%.0f' | sprintf:itemValue('Temp_Min3')}} °C</td>
+    <td class="col-xs-4" style="color:#0db9f0">{{'%.0f' | sprintf:itemValue('Temp_Min4')}} °C</td>    
+	</tr>
+</table>
+</td>
+</tr>
+</table>

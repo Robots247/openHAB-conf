@@ -1,0 +1,9 @@
+sitemap voicw label="voice test" {
+    Frame label="voice items" icon="icon" {
+        Text item=Voice_Robot
+    }
+    Frame label="Second frame" {
+        Group item=vNotification
+    }
+}
+

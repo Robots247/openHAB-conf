@@ -1,0 +1,70 @@
+String DenTVString	"Den TV Status [%s]" {http="<[DenTVStat:30000:REGEX(.*?<major>(.*?)</major>.*)]"}
+Group gDenTV	"Den TV Controls" (gDen)
+//Switch DenTV_Status "DenTV Status" (gDenTV) 
+Switch DenTV_State	"Den TV State [%s]" (gDenTV){ channel="unifi:wirelessClient:PikasPlace:DenTV:online"}
+
+Switch DenTV_Sitemap "Den TV Sitemap Switch"
+Switch DenTVVOLUP          "Volume Up"             	(gDenTV) 				{ panasonictv="den_tv:VOLUP" }
+Switch DenTVVOLDOWN        "Volume Down"           	(gDenTV) 				{ panasonictv="den_tv:VOLDOWN" }
+
+Switch DenTVINPUT           "TV input"              	(gDenTV) 				{ panasonictv="den_tv:TV" }
+Switch DenTVMUTE	"MUTE" (gDenTV)	{panasonictv="den_tv:MUTE" }
+Switch DenTVCH_UP 								"Channel Up"					(gDenTV) 		{ panasonictv="den_tv:CH_UP" }
+Switch DenTVCH_DOWN								"Channel down" 					(gDenTV) 		{ panasonictv="den_tv:CH_DOWN" }			
+Switch DenTVTV									"TV"							(gDenTV) 		{ panasonictv="den_tv:TVTV" }
+Switch DenTVCHG_INPUT							"AV"							(gDenTV) 		{ panasonictv="den_tv:CHG_INPUT" }
+Switch DenTVRED									"Red"							(gDenTV) 		{ panasonictv="den_tv:RED" }
+Switch DenTVGREEN								"Green"							(gDenTV) 		{ panasonictv="den_tv:GREEN" }
+Switch DenTVYELLOW								"Yellow"						(gDenTV) 		{ panasonictv="den_tv:YELLOW" }
+Switch DenTVBLUE								"Blue"							(gDenTV) 		{ panasonictv="den_tv:BLUE" }
+Switch DenTVVTOOLS								"VIERA tools"					(gDenTV) 		{ panasonictv="den_tv:VTOOLS" }
+Switch DenTVCANCEL								"Cancel / Exit"					(gDenTV) 		{ panasonictv="den_tv:CANCEL" }
+Switch DenTVSUBMENU								"Option"						(gDenTV) 		{ panasonictv="den_tv:OPTION" }
+Switch DenTVRETURN								"Return"						(gDenTV) 		{ panasonictv="den_tv:RETURN" }
+Switch DenTVENTER								"Control Center click / enter"	(gDenTV) 		{ panasonictv="den_tv:ENTER" }
+Switch DenTVRIGHT								"Control RIGHT"							(gDenTV) 		{ panasonictv="den_tv:RIGHT" }
+Switch DenTVLEFT								"Control LEFT"							(gDenTV) 		{ panasonictv="den_tv:LEFT" }
+Switch DenTVUP									"Control UP"							(gDenTV) 		{ panasonictv="den_tv:UP" }
+Switch DenTVDOWN								"Control DOWN"							(gDenTV) 		{ panasonictv="den_tv:DOWN" }
+Switch DenTV3D									"3D button"							(gDenTV) 		{ panasonictv="den_tv:3D" }
+Switch DenTVSD_CARD								"SD-card"							(gDenTV) 		{ panasonictv="den_tv:SD_CARD" }
+Switch DenTVDISP_MODE							"Display mode / Aspect ratio"							(gDenTV) 		{ panasonictv="den_tv:DISP_MODE" }
+Switch DenTVMENU								"Menu"							(gDenTV) 		{ panasonictv="den_tv:MENU" }
+Switch DenTVINTERNET							"VIERA connect"							(gDenTV) 		{ panasonictv="den_tv:INTERNET" }
+Switch DenTVVIERA_LINK							"VIERA link"							(gDenTV) 		{ panasonictv="den_tv:VIERA_LINK" }
+Switch DenTVEPG									"Guide / EPG"							(gDenTV) 		{ panasonictv="den_tv:EPG" }
+Switch DenTVTEXT								"Text / TTV"							(gDenTV) 		{ panasonictv="den_tv:TEXT" }
+Switch DenTVSTTL								"STTL / Subtitles"							(gDenTV) 		{ panasonictv="den_tv:STTL" }
+Switch DenTVINFO								"Info"							(gDenTV) 		{ panasonictv="den_tv:INFO" }
+Switch DenTVINDEX								"TTV index"							(gDenTV) 		{ panasonictv="den_tv:INDEX" }
+Switch DenTVHOLD								"TTV hold / image freeze"			(gDenTV) 		{ panasonictv="den_tv:HOLD" }
+Switch DenTVR_TUNE								"Last view"							(gDenTV) 		{ panasonictv="den_tv:RTUNE" }
+Switch DenTVPOWER								"Power off"							(gDenTV) 		{ panasonictv="den_tv:POWER" }
+Switch DenTVREW									"Rewind"							(gDenTV) 		{ panasonictv="den_tv:REW" }
+Switch DenTVPLAY								"Play"							(gDenTV) 		{ panasonictv="den_tv:PLAY" }
+Switch DenTVFF									"Fast forward"							(gDenTV) 		{ panasonictv="den_tv:FF" }
+Switch DenTVSKIP_PREV							"Skip previous"							(gDenTV) 		{ panasonictv="den_tv:SKIP_PREV" }
+Switch DenTVPAUSE								"Pause"							(gDenTV) 		{ panasonictv="den_tv:PAUSE" }
+Switch DenTVSKIP_NEXT							"Skip next"							(gDenTV) 		{ panasonictv="den_tv:SKIP_NEXT" }
+Switch DenTVSTOP								"Stop"							(gDenTV) 		{ panasonictv="den_tv:STOP" }
+Switch DenTVREC									"Record"							(gDenTV) 		{ panasonictv="den_tv:REC" }
+Switch DenTVD1									"Digit 1"							(gDenTV) 		{ panasonictv="den_tv:D1" }
+Switch DenTVD2									"Digit 2"							(gDenTV) 		{ panasonictv="den_tv:D2" }
+Switch DenTVD3									"Digit 3"							(gDenTV) 		{ panasonictv="den_tv:D3" }
+Switch DenTVD4									"Digit 4"							(gDenTV) 		{ panasonictv="den_tv:D4" }
+Switch DenTVD5									"Digit 5"							(gDenTV) 		{ panasonictv="den_tv:D5" }
+Switch DenTVD6									"Digit 6"							(gDenTV) 		{ panasonictv="den_tv:D6" }
+Switch DenTVD7									"Digit 7"							(gDenTV) 		{ panasonictv="den_tv:D7" }
+Switch DenTVD8									"Digit 8"							(gDenTV) 		{ panasonictv="den_tv:D8" }
+Switch DenTVD9									"Digit 9"							(gDenTV) 		{ panasonictv="den_tv:D9" }
+Switch DenTVD0									"Digit 0"							(gDenTV) 		{ panasonictv="den_tv:D0" }
+Switch DenTVP_NR	"P-NR (Noise reduction)"							(gDenTV) 		{ panasonictv="den_tv:P_NR" }
+Switch DenTVHDMI1	"Switch to HDMI input 1"						(gDenTV) 		{ panasonictv="den_tv:HDMI1"}
+Switch DenTVHDMI2	"Switch to HDMI input 2"						(gDenTV) 		{ panasonictv="den_tv:HDMI2"}
+Switch DenTVHDMI3	"Switch to HDMI input 3"						(gDenTV) 		{ panasonictv="den_tv:HDMI3"}
+Switch DenTVHDMI4	"Switch to HDMI input 4"						(gDenTV) 		{ panasonictv="den_tv:HDMI4" }
+
+
+
+
+

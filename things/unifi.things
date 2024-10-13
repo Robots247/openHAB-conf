@@ -1,0 +1,5 @@
+Bridge unifi:controller:PikasPlace "Pikas UniFi Controller" [ host="10.0.0.4", username="housebrain", password="Housebrain8020", unifios="true", refresh=20 ] {
+	Thing wirelessClient AnthonysPixel "Anthony's Pixel" [ cid="40:4E:36:88:CF:13", site="PikasPlace", considerHome=400 ]
+    Thing wirelessClient ShannonsIPhone "Shannon's Iphone" [ cid="84:ad:8d:97:9c:08", site="PikasPlace", considerHome=400 ]
+    Thing wirelessClient DenTV "DEN TV" [cid="c0:d9:62:f6:70:52", site="PikasPlace", considerHome=180 ]
+}

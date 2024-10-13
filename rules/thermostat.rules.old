@@ -1,0 +1,247 @@
+val String filename = "thermostat rules"
+var Timer RHP_timer = null
+//var Number cur_temp = LRMS_Temp.state
+val Number hysteresis = 0.5
+
+/*//CFH rules
+	//CFH1 High Temp
+	rule "Call For High Heat"
+	when	
+		Item ZV changed from OFF to ON 
+	then 
+		if (CFH1.state = OFF) {
+		CFH1.sendCommand(ON)
+		logInfo(filename, "High Temperature Call For Heat, Activating CFH1")	 
+		}
+		else {
+		CFH1.sendCommand(OFF)
+		logInfo(filename, "CFH Satisfied, Deactivating CFH1")
+		}
+	end
+	//CFH2 Low temp radiant
+	rule "Call For Low Radiant Heat"
+	when	
+		Item RHP changed from OFF to ON
+	then 
+		if (CFH2.state = OFF) {
+		CFH2.sendCommand(ON)
+		logInfo(filename, "Radiant Call For Heat, Activating CFH2")	 
+		}
+	end
+//Pumping Rules
+	//turn OFF Radiant Pump when radiant CFH=on
+	rule "Radiant Pump OFF"
+	when	
+		Item RHZV changed from ON to OFF
+	then 
+		if(RHP.state = ON) {
+		RHP.sendCommand(OFF)
+		logInfo(filename, "RHP changed from on to off")
+		}
+	end
+	//turn ON Radiant Pump when no CFH
+	rule "Radiant Pump ON"
+	when	
+		Item RHZV changed from OFF to ON
+	then
+		logInfo(filename, "Radiant Heat Activated, Starting 30 second pump delay")
+		RHP_timer = createTimer(now.plusSeconds(30))[
+		RHP.sendCommand(ON) ]
+		logInfo(filename, "Delay over, RHP ON")
+	end
+	
+*/
+//Radiant Rules
+
+	rule "Den Radiant Thermostat"
+    when
+		Item DEN_Heating_TargetTemp changed or
+		Item DENMS_Temp changed 
+	then
+	var Den_Temp = (DENMS_Temp.state as QuantityType<Number>).doubleValue
+
+	if (Den_Temp < (DEN_Heating_TargetTemp.state as Number) - (hysteresis)) {
+			if (DENRH.state == OFF) {
+				sendCommand(DENRH, ON)
+				logInfo(filename, "Executing 'DEN Heating started' rule for DEN")
+				}
+		}	
+		else {
+			sendCommand(DENRH, OFF)
+			logInfo(filename, "Executing 'DEN Heating Ended' rule for DEN ")
+			}
+				
+	end		
+	
+	rule "Kitchen Radiant Thermostat"
+    when
+		Item KIT_Heating_TargetTemp changed or
+		Item KITMS_Temp changed 
+	then
+	
+	if (KITMS_Temp.state as QuantityType<Number> < (KIT_Heating_TargetTemp.state as QuantityType<Number>)) {
+			if (KITRH.state == OFF) {
+				sendCommand(KITRH, ON)
+				logInfo(filename, "Executing 'KIT Heating started' rule for KIT")
+				}
+			}
+		else {
+			sendCommand(KITRH, OFF)
+			logInfo(filename, "Executing 'KIT Heating Ended' rule for KIT ")
+			}	
+	end		
+
+		rule "Master Bath Radiant Thermostat"
+    when
+		Item MBa_Heating_TargetTemp changed or
+		Item GAMS_Temp changed 
+	then
+	
+	if ((GAMS_Temp.state as QuantityType<Number>) < ((MBa_Heating_TargetTemp.state as QuantityType<Number>))) {
+			if (MBaRH.state == OFF) {
+				sendCommand(MBaRH, ON)
+				logInfo(filename, "Executing 'MBa Heating started' rule for MBa")
+				}
+			}
+		else {
+			sendCommand(MBaRH, OFF)
+			logInfo(filename, "Executing 'MBa Heating Ended' rule for MBa ")
+			}	
+	end		
+
+		rule "Master Bedroom Radiant Thermostat"
+    when
+		Item MBe_Heating_TargetTemp changed or
+		Item GAMS_Temp changed 
+	then
+	
+	if ((GAMS_Temp.state as QuantityType<Number>) < ((MBr_Heating_TargetTemp.state as QuantityType<Number>))) {
+			if (MBrRH.state == OFF) {
+				sendCommand(MBrRH, ON)
+				logInfo(filename, "Executing 'MBr Heating started' rule for MBr")
+				}
+			}
+		else {
+			sendCommand(MBrRH, OFF)
+			logInfo(filename, "Executing 'MBr Heating Ended' rule for MBr ")
+			}	
+	end		
+
+
+// High Temp Rules
+
+rule "Living Room CFH Thermostat"
+    when
+		Item LR_Heating_TargetTemp changed or
+		Item LRMS_Temp changed 
+	then
+	var LR_TEMP = (LRMS_Temp.state as QuantityType<Number>).doubleValue
+		if (LR_TEMP < (LR_Heating_TargetTemp.state as Number) - (hysteresis)) {
+			if (LRZV.state == OFF) {
+				sendCommand(LRZV, ON)
+				logInfo(filename, "Executing 'LR Heating started' rule for Living Room")
+				}
+			
+		else {
+			sendCommand(LRZV, OFF)
+			logInfo(filename, "Executing 'LR Heating Ended' rule for Living room")
+			}
+		}	
+end
+
+
+
+rule "Guest BedRoom CFH Thermostat"
+    when
+		Item GB_Heating_TargetTemp changed or
+		Item GBrMS_Temp changed 
+	then
+	var GBR_TEMP = (GBrMS_Temp.state as QuantityType<Number>).doubleValue
+	if (GBR_TEMP < ((GB_Heating_TargetTemp.state as Number) - (hysteresis))) {
+			if (GBrZV.state == OFF) {
+				sendCommand(GBrZV, ON)
+				logInfo(filename, "Executing 'Heating started' rule for Guest Bed Room")
+				}
+			}
+		else {
+			sendCommand(GBrZV, OFF)
+			logInfo(filename, "Executing 'GBr Heating Ended' rule for Guest Bed Room")
+			}
+end
+
+rule "MudRoom CFH Thermostat"
+    when
+		Item MR_Heating_TargetTemp changed or
+		Item MRMS_Temp changed 
+	then
+		var MR_Temp = (MRMS_Temp.state as QuantityType<Number>).doubleValue
+	if (MR_Temp < ((MR_Heating_TargetTemp.state as Number) - (hysteresis+2))) {
+			if (MRZV.state == OFF) {
+				sendCommand(MRZV, ON)
+				logInfo(filename, "Executing 'Heating started' rule for Mud Room")
+				}
+			}
+		else {
+			sendCommand(MRZV, OFF)
+			logInfo(filename, "Executing 'LR Heating Ended' rule for Living room")
+			}
+end
+rule "Basement CFH Thermostat"
+    when
+		Item BMT_Heating_TargetTemp changed or
+		Item BMTMS_Temp changed 
+	then
+	var BMT_Temp = (BMTBrMS_Temp.state as QuantityType<Number>).doubleValue
+	if ( BMT_Temp < (BMT_Heating_TargetTemp.state as Number) - (hysteresis)) {
+			if (BMTZV.state == OFF) {
+				sendCommand(BMTZV, ON)
+				logInfo(filename, "Executing 'BMT Heating started' rule for Basement Bedroom ")
+				}
+			}
+		else {
+			sendCommand(BMTZV, OFF)
+			logInfo(filename, "Executing 'BMT Heating Ended' rule for Basement Bedroom")
+			}
+end 
+
+/*rule "Mud Room CFH Thermostat"
+    when
+		Item MR_Heating_TargetTemp changed or
+		Item <MRMS_Temp changed 
+	then
+	
+	if ((<MRMS_Temp.state as QuantityType<Number>) < (<MR_Heating_TargetTemp.state as QuantityType<Number>) - (hysteresis)) {
+			if (<MRZV.state == OFF) {
+				sendCommand(<MRZV, ON)
+				logInfo(filename, "Executing '<MR Heating started' rule for Living Room")
+				}
+			}
+		else {
+			sendCommand(<MRZV, OFF)
+			logInfo(filename, "Executing '<MR Heating Ended' rule for Mud room")
+			}
+end 
+
+
+
+
+
+rule "Guest Bed Room CFH Thermostat"
+    when
+		Item GB_Heating_TargetTemp changed or
+		Item <GBMS_Temp changed 
+	then
+	
+	if ((<GBMS_Temp.state as Number) < (<GB_Heating_TargetTemp.state as Number) - (hysteresis)) {
+			if (<GBZV.state == OFF) {
+				sendCommand(<GBZV, ON)
+				logInfo(filename, "Executing '<GB Heating started' rule for Living Room")
+				}
+			}
+		else {
+			sendCommand(<GBZV, OFF)
+			logInfo(filename, "Executing '<GB Heating Ended' rule for Guest Bed Zone")
+			}
+end   
+
+*/

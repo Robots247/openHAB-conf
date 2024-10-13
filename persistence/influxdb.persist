@@ -1,0 +1,88 @@
+// persistence strategies have a name and a definition and are referred to in the "Items" section
+Strategies {
+	everyHour 	: "0 0 * * * ?"
+	everyDay 	: "0 0 0 * * ?"
+	everyTenMins: "0 */10 * * * ?"
+	everyMinute : "0 * * * * ?"
+
+	// if no strategy is specified for an item entry below, the default list will be used
+	default = everyChange
+}
+
+/* 
+ * Each line in this section defines for which item(s) which strategy(ies) should be applied.
+ * You can list single items, use "*" for all items or "groupitem*" for all members of a group
+ * item (excl. the item itself).
+ */
+Items { 
+
+//heating system persistence 
+		gHeating_Targets* : strategy = everyChange, everyTenMins
+		gWeather* : strategy = everyHour
+		Heating* : strategy = everyChange
+		ZV* : strategy = everyChange, everyTenMins
+		RHZV* : strategy = everyChange, everyTenMins
+        gLochinvar_temperatures* : strategy = everyChange
+		Temperatures* : strategy = everyMinute
+		gLochinvar_setpoints* : strategy = everyChange, everyTenMins
+		Weather_Current_Temperature : strategy = everyTenMins
+
+
+        Boiler_Firing_Rate : strategy = everyUpdate
+		zoneSettingsTimes* : strategy = everyChange
+        zoneSettingsSetpoints* : strategy = everyChange
+        ZoneSetpoints* : strategy = everyMinute, everyChange
+        DeviceSetpoints* : strategy = everyMinute, everyChange
+        swSystemPump : strategy = everyMinute, everyChange
+        swRHPump : strategy = everyMinute, everyChange
+        DeviceValves* : strategy = everyMinute, everyChange
+        DeviceTemps* : strategy = everyMinute, everyChange
+		Lochinvar_DeltaT : strategy = everyChange
+//lighting
+		gBMT_Lighting* : strategy = everyChange
+		gBMTBr_Lighting* : strategy = everyChange
+		gLR_Lighting* : strategy = everyChange
+		gBMTHW_Lighting* : strategy = everyChange
+		gDEN_Lighting* : strategy = everyChange
+		gDining_Lighting* : strategy = everyChange
+		gMBr_Lighting* : strategy = everyChange
+		gREC_Lighting* : strategy = everyChange
+		gMBe_Lighting* : strategy = everyChange
+
+		LR_FPDimmer : strategy = everyChange
+
+		
+		
+		
+        
+ 		Heating_Mode : strategy = everyChange
+		gMS_Batteries* : strategy = everyChange 
+		gMS_Motion* : strategy = everyChange 
+		gMS_Tampers* : strategy = everyChange 
+		gMS_Humidity* : strategy = everyChange 
+		gMS_Temps* : strategy = everyChange 
+		gMS_Luminances* : strategy = everyChange 	
+		gMS_UV_LVL* : strategy = everyChange 		
+		gThermostats* : strategy = everyChange 
+		gHeating_Presets* :strategy = everyChange
+		gHousebrain* :strategy = everyMinute
+		
+		
+//Presence Tracking
+		gPresent_ANY* : strategy = everyChange
+		gAnthonyPresent : strategy = everyChange
+		gShannonPresent : strategy = everyChange
+		gPresent_ANY : strategy = everyChange
+		ShannonsIphoneUnifiRssi : strategy = everyChange
+		AnthonysPixelUnifiRssi : strategy = everyChange
+		AnthonysPixelUnifiAp : strategy = everyChange
+		ShannonsIphoneUnifiAp : strategy = everyChange
+		
+//Items to graph
+		pGraph*		: strategy = everyChange
+
+    	     	 
+}		
+		
+
+

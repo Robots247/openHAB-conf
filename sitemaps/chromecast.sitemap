@@ -1,0 +1,7 @@
+sitemap chromecast label="Main Menu"
+{
+    Frame {
+        Default item=Music
+        Slider item=Volume icon=soundvolume
+    }
+}

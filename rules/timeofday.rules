@@ -1,0 +1,192 @@
+val logName = "Time Of Day"
+val test = "test"
+
+val String filename = "astro.rules"
+
+rule "OpenHAB system started - astro"
+when 
+  System started
+then
+  val sunrise = ZonedDateTime.parse(Sunrise_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  val sunset = ZonedDateTime.parse(Sunset_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  val now = now.zonedDateTime.toInstant.toEpochMilli
+  val nightState = if (now.isAfter(sunset.toInstant.toEpochMilli) || now.isBefore(sunrise.toInstant.toEpochMilli)) {
+    OFF
+  } else {
+    ON
+  }
+  Night_State.postUpdate(nightState)
+end
+
+/*
+rule "OpenHAB system started - astro OLD"
+when
+    System started
+then
+    createTimer(now.plusSeconds(180)) [|
+        logInfo(filename, "--> astro init")
+        if (now.isAfter((Sunset_Time.state as DateTimeType).zonedDateTime.toInstant.toEpochMilli ) ||
+            now.isBefore((Sunrise_Time.state as DateTimeType).zonedDateTime.toInstant.toEpochMilli )
+        ) {
+            Night_State.postUpdate(ON)
+        } else {
+            Night_State.postUpdate(OFF)
+        }
+    ]
+end
+*/
+rule "Update Night_State"
+when
+    Item Sun_Elevation changed
+then
+// make night state occur eariler.  Change >0 to >5
+    if (Sun_Elevation.state > 5 | "°" ) {
+        if (Night_State.state != OFF){
+
+           Night_State.sendCommand(OFF)
+           logDebug("rule.Update Night_State", "Sun Elevation is > 0 night state OFF")
+        }
+        
+    } else {
+        if (Night_State.state != ON){ 
+          Night_State.sendCommand(ON)
+          logDebug("rule.Update Night_State", "Sun Elevation is < 0 night state ON")
+
+          }
+    } 
+end
+/*
+rule "Update Night_State old"
+when
+    Item Sun_Elevation changed
+then
+    if (Sun_Elevation.state > 0 | "°" ) {
+        if (Night_State.state != OFF){
+
+           Night_State.sendCommand(OFF)
+           logDebug("rule.Update Night_State", "Sun Elevation is > 0 night state OFF")
+        }
+        
+    } else {
+        if (Night_State.state != ON){ 
+          Night_State.sendCommand(ON)
+          logDebug("rule.Update Night_State", "Sun Elevation is < 0 night state ON")
+
+          }
+    } 
+end
+*/
+
+
+
+
+
+rule "Calculate time of day state" 
+when
+  System started or // run at system start in case the time changed when OH was offline
+  Channel 'astro:sun:local:rise#event'    triggered START or
+  Channel 'astro:sun:local:set#event'     triggered START or
+  Channel 'astro:sun:set120:set#event'  triggered START or
+  Item gPresent_ANY changed from OFF to ON or
+  Time cron "0 1 0 * * ? *" or // one minute after midnight so give Astro time to calculate the new day's times
+  Time cron "0 0 6 * * ? *" or
+  Time cron "0 0 21 * * ? *" or
+  Time cron "0 0 0/1 1/1 * ? *"
+
+  //Time cron "0 0/15 * 1/1 * ? *"
+then
+
+
+ 
+  logInfo(logName, "Calculating time of day...")
+
+  // Calculate the times for the static tods and populate the associated Items
+  // Update when changing static times
+  // Jump to tomorrow and subtract to avoid problems at the change over to/from DST
+  val morning_start = now.withTimeAtStartOfDay.plusHours(7)
+
+      logDebug(test, "morning start" + morning_start)
+
+  vMorning_Time.postUpdate(morning_start.toString) 
+    logDebug(test, "morning time" + vMorning_Time)
+
+  val night_start = now.withTimeAtStartOfDay.minusHours(3) 
+  	    logDebug(test, "Night Start time" + night_start) 
+
+  vNight_Time.postUpdate(night_start.toString)
+  	    logDebug(test, "Night Start time variable updated to " + vNight_Time.state.toString)
+  
+  val vmidnight = now.withTimeAtStartOfDay
+
+  val vmidnighttomorrow = now.withTimeAtStartOfDay.plusDays(1)  
+
+  val vlatenight = now.withTimeAtStartOfDay.plusHours(2)
+
+  val bed_start = now.withTimeAtStartOfDay.plusHours(23)
+    	logDebug(test, "Bedtime Start time" + bed_start)
+
+  vBed_Time.postUpdate(bed_start.toString)
+  		   logDebug(test, "Bedtime Start time variable updated to " + vBed_Time.state.toString)
+
+
+  // Convert the Astro Items to Joda DateTime
+  val day_start = new DateTime(Sunrise_Time.state.toString) 
+    	    logDebug(test, "sunrise updated and parsed to "+ day_start)
+
+  val evening_start = new DateTime(Sunset_Time.state.toString)
+    logDebug(test, "evening_start updated and parsed to " + evening_start)
+  
+  val afternoon_start = new DateTime(vAfternoon_Time.state.toString)
+    logDebug(test, "afternoon updated and parsed to " + afternoon_start)
+  
+  
+  logDebug(test, "morning start" + day_start)
+  logDebug(test, "evening start" + evening_start)
+  logDebug(test, "afternoon start" + afternoon_start)
+  logDebug(test, "night start" + night_start)
+logDebug(test, "vmidnight" + vmidnight)
+logDebug(test, "vlatenight "+ vlatenight)
+
+  logDebug(test, "Starting switch case")
+  // Calculate the current time of day
+
+  var curr = "UNKNOWN"
+  switch now {
+  	case now.isAfter(morning_start)   && now.isBefore(day_start):       curr = "MORNING"
+  	case now.isAfter(day_start)       && now.isBefore(afternoon_start): curr = "DAY"
+  	case now.isAfter(afternoon_start) && now.isBefore(evening_start):   curr = "AFTERNOON"
+  	case now.isAfter(evening_start)   && now.isBefore(night_start):     curr = "EVENING"
+  	case now.isAfter(night_start)     && now.isBefore(vmidnight):       curr = "NIGHT"
+    
+   
+    //next day 
+  	case now.isAfter(vmidnight)       && now.isBefore(vlatenight):   curr = "BED"
+    case now.isAfter(vlatenight)      && now.isBefore(morning_start): curr = "LateNight"
+    
+  }
+ 
+  // Publish the current state
+  logDebug(test, "curr is " + curr)
+  logInfo(test, "Calculated time of day is " + curr)
+  vTimeOfDay.sendCommand(curr)
+end
+
+
+  
+/*/ Examples for use of vTimeOfDay
+rule "Day time started"
+when
+  Item vTimeOfDay changed to "DAY" // does not work prior to OH 2.3 Release
+then
+  // do stuff when DAY starts
+end
+
+rule "Some rule"
+when
+    // some trigger
+then
+  if(vTimeOfDay.state != "BED") return;
+
+  // do stuff to do when it isn't BED time
+end 
+*/

@@ -1,0 +1,8 @@
+//Freeze ALARM SETUP
+Group:Switch:OR(ON, OFF) gFREEZE "Freeze Protection Active" (Heating, Alarms)  
+
+Switch FREEZE "FREEZE PROTECTION ENABLED" (Alarms) 
+Switch GA_FREEZE "Garage FREEZE PROTECTION Activated" (Alarms) 
+Switch MBr_FREEZE "MBr FREEZE PROTECTION ENABLED" (Alarms) 
+Switch MBa_FREEZE "MBa FREEZE PROTECTION ENABLED" (Alarms) 
+Switch GB_FREEZE "GB FREEZE PROTECTION ENABLED" (Alarms) 

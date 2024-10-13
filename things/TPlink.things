@@ -1,0 +1,18 @@
+tplinksmarthome:hs110:outlet1 "Upstairs Hallway Built-In Lamp Outlet" @ "Upstairs Hallway"   [ ipAddress="192.168.4.41", refresh=60 ]
+tplinksmarthome:hs110:outlet2 "Living Room Fireplace Garland " @ "Living Room" [ipAddress="192.168.4.156", refresh=60 ]
+tplinksmarthome:hs110:outlet3 "Dining Room Built in Outlet" @ "Dining Room" [ipAddress="192.168.4.235", refresh=60 ]
+tplinksmarthome:hs110:outlet4 "Front Porch Christmas Lights outlet" @ "Front Porch" [ipAddress="192.168.4.162", refresh=60 ]
+tplinksmarthome:hs110:outlet5 "Den Fireplace G40 Bulbs" @ "Den" [ipAddress="192.168.4.150", refresh=60 ] 
+tplinksmarthome:hs110:outlet6 "Garage Workbench Light" @ "Garage" [ipAddress="192.168.4.173", refresh=60 ] 
+tplinksmarthome:hs110:outlet7 "Front Porch Planter Christmas Lights" @ "Front Porch" [ ipAddress="192.168.4.170", refresh=60 ]
+
+
+tplinksmarthome:hs105:outlet1 "Garage Amp Outlet" @ "Garage" [ ipAddress="192.168.4.234", refresh=60 ]
+tplinksmarthome:hs105:outlet2 "Living Room Tree Outlet" @ "Living room" [ ipAddress="192.168.4.37", refresh=120 ]
+tplinksmarthome:hs105:outlet3 "Back Porch Outlet" @ "Back Porch" [ ipAddress="192.168.4.191", refresh=60 ]
+tplinksmarthome:hs105:outlet4 "Den Fireplace Twinkle Lights" @ "Den" [ ipAddress="192.168.4.52", refresh=60 ]
+tplinksmarthome:hs105:outlet5 "Foyer Lamp Outlet" @ "Foyer" [ ipAddress="192.168.4.238", refresh=60 ]
+tplinksmarthome:hs105:outlet6 "Den Christmas Tree Outlet" @ "Den" [ ipAddress="192.168.4.10", refresh=60 ]
+
+
+

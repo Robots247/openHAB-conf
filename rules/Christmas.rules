@@ -1,0 +1,40 @@
+rule "Christmas Lights"
+when
+Item Night_State changed from OFF to ON    
+then
+if (gChristmasLighting.state != ON){
+    gChristmasLighting.sendCommand(ON)
+    logInfo("rule.christmas lights", "HO HO HO Merry Christmas!  Turning on the christmas lights!")
+    }
+    
+end
+
+rule "Christmas Lights Off"
+when
+Time cron "0 0 2 ? * * *"
+    //removed vtime of day to make lights turn off at 2:00AM every night. 
+    //Item vTimeOfDay changed 
+then
+    //if (vTimeOfDay.state == "BED"){
+        if (gChristmasLighting != OFF){
+            gChristmasLighting.sendCommand(OFF)
+            logInfo("rule.christmas lights off", "Twas the night before christmas, turning off the lights")
+        }
+    //}
+    else(logDebug("rule.christmas lights off", "Christmas Lights not turned off because it is not bedtime yet"))
+end
+
+rule "Christmas Lightswitch on"
+when
+    Item ChristmasLights changed from OFF to ON
+then
+    gChristmasLighting.sendCommand(ON)
+end
+
+rule "Christmas Lightswitch off"
+when
+    Item ChristmasLights changed from ON to OFF
+then
+    gChristmasLighting.sendCommand(OFF)
+end
+  

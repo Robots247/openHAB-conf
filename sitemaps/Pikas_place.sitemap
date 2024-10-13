@@ -1,0 +1,301 @@
+ /* EXAMPLE:
+ 
+  Text item=sensorOutsideTemp
+        Text item=sensorLivingTemp
+        Text item=harmonyActivity visibility=[harmonyActivity!="PowerOff"]
+        Text item=PlexTVTitle visibility=[PlexTVStatus!="Stopped"]
+	Default item=DN_Sonos_Control visibility=[DN_Sonos_State=="PLAYING"]
+        Text item=DN_Sonos_CurrentTitle visibility=[DN_Sonos_State=="PLAYING"]
+        Text item=DN_Sonos_CurrentArtist visibility=[DN_Sonos_State=="PLAYING"]
+        Text item=androidApp visibility=[harmonyActivity=="Movies / TV"]
+
+        //Some other items?
+
+    }
+
+// Rooms - you can nest information inside the first frame
+	Frame label="Rooms"{
+
+////Living Room
+		Frame label="Living Room" icon="living"{
+ 			Frame label="Sonos" {
+				Default item=LV_Sonos_Control
+				Slider item=denonMainZoneVolume
+				Text item=LV_Sonos_CurrentTitle
+				Text item=LV_Sonos_CurrentArtist
+				Text item=LV_Sonos_CurrentAlbum
+			}
+                       Frame label="Lights"{
+				Switch item=lightLiving1Pwr
+				Switch item=lightLiving2Pwr
+				Slider item=lightLiving1Tmp
+				Slider item=lightLiving2Tmp
+				Slider item=lightLiving1Brt
+				Slider item=lightLiving2Brt
+				Switch item=lightLivingTV1Pwr
+				Switch item=lightLivingTV2Pwr
+				Slider item=lightLivingTV1Tmp
+				Slider item=lightLivingTV2Tmp
+				Slider item=lightLivingTV1Brt
+				Slider item=lightLivingTV2Brt
+			}
+			Frame label="Environment" {
+				Text item=sensorLivingTemp
+				Text item=sensorLivingHumidity
+				Text item=sensorLivingPIR
+				Text item=sensorWindowLiving1
+				Text item=sensorWindowLiving2
+				Text item=sensorWindowLiving3
+				Text item=sensorWindowLiving4
+			}
+                 }
+         }
+
+
+//Zone 2
+    Frame label="Zone 2"{
+        //Zone 2 items
+    }
+
+//etc
+
+
+sitemap pika_s_place label="Pika's Place" {
+    Frame {
+        Group item=Den
+        Group item=Garage
+        Group item=LivingRoom
+        Group item=Kitchen
+        Group item=Foyer
+        Group item=MudRoom
+        Group item=Patio
+        Group item=FrontPorch
+        Group item=GuestBedroom
+        Group item=GuestBathroom
+        Group item=MasterBedroom
+        Group item=MasterBathroom
+        Group item=Basement
+        Group item=BasementBedroom
+        Group item=Boiler
+        Group item=Attic
+        Group item=Crawlspace
+        Group item=LaundryRoom
+        Group item=BasementBathroom
+        Group item=Backyard
+    }
+
+    Frame {
+        Frame label="Light" icon="light" {
+            Default item=Garage_Light label="Garage"
+            Default item=LivingRoom_Light label="Living Room"
+            Default item=Kitchen_Light label="Kitchen"
+            Default item=Patio_Light label="Patio"
+            Default item=MasterBedroom_Light label="Master Bedroom"
+            Default item=Basement_Light label="Basement"
+            Default item=Boiler_Light label="Boiler Room"
+            Default item=Attic_Light label="Attic"
+            Default item=LaundryRoom_Light label="Laundry Room"
+            Default item=Backyard_Light label="Backyard"
+        }
+
+        Frame label="Temperature" icon="temperature" {
+            Default item=Garage_Temperature label="Garage"
+            Default item=LivingRoom_Temperature label="Living Room"
+        }
+
+        Frame label="Heating" icon="heating" {
+            Default item=Garage_Heating label="Garage"
+            Default item=LivingRoom_Heating label="Living Room"
+        }
+
+        Frame label="Humidity" icon="humidity" {
+            Default item=Garage_Humidity label="Garage"
+            Default item=LivingRoom_Humidity label="Living Room"
+        }
+
+        Frame label="Door" icon="door" {
+            Default item=Garage_Door label="Garage"
+        }
+
+        Frame label="Motion Sensor" icon="motion" {
+            Default item=Garage_Motion label="Garage"
+            Default item=LivingRoom_Motion label="Living Room"
+        }
+
+        Frame label="Fan" icon="fan_ceiling" {
+            Default item=Garage_Fan label="Garage"
+        }
+
+        Frame label="Window" icon="window" {
+            Default item=LivingRoom_Window label="Living Room"
+        }
+    }
+}
+}*/
+sitemap Pikas_Place label="Pika's Place"{
+
+	Text label="Currently"{
+    	Frame label="Outdoor Sensors" {
+    	Text item=Outdoor_Temperature 	label="Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=MS_Temps_AVG 	label="Average Room Temperatures[%1$.1f°F]"	icon="temperature"
+		}
+	}	
+
+	Text label="heating"{
+	 	Frame label="Outdoor Sensors" {
+    	Text item=WU_Current_Conditions label="Current Conditions [%s]" icon="weather"
+    	Text item=WUn_ForecastToday_ForecastConditions label="Forcasted Conditions [%s]" icon="weather"
+
+    	Text item=Outdoor_Temperature 	label="Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=WU_Current_Temp 	label="Weather Underground Current Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=gOutdoor_Sensors_AVG 	label="Calculated average Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=WU_ForecastToday_MaximumTemperature 	label="Forcasted High Temperature Today [%1$.1f°F]"	icon="temperature"
+    	Text item=WU_ForecastToday_MinimumTemperature 	label="Forcasted Low Temperature Today [%1$.1f°F]"	icon="temperature"
+
+  		}
+  	
+  		Frame label="Forcast Tomorrow" {
+    	Text item=ForecastDay2_High 	label="Forcasted High Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=ForecastDay2_Low 	label="Forcasted Low Temperature [%1$.1f°F]"	icon="temperature"
+
+    	
+    }
+    
+   		Frame label="Heating Mode Quick Setpoint Selection"{
+	Selection item=Heating_Mode label="Heating Mode []" mappings=[NORMAL="Normal",
+	    PARTY="Party",
+	    SICKDAY="Sick day at home",
+	    WEEKEND_TRIP="Gone for the weekend",
+	    AWAY="Adventure Time!",
+	    OFF_SUMMER="Off (Summer standby)"
+		]
+	}
+	
+  		         
+   	Frame label="Room Temperatures" {
+    	Text item=MS_Temps_AVG 	label="Average Room Temperatures[%1$.1f°F]"	icon="temperature"
+    	Text item=gHeating_Setpoint_AVG 	label="Average Heating Setpoint [%1$.1f°F]"	icon="temperature"
+    	Text item=DENMS_Temp 	label="Den Temperature [%1f °F]" icon="temperature"
+    	Text item=MRMS_Temp 	label="Mud Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=LRMS_Temp 	label="Living Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=MBaMS_Temp 	label="Master Bathroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=MBrMS_Temp 	label="Master Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BMTMS_Temp 	label="Basement Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BMTBrMS_Temp	label="Basement Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=GBrMS_Temp 	label="Guest Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BoilMS_Temp 	label="Boiler Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=GAMS_Temp 	label="Garage Temperature [%1$.1f°F]"	icon="temperature"
+
+    	
+    	
+	}
+	Frame label="Room Setpoints" {
+        Setpoint item=MR_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_TargetTemp minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_TargetTemp minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_TargetTemp minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=GB_Heating_TargetTemp minValue=60 maxValue=80 step=1
+    }	
+	     	
+   Frame label="Radiator Zone Valves" {
+    	Switch item=GAZV 	label="Garage Zone Valve"	icon="radiator"
+   		Switch item=MRZV 	label="Mud Room Zone Valve"	icon="radiator"
+    	Switch item=LRZV 	label="Living Room Zone Valve"	icon="radiator"
+    	Switch item=GBrZV 	label="Guest Bedroom Zone Valve"icon="radiator"
+    	Switch item=BMTZV 	label="Basement Zone Valve"	icon="radiator"
+  	} 
+   
+   	Frame label="Radiant Heating Zone Valves" {
+    	Switch item=DENRH 	label="Den Radiant Zone Valve"	icon="radiator"
+    	Switch item=KITRH 	label="Kitchen Radiant Zone Valve"	icon="radiator"
+    	Switch item=MBeRH 	label="Master Bed Room Radiant Zone Valve"	icon="radiator"
+    	Switch item=MBaRH 	label="Master Bathroom Radiant Zone Valve"	icon="radiator"
+  	} 
+	Frame label="CFH indicators" {
+		Switch item=CFH2 label="CFH 2 low Temp" icon=radiator
+		Switch item=CFH1 label="CFH 1 High Temp" icon=radiator
+	}	
+   
+	Frame label="Pumps" {
+    	Switch item=RHP 	label="Radiant Heat Pump"	icon="PUMP"
+    	Switch item=System_Pump_indicator 	label="System Pump"	icon="PUMP"
+    	}
+    	Frame {  	
+    	Switch item=CH_Pump 	label="Boiler Pump"	icon="PUMP"
+    	Switch item=DHW_Pump_indicator 	label="DHW Pump"	icon="PUMP"  
+    	}
+    	Frame {
+    	Text item=DHW_Recirc__Temp label="DHW Recirculation Temperature" 
+    	Switch item=DHW_Recirc_Pump_indicator 	label="DHW Recirc Pump"	icon="PUMP"
+    	}
+}
+
+Text label="lighting" {
+	 Frame label="Outdoors" {
+			Switch item=ODSWs	label="ALL Outdoor Lights" icon="switch"
+			Default item=Driveway_Switch 	label="DriveWay Lighting"	icon="switch"
+			Default item=BYSW 	label="BackYard Lighting"	icon="switch"
+			Default item=BPSW 	label="Back Porch Switch"	icon="switch"
+		
+	}
+   
+	Frame label="Foyer" {
+			Slider item=gEntryLights label="Foyer Lights" icon="slider"
+	}
+	Frame label="Den" {
+			Slider item=DenLights label="All Den Lights" icon="slider"
+			Slider item=DenCans label="All Den Can Lights" icon="slider"
+			Slider item=DenCanColors label="All Den Colors" icon="colorwheel"
+			Default item=DenAccDim label="Den Accent Ligthing"	icon="slider"
+			Default	 item=DenFPDim	label="Den Fireplace Lighting"	icon="slider"
+			Default item=DenCanColors label="LED Light Color" icon="colorwheel"
+			Default item=DenCanLgts label="Den Can Lights" icon="dimmer"
+			Group item=gDenCans label="Den Can light Individual control"
+
+	}
+	Frame label="Living Room" {
+			Slider item=gLRLights label="All Living Room Lighting Brightness" icon="slider"
+			Slider item=gLRColor label="All Living Room Colors" icon="colorwheel"
+			Default item=gLRColor label="Individual Living Room Light Colors" icon="colorwheel"
+	}
+	Frame label="Bedrooms" {
+			Slider item=BasementBedroomDim label="Basement Bedroom Lights" icon="slider"
+	}
+}
+
+
+Frame label="Rooms"{
+
+////Den
+		Frame label="Den" icon="living"{
+ 			Frame label="Lights" {
+				Slider item=DenLights label="All Den Lights" icon="slider"
+				Slider item=DenCans label="All Den Can Lights" icon="slider"
+				Slider item=DenCanColors label="All Den Colors" icon="colorwheel"
+				Default item=DenAccDim label="Den Accent Ligthing"	icon="slider"
+				Default	 item=DenFPDim	label="Den Fireplace Lighting"	icon="slider"
+				Default item=DenCanColors label="LED Light Color" icon="colorwheel"
+				Default item=DenCanLgts label="Den Can Lights" icon="dimmer"
+				Group item=gDenCans label="Den Can light Individual control"
+			}
+             Frame label="Audio/video"{
+                Slider item=DenMiniVolume icon=soundvolume
+				Default item=DenMini
+				
+			}
+			Frame label="Environment" {
+				  	Text item=DENMS_Temp 	label="Den Temperature [%1f °F]" icon="temperature"
+				  	Switch item=DENRH 	label="Den Radiant Zone Valve"	icon="radiator"
+				  	Setpoint item=DEN_Heating_TargetTemp minValue=60 maxValue=80 step=1
+			}
+        }
+ 
+ 	}
+ }
+ 
+                                  
+                 

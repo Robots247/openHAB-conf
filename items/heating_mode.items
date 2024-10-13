@@ -1,0 +1,128 @@
+Group gThermostats "Thermostats" (gHeating)
+Group gSetpointAVGs "Averages" (gHeating)
+Group gEnergy_Consumption "Energy Consumption" <energy> 
+
+Group gHeating_Targets "Heating Targets" (setpoints)
+Group:Number:AVG gOutdoor_Sensors_AVG "Avg. Outdoor Temperature [%.1f °F]" (gSetpointAVGs)
+Group:Number:AVG gHeating_Setpoint_AVG "Average Heating Setpoint [%.1f °F]" (gSetpointAVGs) 
+Group:Number:AVG gHysteresisAvg "Average Hysteresis value [%.1f °F]" (gSetpointAVGs)
+
+//Thermostats for google
+Group gDen_Tstat "Den Thermostat" (gThermostats, gDen) [ "Fahrenheit", "HVAC", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gLR_Tstat "Living Room Thermostat" (gThermostats, gLR) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gKIT_Tstat "Kitchen Thermostat" (gThermostats, gKIT) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gGBr_Tstat "Guest Bedroom Thermostat" (gThermostats, gGBr) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gBMT_Tstat "Basement Thermostat" (gThermostats, gBMT) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gMBa_Tstat "Master Bathroom Thermostat" (gThermostats, gMBa) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gMBe_Tstat "Master Bedroom Thermostat" (gThermostats, gMBe) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gMR_Tstat "Mud Room Thermostat" (gThermostats, gMR) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+Group gGA_Tstat "Garage Thermostat" (gThermostats, gGa) [ "Fahrenheit", "HVAC"] {ga="Thermostat" [ useFahrenheit=true ]}
+
+//Thermostats for apple
+Group gDen_Tstat_APPLE "Den Thermostat" (gDen) ["Thermostat", "Fahrenheit", "HVAC", "HVAC"] {homekit="Thermostat" }
+Group gLR_Tstat_APPLE "Living Room Thermostat" (gLR) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gKIT_Tstat_APPLE "Kitchen Thermostat" (gKIT) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gGBr_Tstat_APPLE "Guest Bedroom Thermostat" (gGBr) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gBMT_Tstat_APPLE "Basement Thermostat" (gBMT) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gMBa_Tstat_APPLE "Master Bathroom Thermostat" (gMBa) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gMBe_Tstat_APPLE "Master Bedroom Thermostat" (gMBe) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gMR_Tstat_APPLE "Mud Room Thermostat" (gMR) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+Group gGA_Tstat_APPLE "Garage Thermostat" (gGa) ["Thermostat", "Fahrenheit", "HVAC"] {homekit="Thermostat" }
+
+//Current Temps
+Group TStat_Temps		(gMultisensors)
+		Group:Number:AVG  gMS_Temps_AVG "Avg Room Temperatures [%.1f °F]" (gMultisensors) ["Fahrenheit"]
+
+			Number:Temperature Den_TstatTemp "Den Current Temperature [%.1f °F]" (gDen, gDen_Tstat, gDen_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG)  ["TemperatureSensor", "Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature" [minValue=15, maxValue=90]}
+			Number:Temperature GA_Tstat_Temp "Garage Current Temperature [%.1f °F]" (gGa, gGA_Tstat, gGA_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=0, maxValue=38]   }  
+			Number:Temperature MR_Tstat_Temp "Mud Room Current Temperature [%.1f °F]" (gMR, gMR_Tstat, gMR_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]  }  
+			Number:Temperature LR_Tstat_Temp "Living Room Current Temperature [%.1f °F]" (gLR, gLR_Tstat, gLR_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature FPMS_Temp "Front Porch Current Temperature [%.1f °F]" (gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]  }  
+			//Number:Temperature BPMS_Temp "Back Porch Current Temperature [%.1f °F]" (gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature KITMS_Temp "Kitchen Current Temperature [%.1f °F]" (gKIT, gKIT_Tstat, gKIT_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature GBr_Tstat_Temp "Guest Bedroom Current Temperature [%.1f °F]" (gGBr_Tstat, gGBr_Tstat_APPLE, gGBr, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature GBaMS_Temp "Guest Bathroom Current Temperature [%.1f °F]" (gGBa, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature StairMS_Temp "Stair Current Temperature [%.1f °F]" (gStair, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature BMT_Tstat_Temp "Basement Current Temperature [%.1f °F]" (gBMT, gBMT_Tstat, gBMT_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature BoilMS_Temp"Boiler Room Current Temperature [%.1f °F]" (gBoil, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature BMTHWMS_Temp "Basement Hall Current Temperature [%.1f °F]" (gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature BMTBr_Tstat_Temp "Basement Bedroom Current Temperature [%.1f °F]" (gBMTBr, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature BMTBaMS_Temp "Basement Bathroom Current Temperature [%.1f °F]" (gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			//Number:Temperature LAUMS_Temp"Laundry Current Temperature [%.1f °F]" (gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature MBa_Tstat_Temp "Master Bathroom Current Temperature [%.1f °F]" (gMBa, gMBa_Tstat, gMBa_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+			Number:Temperature MBe_Tstat_Temp	"Master Bedroom Current Temperature [%.1f °F]" (gMBe, gMBe_Tstat, gMBe_Tstat_APPLE, gMS_Temps, gMS_Temps_AVG) ["Fahrenheit", "Temperature", "Measurement"] {synonyms="temp, temperature, warm", ga="thermostatTemperatureAmbient", homekit="Thermostat.CurrentTemperature"  [minValue=15, maxValue=38]   }  
+
+
+//Heating modes
+Group	gTstatModes "Thermostat modes" (gThermostats)
+	String Den_TstatMode "Den Heating/Cooling Mode" (gDen_Tstat, gDen_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String LR_TstatMode "Living Room Heating/Cooling Mode" (gLR_Tstat, gLR_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String Kit_TstatMode "Kitchen Heating/Cooling Mode" (gKIT_Tstat, gKIT_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String GBr_TstatMode "Guest Bedroom Heating/Cooling Mode" (gGBr_Tstat, gGBr_Tstat_APPLE, gTstatModes)  {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String Bmt_TstatMode "Basement Heating/Cooling Mode" (gBMT_Tstat, gBMT_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String MBa_TstatMode "Master Bathroom Heating/Cooling Mode" (gMBa_Tstat, gMBa_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String MBe_TstatMode "Master Bedroom Heating/Cooling Mode" (gMBe_Tstat, gMBe_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String MR_TstatMode "Mud Room Heating/Cooling Mode" (gMR_Tstat, gMR_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+	String GA_TstatMode "Garage Heating/Cooling Mode" (gGA_Tstat, gGA_Tstat_APPLE, gTstatModes) {ga="thermostatMode", homekit="Thermostat.CurrentHeatingCoolingMode"}
+ 
+
+//Heating mode targets
+	Group	gTstatModeTargets "Thermostat mode targts" (gThermostats)
+		String Den_TStatModeTarget "Den Heating/Cooling Mode Target" (gDen_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"}
+		String LR_TStatModeTarget "Living Room Heating/Cooling Mode Target" (gLR_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"	}
+		String Kit_TStatModeTarget "Kitchen Heating/Cooling Mode Target" (gKIT_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"	}
+		String GBr_TStatModeTarget "Guest Bedroom Heating/Cooling Mode Target" (gGBr_Tstat_APPLE, gTstatModeTargets)  {homekit="Thermostat.TargetHeatingCoolingMode"	}
+		String Bmt_TStatModeTarget "Basement Heating/Cooling Mode Target" (gBMT_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"	}
+		String MBa_TStatModeTarget "Master Bathroom Heating/Cooling Mode Target" (gMBa_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"	}
+		String MBe_TStatModeTarget "Master Bedroom Heating/Cooling Mode Target" (gMBe_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"}
+		String MR_TStatModeTarget "Mud Room Heating/Cooling Mode Target" (gMR_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"}
+		String GA_TStatModeTarget "Garage Heating/Cooling Mode Target" (gGA_Tstat_APPLE, gTstatModeTargets) {homekit="Thermostat.TargetHeatingCoolingMode"} 
+
+//Hystersis values
+Group gHysteresis "Hysteresis setpoints" (gThermostats) ["Fahrenheit"] 
+Number RH_HysteresisLow "Radiant Heat Hysteresis Low Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+Number RH_HysteresisHigh "Radiant Heat Hysteresis high Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+Number ZV_HysteresisLow "High Temp Heat Hysteresis low Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+Number ZV_HysteresisHigh "High Temp Heat Hysteresis high Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+Number GA_HysteresisLow "Garage Heat Hysteresis low Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+Number GA_HysteresisHigh "Garage Heat Hysteresis high Value [%.1f °F]" (gHysteresis) ["Fahrenheit"]
+
+
+//High Temp Heating targets
+Number LR_Heating_TargetTemp "Livingroom Heating Target [%.1f °F]" (gLR_Tstat, gLR_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number GBr_Heating_TargetTemp "Guest Bed/Bath Heating Target [%.1f °F]" (gGBr_Tstat, gGBr_Tstat_APPLE, gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number BMT_Heating_TargetTemp "Basement Heating Target [%.1f °F]" (gBMT_Tstat, gBMT_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number GA_Heating_TargetTemp "Garage Heating Target [%.1f °F]" (gGA_Tstat, gGA_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG)[ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number MR_Heating_TargetTemp "Mud Room Heating Target [%.1f °F]" (gMR_Tstat, gMR_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+
+/*low temp heating targets*/
+Number DEN_Heating_TargetTemp "Den Heating Target [%.1f °F]" (gDen, gDen_Tstat, gDen_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number MBa_Heating_TargetTemp "Master Bathroom Heating Target [%.1f °F]" (gMBa_Tstat, gMBa_Tstat_APPLE,   gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number KIT_Heating_TargetTemp "Kitchen Heating Target [%.1f °F]" (gKIT, gKIT_Tstat, gKIT_Tstat_APPLE,   gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+Number MBe_Heating_TargetTemp "Master Bedroom Heating Target [%.1f °F]" (gMBe, gMBe_Tstat, gMBe_Tstat_APPLE,  gHeating_Targets,gThermostats,gHeating_Setpoint_AVG) [ "TargetTemperature", "Setpoint", "Temperature"] {ga="thermostatTemperatureSetpoint", homekit="Thermostat.TargetTemperature"  [minValue=15, maxValue=38]}
+
+//heating mode switches
+String Heating_Mode "Global Heating Mode [%s]" (gThermostats)
+Switch Heating_UpdateHeater "Send Target Temperatures to Heaters" (gThermostats)
+Switch Heating_UpdatePresets "Send Target Temperatures to Presets" (gThermostats)
+
+//manual override
+Group gManual_Overrides "manual override group" (gThermostats)
+Group:Switch:OR(ON,OFF) Heating_ManualOverride "There is a Manual Heat Setpoint Override"
+
+Switch Heating_ModeOverride "Switch Heating_ModeOverride" (gManual_Overrides, Heating_Manual_Override)
+
+Switch LR_Heating_Manual_Override "Living Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch GBr_Heating_Manual_Override "Guest Bedroom Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch BMT_Heating_Manual_Override "Basement Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch GA_Heating_Manual_Override "Garage Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch MR_Heating_Manual_Override "Mud Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+
+Switch DEN_Heating_Manual_Override "DEN Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch MBa_Heating_Manual_Override "MBa Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+Switch MBe_Heating_Manual_Override "MBe Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,gThermostats)
+
+//Garage Off override
+Switch vGA_Heating_OFF_Override	"Garage Thermostat Enable Switch"	(gManual_Overrides, Heating_Manual_Override, gThermostats)
+
+

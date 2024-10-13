@@ -1,0 +1,49 @@
+sitemap	Lochinvar label="Boiler control panel" {
+
+Selection item=Heating_Mode label="Heating Mode []" mappings=[NORMAL="Normal",
+    PARTY="Party",
+    SICKDAY="Sick day at home",
+    WEEKEND_TRIP="Gone for the weekend",
+    AWAY="Adventure Time!",
+    OFF_SUMMER="Off (Summer standby)"
+]
+ 	Frame label="Date" {
+        Text item=date
+    }
+ 	Frame label="Indicators" {
+   		Group item=Indicators label="Indicators"
+    }
+	 Frame label="Temperatures" {
+  		  Group item=Temperatures label="Temperatures"	
+    }
+ Frame label="Setpoints" {
+		Group item=Setpoints label="Setpoints"
+	}
+ Frame label="Switches" {
+ 	Group item=Boiler_Switches	 label="Switches"
+ 	}
+ Frame label="Alarms" {
+ 	Group item=Alarms 	 label="Alarms"
+ 	}
+ Frame label="Pumps"  {	 
+ 	Group item=Pumps label="Pump Statuses"
+ 	}
+ Frame label="Codes"	{ 
+ 	Group item=Codes label="Codes"
+ 	}
+ Frame label="Calls for Heat" {
+	Group item=CFH label="CFH"
+	}
+Frame label="Hot Water" {
+	Group item=DHW label="DHW"
+	}
+Frame label="Limits" {
+	Group item=Limits label="Limits"
+	}
+Frame label="Contacts" {
+	Group item=Contacts label="Contacts"
+	}
+Frame label="Rates" {
+	Group item=Rates label="rates"
+	}
+}

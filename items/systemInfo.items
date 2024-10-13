@@ -1,0 +1,69 @@
+Group gHousebrain "House Brain Statistics" (gBoil, gEquipment, gComputers)
+
+/* NetHouseBrain information*/
+String piNetHouseBrain_AdapterName        "Adapter name"        <network>        (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#networkDisplayName" }
+String piNetHouseBrain_Name               "Name"                <network>        (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#networkName" }
+String piNetHouseBrain_IP                 "IP address"          <network>        (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#ip" }
+String piNetHouseBrain_Mac                "Mac address"         <network>        (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#mac" }
+Number piNetHouseBrain_DataSent           "Data sent"           <flowpipe>       (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#dataSent" }
+Number piNetHouseBrain_DataReceived       "Data received"       <returnpipe>     (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#dataReceived" }
+Number piNetHouseBrain_PacketsSent        "Packets sent"        <flowpipe>       (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#packetsSent" }
+Number piNetHouseBrain_PacketsReceived    "Packets received"    <returnpipe>     (gHousebrain) {  channel="systeminfo:computer:HouseBrain:network#packetsReceived" }
+
+/* CPU information*/
+String piCPU_Name                   "Name"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#name" }
+String piCPU_Description            "Description"         <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#description" }
+Number piCPU_Load1                  "Load (1 min)"        <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#load1" }
+Number piCPU_Load5                  "Load (5 min)"        <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#load5" }
+Number piCPU_Load15                 "Load (15 min)"       <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#load15" }
+Number piCPU_Threads                "Threads"             <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#threads" }
+Number piCPU_Uptime                 "Uptime"              <time>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:cpu#uptime" }
+
+/* Drive information*/
+String piDrive_Name                 "Name"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:drive#name" }
+String piDrive_Model                "Model"               <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:drive#model" }
+String piDrive_Serial               "Serial"              <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:drive#serial" }
+
+/* Storage information*/
+String piStorage_Name               "Name"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#name" }
+String piStorage_Type               "Type"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#type" }
+String piStorage_Description        "Description"         <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#description" }
+Number piStorage_Available          "Available"           <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#available" }
+Number piStorage_Used               "Used"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#used" }
+Number piStorage_Total              "Total"               <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#total" }
+Number piStorage_Available_Percent  "Available (%)"       <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#availablePercent" }
+Number piStorage_Used_Percent       "Used (%)"            <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:storage#usedPercent" }
+
+/* Memory information*/
+Number piMemory_Available           "Available"           <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:memory#available" }
+Number piMemory_Used                "Used"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:memory#used" }
+Number piMemory_Total               "Total"               <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:memory#total" }
+Number piMemory_Available_Percent   "Available (%)"       <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:memory#availablePercent" }
+Number piMemory_Used_Percent        "Used (%)"            <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:memory#usedPercent" }
+
+/* Swap memory information*/
+Number piSwap_Available             "Available"           <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:swap#available" }
+Number piSwap_Used                  "Used"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:swap#used" }
+Number piSwap_Total                 "Total"               <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:swap#total" }
+Number piSwap_Available_Percent     "Available (%)"       <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:swap#availablePercent" }
+Number piSwap_Used_Percent          "Used (%)"            <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:swap#usedPercent" }
+
+/* Battery information*/
+String piBattery_Name               "Name"                <batterylevel>   (gHousebrain) {  channel="systeminfo:computer:HouseBrain:battery#name" }
+Number piBattery_RemainingCapacity  "Remaining Capacity"  <batterylevel>   (gHousebrain) {  channel="systeminfo:computer:HouseBrain:battery#remainingCapacity" }
+Number piBattery_RemainingTime      "Remaining Time"      <batterylevel>   (gHousebrain) {  channel="systeminfo:computer:HouseBrain:battery#remainingTime" }
+
+/* Display information*/
+String piDisplay_Description        "Display description" <screen>         (gHousebrain) {  channel="systeminfo:computer:HouseBrain:display#information" }
+
+/* Sensors information*/
+Number piSensor_CPUTemp             "CPU Temperature"     <temperature>    (gHousebrain) {  channel="systeminfo:computer:HouseBrain:sensors#cpuTemp" }
+Number piSensor_CPUVoltage          "CPU Voltage"         <energy>         (gHousebrain) {  channel="systeminfo:computer:HouseBrain:sensors#cpuVoltage" }
+Number piSensor_FanSpeed            "Fan speed"           <fan>            (gHousebrain) {  channel="systeminfo:computer:HouseBrain:sensors#fanSpeed" }
+
+/* Process information*/
+Number piProcess_load               "Load"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:process#load" }
+Number piProcess_used               "Used"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:process#used" }
+String piProcess_name               "Name"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:process#name" }
+Number piProcess_threads            "Threads"             <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:process#threads" }
+String piProcess_path               "Path"                <none>           (gHousebrain) {  channel="systeminfo:computer:HouseBrain:process#path" }

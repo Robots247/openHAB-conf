@@ -1,0 +1,523 @@
+val String filename = "heating_mode.rules"
+var String PreState = null
+ 
+rule "Initialize Uninitialized virtual Items"
+when
+    System started
+then
+    createTimer(now.plusSeconds(180)) [ |
+        logInfo(filename, "Executing 'System started' rule for Heating")
+        if (Heating_Mode.state == NULL) 
+        Heating_Mode.postUpdate("NORMAL")
+        gHeating_PresetTempNormal.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempHome.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempAway.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempPika.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempCompany.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempBedtime.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+        gHeating_PresetTempSummer.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(69.0) ]
+    ] 
+    
+end
+
+rule "initialize null TStat modes"
+when
+	System started
+then
+	createTimer(now.plusSeconds(200)) [ |
+		logInfo(filename, "Executing 'System started' rule for Tstat modes")
+		if (gTstatModes.state == NULL)
+		gTstatModes.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(1) ]
+		if (gHysteresis == NULL)
+		gHysteresis.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(1) ] 
+		
+    ]
+end 
+//update setpoint mode targets
+rule "Make Current Setpoints Preset Setpoints "
+when
+    Item Heating_UpdatePresets received command ON
+then
+    Heating_UpdatePresets.sendCommand(OFF)
+    logInfo(filename, "Updating Preset values for Heating Mode: " + Heating_Mode.state)
+    switch Heating_Mode.state {
+        case "NORMAL": {
+            LR_Heating_PresetTempNormal.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempNormal.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempNormal.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempNormal.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempNormal.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempNormal.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempNormal.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempNormal.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempNormal.sendCommand(LR_Heating_TargetTemp.state as Number)
+
+        }
+        case "Home": {
+            LR_Heating_PresetTempHome.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempHome.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempHome.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempHome.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempHome.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempHome.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempHome.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempHome.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempHome.sendCommand(LR_Heating_TargetTemp.state as Number)
+            
+        }
+         case "Away": {
+            LR_Heating_PresetTempAway.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempAway.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempAway.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempAway.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempAway.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempAway.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempAway.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempAway.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempAway.sendCommand(LR_Heating_TargetTemp.state as Number)
+            
+        }
+        case "Pika": {
+            LR_Heating_PresetTempPika.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempPika.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempPika.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempPika.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempPika.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempPika.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempPika.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempPika.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempPika.sendCommand(LR_Heating_TargetTemp.state as Number)
+            
+        }
+        case "Company": {
+           LR_Heating_PresetTempCompany.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempCompany.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempCompany.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempCompany.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempCompany.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempCompany.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempCompany.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempCompany.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempCompany.sendCommand(LR_Heating_TargetTemp.state as Number)
+        }
+          case "Bedtime": {
+            LR_Heating_PresetTempBedtime.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempBedtime.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempBedtime.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempBedtime.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempBedtime.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempBedtime.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempBedtime.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempBedtime.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempBedtime.sendCommand(LR_Heating_TargetTemp.state as Number)
+        }
+        case "OFF_SUMMER": {
+         LR_Heating_PresetTempSummer.sendCommand(LR_Heating_TargetTemp.state as Number)
+            GBr_Heating_PresetTempSummer.sendCommand(GBr_Heating_TargetTemp.state as Number)
+            BMT_Heating_PresetTempSummer.sendCommand(BMT_Heating_TargetTemp.state as Number)
+            GA_Heating_PresetTempSummer.sendCommand(GA_Heating_TargetTemp.state as Number)
+            MR_Heating_PresetTempSummer.sendCommand(MR_Heating_TargetTemp.state as Number)
+
+            DEN_Heating_PresetTempSummer.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBa_Heating_PresetTempSummer.sendCommand(LR_Heating_TargetTemp.state as Number)
+            MBe_Heating_PresetTempSummer.sendCommand(LR_Heating_TargetTemp.state as Number)
+            KIT_Heating_PresetTempSummer.sendCommand(LR_Heating_TargetTemp.state as Number)
+        }
+        default : { logError(filename, "Heating Mode unknown: " + Heating_Mode.state) }
+    }
+end
+
+        
+        
+        
+        
+
+
+//send preset temps to target temps for heating when the mode is changed or when update heaters receives ON command
+rule "React on heating mode switch, send target temperatures"
+when
+    Item Heating_Mode received update or
+    Item Heating_UpdateHeater received command ON
+then
+    Heating_UpdateHeater.postUpdate(OFF)
+    logInfo(filename, "Heating Mode: " + Heating_Mode.state)
+    switch Heating_Mode.state {
+        case "NORMAL": {
+            LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempNormal.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempNormal.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempNormal.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempNormal.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempNormal.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempNormal.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempNormal.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempNormal.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempNormal.state as Number)
+        }
+        case "Home": {
+            LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempHome.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempHome.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempHome.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempHome.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempHome.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempHome.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempHome.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempHome.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempHome.state as Number)
+        }
+        case "Away": {
+           LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempAway.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempAway.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempAway.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempAway.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempAway.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempAway.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempAway.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempAway.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempAway.state as Number)
+        }
+        case "Pika": {
+           LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempPika.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempPika.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempPika.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempPika.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempPika.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempPika.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempPika.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempPika.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempPika.state as Number)
+        }
+        case "Company": {
+           LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempCompany.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempCompany.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempCompany.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempCompany.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempCompany.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempCompany.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempCompany.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempCompany.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempCompany.state as Number)
+        }
+          case "Bedtime": {
+            LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempBedtime.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempBedtime.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempBedtime.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempBedtime.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempBedtime.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempBedtime.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempBedtime.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempBedtime.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempBedtime.state as Number)
+        }
+        case "OFF_SUMMER": {
+           LR_Heating_TargetTemp.sendCommand(LR_Heating_PresetTempSummer.state as Number)
+            GBr_Heating_TargetTemp.sendCommand(GBr_Heating_PresetTempSummer.state as Number)
+            BMT_Heating_TargetTemp.sendCommand(BMT_Heating_PresetTempSummer.state as Number)
+            GA_Heating_TargetTemp.sendCommand(GA_Heating_PresetTempSummer.state as Number)
+            MR_Heating_TargetTemp.sendCommand(MR_Heating_PresetTempSummer.state as Number)
+
+            DEN_Heating_TargetTemp.sendCommand(DEN_Heating_PresetTempSummer.state as Number)
+            MBa_Heating_TargetTemp.sendCommand(MBa_Heating_PresetTempSummer.state as Number)
+            MBe_Heating_TargetTemp.sendCommand(MBe_Heating_PresetTempSummer.state as Number)
+        	KIT_Heating_TargetTemp.sendCommand(KIT_Heating_PresetTempSummer.state as Number)
+        }
+        default : { logError(filename, "Heating Mode unknown: " + Heating_Mode.state) }
+    }
+end
+
+//Auto Summer
+
+rule "Warm Setpoint Change"
+when
+	Time cron "0 42 10 * * ?"  
+
+then
+		if (Weather_Forcast_Tomorrow_TempMin.state > (gHeating_Setpoint_AVG.state as Number)){
+			Heating_Mode.postUpdate ("OFF_SUMMER")
+			logInfo("rule.Warm Setpoint Change", Heating_Mode.state + " Heating mode activated due to warm weather prediction rule")
+			Heating_UpdateHeater.sendCommand(ON)
+	
+		}
+end
+	
+
+/*Rule "Manual Override" 
+when 
+	Member of gHeating_Targets received command
+then 
+	
+ */
+
+
+	 /***************************** Presence Heating Modifications***********************************/
+
+ //Presence Setback 
+rule "Heating Away"
+when 
+	Item Present changed from ON to OFF
+then 
+
+		logInfo(filename, "presence off, away mode activated")
+			Heating_Mode.postUpdate("Away")
+			Heating_UpdateHeater.sendCommand(ON)
+            //Heating_Mode.previousState(true).state = PreState
+
+end
+
+rule "Heating home"
+when 
+	Item Present changed from OFF to ON or 
+    Item gAnthonyPresent changed or
+    Item gShannonPresent changed or
+    Item UnknownPresence changed
+then 
+
+logInfo(filename, "Presence changed, Activating home presence heating modes")
+	if(gAnthonyPresent.state == ON && gShannonPresent.state == OFF){
+            logDebug(filename, "Heating mode updated to gAnthonyPresent state, state is now Home.")    
+
+		Heating_Mode.postUpdate("Home")
+		Heating_UpdateHeater.sendCommand(ON)
+		}
+		if(gShannonPresent.state == ON && gAnthonyPresent.state == OFF){
+            logDebug(filename, "Heating mode updated to gShannonPresent state, state is now Pika.")    
+
+	       Heating_Mode.postUpdate("Pika")
+		  Heating_UpdateHeater.sendCommand(ON)
+		}
+		if(gMamaPapaPresent == ON){
+         logDebug(filename, "Heating mode updated to gMamaPapaPresent state, state is now NORMAL.")    
+    
+		Heating_Mode.postUpdate("NORMAL")
+		Heating_UpdateHeater.sendCommand(ON)
+		}
+		if(UnknownPresence == ON){
+            logDebug(filename, "Heating mode updated to previous state, state is now Company.")    
+    
+		  Heating_Mode.postUpdate("Company")
+		  Heating_UpdateHeater.sendCommand(ON)
+		}
+		//if(Heating_Mode.state == "Away"){
+        //logDebug(filename, "Heating mode updated to previous state, state is now "+ PreState)    
+		//Heating_Mode.postUpdate(PreState)
+		//Heating_UpdateHeater.sendCommand(ON)
+		
+end
+
+rule "bedtime heat"
+when
+    Item sleeping changed from OFF to ON 
+then
+    if (Heating_Mode.state != "Bedtime" && vTimeOfDay.state == "BED" ) {
+        Heating_Mode.postUpdate("Bedtime")
+        
+    	Heating_UpdateHeater.sendCommand(ON)
+        //Heating_Mode.previousState(true).state = PreState.state
+        logDebug(filename,"Heating updated to bedtime mode ")
+
+   
+    }
+    
+
+
+end
+
+rule "wakeup heat"
+when
+    Item sleeping changed from ON to OFF 
+then
+    createTimer (now.plusSeconds(180)) [ |
+    if (sleeping.state !=ON ){
+        if (Heating_Mode.state != "NORMAL" && vTimeOfDay.state != "MORNING" || vTimeOfDay.state !="Bedtime") {
+            logDebug(filename,"Heating mode state is not morning or bedtime and sleeping detection was deactivated, setting heaating mode to normal")
+              //if (PreState.state == NULL) 
+                Heating_Mode.postUpdate("NORMAL")
+           // Heating_Mode.postUpdate(PreState.state)
+            Heating_UpdateHeater.sendCommand(ON)
+             logDebug(filename,"Heating updated to Normal mode ")
+
+        
+        }
+    }
+    ]
+end
+
+
+// ========================
+// mode resets
+
+
+rule "End Company mode at 10 in the morning"
+when
+    Time cron "0 0 10 ? * * *"
+then
+    if (Heating_ModeOverride != ON){
+        if (Heating_Mode.state == "Company") {
+        Heating_Mode.postUpdate("NORMAL")
+        logInfo(filename,"company mode has been reset")
+        }
+     }   
+end
+
+
+
+rule "Company Override"
+when
+    Item Heating_Mode changed
+then
+    if (Heating_Mode.state == "Company") {
+        Heating_ModeOverride.sendCommand(ON)
+        logInfo(filename,"company mode has been initiated, rule based modes overidden")
+    }
+end
+// ========================
+// NORMAL schedule
+
+/*rule "17:00"
+when
+    Time cron "0 0 17 ? * * *"
+then
+    LR_Heating_PresetTempNORMAL.postUpdate(69.0)
+    GBr_Heating_PresetTempNORMAL.postUpdate(69.0)
+    BMT_Heating_PresetTempNORMAL.postUpdate(69.0)
+    GA_Heating_PresetTempNORMAL.postUpdate(69.0)
+    MR_Heating_PresetTempNORMAL.postUpdate(60.0)
+    DEN_Heating_PresetTempNORMAL.postUpdate(70.0)
+    MBa_Heating_PresetTempNORMAL.postUpdate(69.0)
+    MBe_Heating_PresetTempNORMAL.postUpdate(68.0)
+    KIT_Heating_PresetTempNORMAL.postUpdate(68.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+
+rule "20:30"
+when
+    Time cron "0 30 20 ? * * *"
+then
+    LR_Heating_PresetTempNORMAL.postUpdate(68.0)
+    GBr_Heating_PresetTempNORMAL.postUpdate(68.0)
+    BMT_Heating_PresetTempNORMAL.postUpdate(68.0)
+    GA_Heating_PresetTempNORMAL.postUpdate(60.0)
+    MR_Heating_PresetTempNORMAL.postUpdate(60.0)
+    DEN_Heating_PresetTempNORMAL.postUpdate(68.0)
+    MBa_Heating_PresetTempNORMAL.postUpdate(70.0)
+    MBe_Heating_PresetTempNORMAL.postUpdate(66.0)
+    KIT_Heating_PresetTempNORMAL.postUpdate(66.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+
+rule "23:30"
+when
+    Time cron "0 30 23 ? * * *"
+then
+    LR_Heating_PresetTempNORMAL.postUpdate(68.0)
+    GBr_Heating_PresetTempNORMAL.postUpdate(68.0)
+    BMT_Heating_PresetTempNORMAL.postUpdate(68.0)
+    GA_Heating_PresetTempNORMAL.postUpdate(68.0)
+    MR_Heating_PresetTempNORMAL.postUpdate(60.0)
+    DEN_Heating_PresetTempNORMAL.postUpdate(70.0)
+    MBa_Heating_PresetTempNORMAL.postUpdate(67.0)
+    MBe_Heating_PresetTempNORMAL.postUpdate(67.0)
+    KIT_Heating_PresetTempNORMAL.postUpdate(67.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+
+rule "9:00, weekend"
+when
+    Time cron "0 0 9 ? * SAT-SUN *"
+then
+    LR_Heating_PresetTempNORMAL.postUpdate(70.0)
+    GBr_Heating_PresetTempNORMAL.postUpdate(68.0)
+    BMT_Heating_PresetTempNORMAL.postUpdate(70.0)
+    GA_Heating_PresetTempNORMAL.postUpdate(62.0)
+    MR_Heating_PresetTempNORMAL.postUpdate(60.0)
+    DEN_Heating_PresetTempNORMAL.postUpdate(70.0)
+    MBa_Heating_PresetTempNORMAL.postUpdate(72.0)
+    MBe_Heating_PresetTempNORMAL.postUpdate(69.0)
+    KIT_Heating_PresetTempNORMAL.postUpdate(68.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+
+rule "6:30, weekday, bathroom"
+when
+    Time cron "0 0 6 ? * MON-FRI *"
+then
+    MBa_Heating_PresetTempNORMAL.postUpdate(72.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+
+rule "10:00, weekday, bathroom"
+when
+    Time cron "0 0 9 ? * MON-FRI *"
+then
+    MBa_Heating_PresetTempNORMAL.postUpdate(68.0)
+    Heating_UpdateHeater.sendCommand(ON)
+end
+*/
+
+rule "Presence heating actions"
+when
+	Item Present changed from OFF to ON
+then
+	if (Heating_Mode.state != "OFF_SUMMER"){
+			if (Heating_Mode.state == "Away") {
+	
+			if (gShannonPresent.state == ON && gAnthonyPresent.state == OFF){
+				Heating_Mode.postUpdate("Pika_Home")
+				logInfo("Rule.Presecene Heating Actions", "Pika SOLO Presence detected- setting temps for Pika Only presence")
+				}
+			
+			else if (gMamaPapaPresent.state == ON){
+				Heating_Mode.postUpdate("NORMAL")
+				logInfo("Rule.Presecene Heating Actions", "Mama Papa are home together'- setting temps for Pika and Monster presence")
+					}
+						
+			else if (gShannonPresent.state == OFF && gAnthonyPresent.state == ON){ 
+				Heating_Mode.postUpdate("Home")
+				logInfo("Rule.Presecene Heating Actions", "Monster SOLO Presence detected- setting Temps for Pika Only presence")
+				}
+			}	
+	}		
+end
+
+rule "ColdHeatingUpdate"
+when
+	Item Weather_Forcast_Tomorrow_TempMin changed
+then
+	if (Weather_Forcast_Tomorrow_TempMin.state <= 49 ){
+		if (Heating_Mode.state == "OFF_SUMMER"){
+			Heating_Mode.postUpdate("NORMAL")
+			logInfo("ColdHeatingUpdate", "It's going to be cold tomorrow, activing Normal Heating mode to preemptively heat house")
+			sendBroadcastNotification("Cold tomorrow- Pika's Place is activating heating system, make sure the windows are closed!")
+
+		}
+
+	}
+end
+
+rule "SummerHeatingUpdate"
+when 
+	Item Weather_Forcast_Tomorrow_TempMin changed
+then 
+	if (Weather_Forcast_Tomorrow_TempMin.state >= 60 ){
+		if (Heating_Mode.state != "OFF_SUMMER"){
+			
+			if (gMS_Temps_AVG.state >= 65){
+				logInfo("rule.summerheatingupdate","It's going to be warm tomorrow, deactivating Heating System")
+				Heating_Mode.sendCommand("OFF_SUMMER")
+				sendBroadcastNotification("It's going to be warm tomorrow, the house is >65 degrees, deactivating heating system ")
+
+			}
+		}
+	}
+end

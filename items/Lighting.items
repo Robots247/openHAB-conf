@@ -1,0 +1,307 @@
+//type based groups
+
+	
+	
+	Group gLighting "Lighting Items" (gEquipment)
+	Group gLightGroups "Lighting Groups" (gLighting)
+		Group gSecurityLights	"security lights" <camera> (gLightGroups)
+		Group gAccentLighting "Accent Lighting" <light> (gLightGroups)
+		Group gEmergencyLighting "Emergency Lighting" <siren> (gLightGroups)
+		
+		//christmas lighting see tplink.items file 
+		Group gChristmasLighting "Christmas Lighting" <christmas> (gLightGroups) 
+			Switch vChristmas "Christmas Switch" <christmas> (gV_Switches) 
+			Switch ChristmasLights "All Christmas Lights" <christmas> (gV_Switches) ["Lighting"] {ga="Light"}
+	
+	
+	
+	Group gControlTypes	"Control Types" (gEquipment)
+		Group gZwave (gControlTypes)
+			Group gZwaveDimmers "Zwave Dimmers" (gZwaveSwitchActivation, gZwave, gDimmer)
+			Group gZwaveNoLoad "No load zwave Dimmers" <light> (gZwave)
+			Group gZwaveSwitches "Zwave Switches" (gZwaveSwitchActivation, gZwave, gSwitch)
+		
+		Group gDimmer "Dimmers" <light>  (gControlTypes)
+				Group vDimmers "virtual dimmers" <light> (gDimmer)
+
+		Group gSwitch "Switches" <light> (gControlTypes)
+			Group:Switch:OR(ON, OFF) gZwaveSwitchActivation "Zwave Switch Switch" <light> (gSwitch)
+			
+		Group gColors "colors" <colorpicker> (gControlTypes)
+
+			
+			
+//location based groups
+//WHOLE HOUSE
+Group:Switch:OR(ON, OFF) gLights "All Lights" (pSave, pGraph)
+Group gLightLocations "Lighting By Location" (gLighting)
+	
+	//Outdoor Lighting
+	Group gODSWs "Outdoor Switches" <outdoorlight> (gLightLocations)
+		Switch BPSW "Back Porch Lighting Switch" <light> (gLights, gODSWs, gZwaveSwitches, gDEN_Lighting ) [ "Lighting"] {expire="4h, command=OFF"}
+		Switch DWSW "Driveway Switch" <light> (gODSWs, gZwaveSwitches, gLights) [ "Lighting"] {channel="zwave:device:c603a394:node26:switch_binary", expire="1h, command=OFF" } 	
+		Switch BYSW "BackYard Switch" <light> (gODSWs, gZwaveSwitches, gLights) [ "Lighting"] {channel="zwave:device:c603a394:node16:switch_binary", expire="1h, command=OFF" }
+
+		
+		
+		//Main Floor
+	Group gMF_Lighting "ALL Upstairs lights [%.1f %%]" <firstfloor> (gLightLocations)
+		Group:Switch:OR(ON, OFF) gMFLightsw "All Upstairs lights Switch" <light> (gMF_Lighting, vDimmer)
+
+		//stairs & hallway lighting
+
+		Group gCorridor_Lighting "Corridor lighting" <corridor> (gEmergencyLighting, gSecurityLights, gLightLocations)
+		Group gGA_Lighting "Garage Lighting" <light>
+			Group gBMTHW_Lighting
+			Dimmer StairDim "Stair dimmer [%.1f %%]" <light> (gLights, gZwaveDimmers, gCorridorLighting, gDEN_Lighting, gBMTHW_Lighting ) [ "Lighting" ]{channel="zwave:device:c603a394:node35:switch_dimmer", expire="30m,command=OFF"}
+			Dimmer MainHallDim "Main Hall dimmer [%.1f %%]"  <light> (gLights, gZwaveDimmers, gCorridorLighting ) [ "Lighting"] { expire="30m,command=OFF"}
+			
+			
+			Switch GA_Lights_Switch "Garage Lighting Switch" <light> (gLights, gZwaveSwitches, gGA_Lighting) {channel="zwave:device:c603a394:node23:switch_binary"}
+				Dimmer GADim "Garage Lighting Dimmer [%.1f %%]" <light> (gLights, gZwaveDimmers, gGA_Lighting) ["Lighting"] {channel="zwave:device:c603a394:node24:switch_dimmer", ga="Light" [roomHint="Garage"]}
+				Number GALight_current "Garage Lighting Current Watts" <line> {channel="zwave:device:c603a394:node23:meter_watts"}	
+				Number GALight_KWH "Garage Lighting KWh" <line> {channel="zwave:device:c603a394:node23:meter_kwh"}
+		
+		Group gMainBath "Main Bath Lights [%.1f %%]" 
+			Dimmer MainBath_Lighting "Main bath overhead lighting dimmer" (gMainBath, gMF_Lighting) ["Lighting"] {channel="zwave:device:c603a394:node39:switch_dimmer", expire="30m,command=OFF", ga="Light"}
+		//Den Lighting
+		Group gDEN_Lighting "ALL Den Lights" <light> (gMF_Lighting, gDEN_Scene, gDen)
+			Group gDEN_Dimmer "Den Lighting Dimmer [%.1f %%]" <light> (gMF_Lighting)
+			Dimmer DenAccDim "Den Accent Dimmer [%.1f %%]" <light> (gLights, gAccentLighting, gDEN_Lighting, gZwaveSwitches, gDEN_Dimmer)[ "Lighting" ]{channel="zwave:device:c603a394:node12:switch_dimmer", ga="Light" [roomHint="Den"]}
+			
+			Dimmer DenFPDim "Den Fireplace dimmer [%.1f %%]" <light> (gLights, gAccentLighting, gDEN_Lighting,gZwaveSwitches, gDEN_Dimmer)[ "Lighting" ] {channel="zwave:device:c603a394:node11:switch_dimmer", ga="Light" [roomHint="Den"]}
+			
+			
+			 
+			
+			//Den Hue Cans
+		
+			//Physical Homeseer Dimmer
+			Group gDenCanDimmer "Den Can Dimmer Items" <light> (gDen) 									
+				Dimmer DenCanDimmer "Den Can Dimmer [%.1f %%]" <light> (gZwaveNoLoad, gDenCanDimmer)  {channel="zwave:device:c603a394:node11:switch_dimmer", autoupdate="false"}
+				Number   DENCanDimmerSceneNumber            "DenCanDimmer Scene number"                              (gDenCanDimmer){channel="zwave:device:c603a394:node40:scene_number"}
+				Number   DENCanDimmerConfigDecimalParam13   "DenCanDimmer Mode of operation"                         (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param13"}
+				Number   DENCanDimmerConfigDecimalParam14   "DenCanDimmer Normal mode led colour"                    (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param14"}
+				
+				Group gDenCanDimmerLEDColors "DenCan Dimmer LED Group" (gDenCanDimmer)
+					Number   DENCanDimmerConfigDecimalParam21   "DenCanDimmer Status mode led 1 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param21"}
+					Number   DENCanDimmerConfigDecimalParam22   "DenCanDimmer Status mode led 2 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param22"}
+					Number   DENCanDimmerConfigDecimalParam23   "DenCanDimmer Status mode led 3 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param23"}
+					Number   DENCanDimmerConfigDecimalParam24   "DenCanDimmer Status mode led 4 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param24"}
+					Number   DENCanDimmerConfigDecimalParam25   "DenCanDimmer Status mode led 5 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param25"}
+					Number   DENCanDimmerConfigDecimalParam26   "DenCanDimmer Status mode led 6 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param26"}
+					Number   DENCanDimmerConfigDecimalParam27   "DenCanDimmer Status mode led 7 colour"                  (gDenCanDimmer, gDenCanDimmerLEDColors){channel="zwave:device:c603a394:node40:config_decimal_param27"}
+				
+				Number   DENCanDimmerConfigDecimalParam30   "DenCanDimmer Status mode leds blink frequency"          (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param30"}
+				Number   DENCanDimmerConfigDecimalParam31   "DenCanDimmer Status mode leds blink status (bitmask)"   (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param31"}
+			//vdimmers
+			Group gDENCans "Den Can individual Control" <light> (vDimmers, gDEN_Dimmer)[ "dimmer" ]
+			Group:Number:AVG gDenCansAvg  "Average Den Can Brightness [%.1f %%]" 
+				Dimmer DenCan1Dim	"Den Can 1 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness"} 
+				Dimmer DenCan2Dim	"Den Can 2 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gEmergencyLighting, gDENCans, gDEN_Lighting) {homekit="Lighting.OnState.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan3Dim	"Den Can 3 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan4Dim	"Den Can 4 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan5Dim	"Den Can 5 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan6Dim	"Den Can 6 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan7Dim	"Den Can 7 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+				Dimmer DenCan8Dim	"Den Can 8 dimmer [%.1f %%]" <light> (gLights, gDenCansAvg, gEmergencyLighting, gDENCans, gDEN_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]} 
+			//Color pickers
+			Group DenCanColors "Den Can Colors" <colorpicker> (gDen, gColors)
+				Dimmer DenCan1Color	"Den Can 1 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan2Color	"Den Can 2 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan3Color	"Den Can 3 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan4Color	"Den Can 4 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan5Color	"Den Can 5 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan6Color	"Den Can 6 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan7Color	"Den Can 7 Color" <colorpicker> (DenCanColors) 
+				Dimmer DenCan8Color	"Den Can 8 Color" <colorpicker> (DenCanColors) 
+			//Den Lamps
+				Dimmer Den_Lamp_1 "Den Lamp 1 [%.1f %%]" <light> (gLights, gDEN_Lighting) {channel="hue:0100:0017887fbafa:11:brightness", homekit="Lighting" [dimmerMode="filterOn"]}
+	
+	
+	
+	//Kitchen Lights
+		Group gKit_Lighting "Kitchen Lighting" <light> (gLights, gKit_Lighting)
+		Group gKit_Lights "Kitchen Lighting excluding Counters" <light> (gLights, GKit_Lighting)
+		Group:Number:AVG gKitAvg  "Average Kitchen Light Brightness [%.1f %%]" 
+
+				//Kitchen Lighting Dimmer
+				Group gKitDimmer "Kitchen Dimmer Items"	(gKIT) 
+				Dimmer   KitDimmer         				 "Kitchen Dimmer [%.1f %%]"                                 (gKitDimmer, gDEN_Lighting, gKit_Lights, gKitAvg) {channel="zwave:device:c603a394:node38:switch_dimmer", ga="Light" [roomHint="Kitchen"] }
+				Number   KitDimmerSceneNumber            "Kitchen Dimmer Scene number"                              (gKitDimmer) {channel="zwave:device:c603a394:node38:scene_number"}
+				Number   KitDimmerConfigDecimalParam13   "Kitchen Dimmer Mode of operation"                         (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param13"}
+				Number   KitDimmerConfigDecimalParam14   "Kitchen Dimmer Normal mode led colour"                    (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param14"}
+				Number   KitDimmerConfigDecimalParam21   "Kitchen Dimmer Status mode led 1 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param21"}
+				Number   KitDimmerConfigDecimalParam22   "Kitchen Dimmer Status mode led 2 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param22"}
+				Number   KitDimmerConfigDecimalParam23   "Kitchen Dimmer Status mode led 3 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param23"}
+				Number   KitDimmerConfigDecimalParam24   "Kitchen Dimmer Status mode led 4 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param24"}
+				Number   KitDimmerConfigDecimalParam25   "Kitchen Dimmer Status mode led 5 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param25"}
+				Number   KitDimmerConfigDecimalParam26   "Kitchen Dimmer Status mode led 6 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param26"}
+				Number   KitDimmerConfigDecimalParam27   "Kitchen Dimmer Status mode led 7 colour"                  (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param27"}
+				Number   KitDimmerConfigDecimalParam30   "Kitchen Dimmer Status mode leds blink frequency"          (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param30"}
+				Number   KitDimmerConfigDecimalParam31   "Kitchen Dimmer Status mode leds blink status (bitmask)"   (gKitDimmer) {channel="zwave:device:c603a394:node38:config_decimal_param31"}
+				
+		//Dimmer LivingRoomLamp "Living Room Lamp [%.1f %%]" <light> (gKitAvg, gLights, gKit_Lighting, gDEN_Lighting) {channel="hue:0100:0017887fbafa:22:brightness"}
+		Dimmer KitchenStoveLight "Kitchen Stove Light [%.1f %%]" <light> (gKit_Lights, gKitAvg, gKit_Lighting, gDen_Lighting) {channel="hue:0100:0017887fbafa:19:brightness", homekit="Lighting" [dimmerMode="filterOn"]}	
+
+		Group gKit_Counters "Kitchen Counters" <light> (gLights, gKit_Lighting, gDEN_Lighting)
+			Color Kit_Counter "Counter" <colorpicker>  (gKit_Counters, gDEN_Lighting) ["Lighting"] { ga="Light" [roomHint="Kitchen"] }	
+			Number Kit_Preset "Kitchen Counter Preset Number" (gKit_Counters, gDEN_Lighting) 
+			Number Kit_Playlists "Kitchen Counter Playlist" 
+			
+
+
+
+	//Foyer Lights
+		Group gEntry_Lighting "Front Foyer Lights [%.1f %%]" (gDimmer, gEmergencyLighting, gSecurityLights)
+			Dimmer FoyerLight1Dim "Front Foyer Left dimmer [%.1f %%]" <light> (gLights, gEntry_Lighting, vDimmers, gMF_Lighting, gDEN_lighting, gLR_Lighting)
+			Dimmer FoyerLight2Dim "Front Foyer Right dimmer [%.1f %%]" <light> (gLights, gEntry_Lighting, vDimmers, gMF_Lighting, gDEN_lighting, gLR_Lighting)
+			Switch FoyerLamp "Front Foyer Lamp" <light> (gLights, gEntry_Lighting, vDimmers, gMF_Lighting, gDEN_lighting, gLR_Lighting) { ga="Foyer Lamp Switch" [ inverted=false ] }
+
+			//Dimmer FoyerLamp	"Front Foyer Lamp %.1f %%]" <light> (gLights, gEntry_Lighting, gMF_Lighting, gDEN_Lighting, gLR_Lighting) {channel="hue:0100:0017887fbafa:12:brightness"}
+		Group gFoyerColors "Foyer Lights Colors" <Colorpicker> (gLR, gCorridor_Lighting, gColors)  		
+			Dimmer FoyerLight1Color "Front Foyer Left Color" <Colorpicker> (gFoyerColors)		
+			Dimmer FoyerLight2Color "Front Foyer Right Color" <Colorpicker> (gFoyerColors)		
+			
+	
+	//Living Room lights
+		Group gLR_Lighting "Living Room Lights" <light> (pSave, pGraph, gMF_Lighting, gLights) 
+			Dimmer LR_Lamp1Dim	"Living Room Lamp 1 [%.1f %%]" <light> (gLR_Lighting, gDining_Lighting) {channel="hue:0100:0017887fbafa:25:brightness", homekit="Lighting" [dimmerMode="filterOn"]}
+			Group gLR_FPDimmer "Living Room Fireplace Dimmer Items" <light> (gZwaveDimmers, gLR) 			 						
+				Dimmer LR_FPDimmer "Living Room Fireplace Lights [%.1f %%]" <light> (gZwaveNoLoad, gLR_FPDimmer, gDining_Lighting, gLR_Lighting) [ "Lighting" ] {channel="zwave:device:c603a394:node15:switch_dimmer", autoupdate="false", ga="Light" [roomHint="Living Room"] }
+				Number   LRFPDimmerSceneNumber            "Living Room Fireplace Dimmer Scene number"                              (gLR_FPDimmer)		{channel="zwave:device:c603a394:node15:scene_number"}
+				Number   LRFPDimmerConfigDecimalParam13   "Living Room Fireplace Dimmer Mode of operation"                         (gLR_FPDimmer)		{channel="zwave:device:c603a394:node15:config_decimal_param13"}
+				Number   LRFPDimmerConfigDecimalParam14   "Living Room Fireplace Dimmer Normal mode led colour"                    (gLR_FPDimmer)		{channel="zwave:device:c603a394:node15:config_decimal_param14"}
+				Number   LFFPDimmerConfigDecimalParam21       "Living Room Status mode led 1 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param21"}
+					Number   LRFPDimmerConfigDecimalParam22   "Living Room Status mode led 2 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param22"}
+					Number   LRFPDimmerConfigDecimalParam23   "Living Room Status mode led 3 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param23"}
+					Number   LRFPDimmerConfigDecimalParam24   "Living Room Status mode led 4 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param24"}
+					Number   LRFPDimmerConfigDecimalParam25   "Living Room Status mode led 5 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param25"}
+					Number   LRFPDimmerConfigDecimalParam26   "Living Room Status mode led 6 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param26"}
+					Number   LRFPDimmerConfigDecimalParam27   "Living Room Status mode led 7 colour"                  (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param27"}
+					Number   LRFPDimmerConfigDecimalParam30   "Living Room Status mode leds blink frequency"          (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param30"}
+					Number   LRFPDimmerConfigDecimalParam31   "Living Room Status mode leds blink status (bitmask)"   (gLR_FPDimmer)					{channel="zwave:device:c603a394:node15:config_decimal_param31"}
+				
+				
+		
+	//Dining Room Lightings
+			Group gDining_Lighting "Dining Room Lights" <light> (gDimmer, gMF_Lighting)
+				Dimmer DiningChandelier "Dining Room Chandelier" <light> (gLights, gZwaveDimmers,gLR_Lighting, gDining_Lighting) ["Lighting"] {channel="zwave:device:c603a394:node31:switch_dimmer", ga="Light" [roomHint="Dining Room"]}
+				Dimmer DiningAccentDimmer "Dining Room Accent Lights" <light> (gLights, gAccentLighting, gLR_Lighting, gDining_Lighting, gZwaveDimmers) ["Lighting"] {channel="zwave:device:c603a394:node32:switch_dimmer", ga="Light" [roomHint="Dining Room"]}
+
+	//Master Bedroom
+			Group gMBe_Lighting "Master Bedroom Lighting" <light> (gMF_Lighting)
+			Group gMBe_Cans "Master Bedroom Lighting" <light> (gDimmer, gMBe_Lighting) {homekit="Lighting"}
+
+				//Master Physical switch
+				Group gMbeCanDimmer "Master Bedroom Dimmer Items" <light> (gMBe)
+					Dimmer MbeCanDimmer 						"Master Bedroom Dimmer Switch"	<light> 	(gZwaveNoLoad)					{channel="zwave:device:c603a394:node16:switch_dimmer"}
+					Number   MBeCanDimmerSceneNumber            "Scene number"                              (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:scene_number"}
+					Number   MBeCanDimmerConfigDecimalParam13   "Mode of operation"                         (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param13"}
+					Number   MBeCanDimmerConfigDecimalParam14   "Normal mode led colour"                    (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param14"}
+					Number   MBeCanDimmerConfigDecimalParam21   "Status mode led 1 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param21"}
+					Number   MBeCanDimmerConfigDecimalParam22   "Status mode led 2 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param22"}
+					Number   MBeCanDimmerConfigDecimalParam23   "Status mode led 3 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param23"}
+					Number   MBeCanDimmerConfigDecimalParam24   "Status mode led 4 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param24"}
+					Number   MBeCanDimmerConfigDecimalParam25   "Status mode led 5 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param25"}
+					Number   MBeCanDimmerConfigDecimalParam26   "Status mode led 6 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param26"}
+					Number   MBeCanDimmerConfigDecimalParam27   "Status mode led 7 colour"                  (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param27"}
+					Number   MBeCanDimmerConfigDecimalParam30   "Status mode leds blink frequency"          (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param30"}
+					Number   MBeCanDimmerConfigDecimalParam31   "Status mode leds blink status (bitmask)"   (gMBeCanDimmer)					{channel="zwave:device:c603a394:node16:config_decimal_param31"}
+				//Master Bedroom Can Lights
+				Dimmer MbeCan1Dim "Master Bedroom Can 1" <light> (gLights, gMBe_Cans, gMBe_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+				Dimmer MbeCan2Dim "Master Bedroom Can 2" <light> (gLights, gMBe_Cans, gMBe_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+
+				//Master Bedroom Colors
+				Group MbeCanColors "Master Bedroom Colors" <colorpicker>
+					Dimmer MbeCan1Color	"Master Bedroom Can 1 Color" <colorpicker> (MBeCanColors, Colors) 
+					Dimmer MBeCan2Color	"Master Bedroom Can 2 Color" <colorpicker> (MBeCanColors, Colors) 
+	//Guest Bedroom
+			Group gGBr_Lighting "Guest Bedroom Lighting" <light> (gMBe)
+			Group gGBrLightsSw "Guest Bedroom lights Switch" (gDimmer, gGBr_Lighting)
+				Dimmer GBrCanDimmer "Guest Bedroom dimmer [%.1f %%]" <light> (gGBr_Lighting, gLights, gGBrLightsSw, gGBrLightsSw, gZwaveSwitches)[ "Lighting" ]
+	//Color Pickers
+
+//Basement
+	Group gBMT_Lighting "All Basement Lights" <groundfloor> (gBMT_LightingSw, gLights, gLightLocations, gLights) 
+			Group:Switch:OR(ON, OFF) gBMT_LightingSw "All Basement lights Switch" (vDimmers)
+
+	
+		
+			Group gREC_Lighting "Rec Lights aggregate lighting control" <light> (gBMT_Lighting, gLights)
+				//Basement Rec Room Can Dimmer
+				Group gRECCanDimmer "Rec Can Dimmer Items"	(gREC) 
+				Group:Number:AVG gRECCansAvg  "Average Den Can Brightness [%.1f %%]" 
+				Dimmer   RECCanDimmer         				"REC Can Dimmer [%.1f %%]"                                 (gRecCanDimmer) {channel="zwave:device:c603a394:node37:switch_dimmer" }
+				Number   RECCanDimmerSceneNumber            "REC Can Dimmer Scene number"                              (gRecCanDimmer) {channel="zwave:device:c603a394:node37:scene_number"}
+				Number   RECCanDimmerConfigDecimalParam13   "REC Can Dimmer Mode of operation"                         (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param13"}
+				Number   RECCanDimmerConfigDecimalParam14   "REC Can Dimmer Normal mode led colour"                    (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param14"}
+				Number   RECCanDimmerConfigDecimalParam21   "REC Can Dimmer Status mode led 1 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param21"}
+				Number   RECCanDimmerConfigDecimalParam22   "REC Can Dimmer Status mode led 2 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param22"}
+				Number   RECCanDimmerConfigDecimalParam23   "REC Can Dimmer Status mode led 3 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param23"}
+				Number   RECCanDimmerConfigDecimalParam24   "REC Can Dimmer Status mode led 4 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param24"}
+				Number   RECCanDimmerConfigDecimalParam25   "REC Can Dimmer Status mode led 5 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param25"}
+				Number   RECCanDimmerConfigDecimalParam26   "REC Can Dimmer Status mode led 6 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param26"}
+				Number   RECCanDimmerConfigDecimalParam27   "REC Can Dimmer Status mode led 7 colour"                  (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param27"}
+				Number   RECCanDimmerConfigDecimalParam30   "REC Can Dimmer Status mode leds blink frequency"          (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param30"}
+				Number   RECCanDimmerConfigDecimalParam31   "REC Can Dimmer Status mode leds blink status (bitmask)"   (gRecCanDimmer) {channel="zwave:device:c603a394:node37:config_decimal_param31"}
+				
+				//Basement Rec Room Hue Can Lights
+				//vdimmers
+				Group gRecCans "Rec Can individual Control" <light> (vDimmers) 
+					Dimmer RecCan1Dim	"Rec Can 1 dimmer [%.1f %%]" <light> (gLights, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+					Dimmer RecCan2Dim	"Rec Can 2 dimmer [%.1f %%]" <light> (gLights, gEmergencyLighting, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting" [dimmerMode="filterOn"]}
+					Dimmer RecCan3Dim	"Rec Can 3 dimmer [%.1f %%]" <light> (gLights, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+					Dimmer RecCan4Dim	"Rec Can 4 dimmer [%.1f %%]" <light> (gLights, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+					Dimmer RecCan5Dim	"Rec Can 5 dimmer [%.1f %%]" <light> (gLights, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+					Dimmer RecCan6Dim	"Rec Can 6 dimmer [%.1f %%]" <light> (gLights, gRecCans, gRECCansAvg, gREC_Lighting) {homekit="Lighting.Brightness" [dimmerMode="filterOn"]}
+
+				//Rec Room Color pickers
+				Group RecCanColors "Rec Can Colors" <colorpicker>
+					Dimmer RecCan1Color	"Rec Can 1 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan2Color	"Rec Can 2 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan3Color	"Rec Can 3 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan4Color	"Rec Can 4 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan5Color	"Rec Can 5 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan6Color	"Rec Can 6 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan7Color	"Rec Can 7 Color" <colorpicker> (RecCanColors, Colors) 
+					Dimmer RecCan8Color	"Rec Can 8 Color" <colorpicker> (RecCanColors, Colors) 
+				
+				Dimmer RecSconceDim "Rec Room Sconces" <light> (gLights, gZwaveDimmers, gRec_Lighting) ["Lighting"] {channel="zwave:device:c603a394:node33:switch_dimmer", ga="Light" [roomHint="Rec Room"] }
+
+					Switch BarCanSw	"Bar light" <light> (gLights, gZwaveDimmers, gRec_Lighting) [ "Lighting"] {channel="zwave:device:c603a394:node6:switch_binary", ga="Light" [roomHint="Rec Room"] }		
+			//Basement Bedroom		
+			Group gBMTBr_Lighting "Basement Bedroom Lighing" (gBedSWs, gBMT_LightingSw, gBMTBr_Scene)
+				Dimmer BMTBrDimmer "Basement Bedroom dimmer [%.1f %%]" <light> (gLights, gBMTBr_Lighting, gZwaveDimmers)[ "Lighting" ] {channel="zwave:device:c603a394:node8:switch_dimmer", ga="Light", homebridge="Lighting" }
+				Dimmer BMTBrLampLeft "Basement Bedroom Left Lamp [%.1f %%]" <light> (gLights, gBMTBr_Lighting){channel="hue:0100:0017887fbafa:23:brightness"}
+				Dimmer BMTBrLampRight "Basement Bedroom Right Lamp [%.1f %%]" <light> (gLights, gBMTBr_Lighting) {channel="hue:0100:0017887fbafa:24:brightness"}
+
+			
+				Switch BmtHallSW "Basement Hall Switch" <light> (gLights, gBMT_Lighting, gBMTHW_Lighting, gREC_Lighting, gZwaveSwitches, gCorridorLighting ) [ "Lighting" ] {channel="zwave:device:c603a394:node10:switch_binary", expire="45m,command=OFF"}
+				Switch BmtBathSW	"Basement Bathroom Switch" <light> (gLights, gBMT_Lighting, gZwaveSwitches)	[ "Lighting"] {channel="zwave:device:c603a394:node9:switch_binary"}
+
+	
+
+	
+
+ 
+
+
+
+
+
+	
+
+
+
+
+		
+				
+		
+	
+	
+
+		
+
+
+

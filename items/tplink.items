@@ -1,0 +1,25 @@
+		Group gTpLink "TP Link Relay Switches" (gSwitch)
+				Group gHS105 "HS105 Smart Switches" (gTpLink)
+					Group gDenFP "Den Fireplace lighting" (gDEN_Lighting)
+					Switch LR_christmasTree_Switch "Living Room Christmas Tree" <light> (gChristmasLighting, gHS105) ["Lighting"] {channel="tplinksmarthome:hs105:outlet2:switch", ga="Outlet" [roomHint="Living Room"]}
+					Switch DenFPChristmas "Den Fireplace Twinkle Christmas Lights" <light> (gChristmasLighting, gHS105, gDenFP) {channel="tplinksmarthome:hs105:outlet4:switch" , ga="Outlet" [roomHint="Den"]}
+					Switch Ga_AMP "Garage Amplifier" (gP_Switches) {channel="tplinksmarthome:hs105:outlet1:switch" , ga="Outlet" [roomHint="Garage"]}
+					Switch Porch_String_Lights_Switch "Back Porch String Lights switch" <light> (gODSWs, gHS105, gDEN_Lighting) ["Lighting"] {channel="tplinksmarthome:hs105:outlet3:switch", ga="Outlet" [roomHint="back Porch"], expire="6h, command=OFF"}
+					Switch Foyer_Lamp "Foyer Lamp" (gP_Switches) {channel="tplinksmarthome:hs105:outlet5:switch" , ga="Outlet" [roomHint="Foyer"]}
+					Switch DenChristmasTree "Den Christmas Tree" (gP_Switches, gChristmasLighting, gHS105, gDen_Lighting) ["Lighting"] {channel="tplinksmarthome:hs105:outlet6:switch", ga="Outlet" [roomHint="Den"]}
+
+				Group gKB125 "KB125 Smart Switches" (gTpLink)
+					Switch MFHallOUTLET "Upstairs Hallway Built-in" <poweroutlet_us> (gLights, gMF_Lighting, gKB125, gCorridor_Lighting) [ "lighting"] {channel="tplinksmarthome:hs110:outlet1:switch", ga="Outlet" }	 
+						Number MFHallOUTLETcurrent "Upstairs Hallway Current" <energy> (gKB125, gEnergy_Consumption) {channel="tplinksmarthome:hs110:outlet1:current"}
+					Switch LR_FP_Outlet "Living Room Fireplace Garland" <light> (gChristmasLighting, gKB125) ["Lighting"] {channel="tplinksmarthome:hs110:outlet2:switch", ga="Outlet" [roomHint="Living Room"]}
+						Number LR_FP_Outlet_Current "Living Room Fireplace Current" <energy> (gKB125, gEnergy_Consumption) {channel="tplinksmarthome:hs110:outlet2:current"}
+					Switch DiningOutlet "Dining Room Built-In" <light> (gChristmasLighting, gkb125) ["Lighting"] {channel="tplinksmarthome:hs110:outlet3:switch", ga="Outlet" [roomHint="Dining Room"]}
+						Number Dining_Outlet_current "Dining Room Built-in Current" <energy> (gHS125, gEnergy_Consumption){channel="tplinksmarthome:hs110:outlet3:current"}
+                    Switch FrontPorch_Outlet "Front Porch Christmas Lights" <energy> (gChristmasLighting, gHS125) {channel="tplinksmarthome:hs110:outlet4:switch", ga="Outlet" [roomHint="Front Porch"]}
+                        Number FrontPorch_Outlet_current "Front Porch Current" <energy> (gHS125, gEnergy_Consumption) {channel="tplinksmarthome:hs110:outlet4:current"}
+					Switch DenFPChristmasG40 "Den Fireplace G40 Christmas Lights" <light> (gChristmasLighting, gHS110, gDenFP) {channel="tplinksmarthome:hs110:outlet5:switch", ga="Outlet" [roomHint="Den"]}
+						Number DenFPChristmasG40_current "Den Fireplace G40 Current" <energy> (gHS125, gEnergy_Consumption, gDenFP) {channel="tplinksmarthome:hs110:outlet5:current"}
+					Switch GAWorkbench_light "Garage Workbench Light"	<light> (gHS125, gGA_Lighting) {channel="tplinksmarthome:hs110:outlet6:switch", ga="Outlet" [roomHint="Garage"]}
+						Number GAWorkbench_current "Garage Workbench lighting Current" <energy> (gHS125, gEnergy_Consumption) {channel="tplinksmarthome:hs110:outlet6:current"}
+					Switch Porch_Planter_Christmas_lights "Porch Planter christmas Light"	<light> (gHS125, gChristmasLighting) {channel="tplinksmarthome:hs110:outlet7:switch", ga="Outlet" [roomHint="Front Porch"]}
+						Number Porch_Planter_current "Front Planter Current" <energy> (gHS125, gEnergy_Consumption) {channel="tplinksmarthome:hs110:outlet7:current"}

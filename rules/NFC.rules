@@ -1,0 +1,37 @@
+rule "NFC Arrival Toggle Switch"
+when 
+    Item NFCArrival received command ON
+
+then
+    if (vNFCArrival.state == OFF){
+        vNFCArrival.sendCommand(ON)
+    }
+    else (vNFCArrival.sendCommand(OFF))
+end
+
+rule "NFC Arrival"
+when
+    Item vNFCArrival changed from OFF to ON
+then
+    if (Night_State.state == ON && DENMS_LUM.state < 10){
+        gDEN_Lighting.sendCommand(70)
+        gLR_Lighting.sendCommand(30)
+        gCorridor_Lighting.sendCommand(100)
+        
+
+    }
+    say("Welcome Home Monster! I've Missed you!")
+end
+
+rule "NFC Departure"
+when
+    Item vNFCArrival changed from ON to OFF
+then
+    gDEN_Lighting.sendCommand(OFF)
+    gLR_Lighting.sendCommand(0)
+    gCorridor_Lighting.sendCommand(0)
+    if ( AVR2000MainZonePower == ON  ){
+        AVR2000MainZonePower.sendCommand(OFF)
+    }
+    say("Goodbye my Monster, I will sincerely miss you.  Have a great Journey")
+end

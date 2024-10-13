@@ -1,0 +1,46 @@
+sitemap Presence label="Presence" {
+Frame label="DD-WRT Presence" {
+//DD-WRT Switches
+Text item=DDWRTDeviceCount
+Switch item=Present
+}
+
+Frame {
+        Switch item=gShannonPresent
+        Text item=gShannonPresent label="Shannon's location" icon="world" {
+            Switch item=ShannonIphonegarage
+			Switch item=ShannonIphoneBasement
+	}
+    }
+
+Text item=motionLast label="Last Motion Location [%s]"
+
+Switch item=gShannonPresent 
+	Switch item=ShannonIphonegarage
+	Switch item=ShannonIphoneBasement
+	
+Switch item=gAnthonyPresent
+
+
+Frame label="presence"{
+Switch item=gPresent_ANY
+
+Switch item=gCell_Detected
+Switch item=Motion_recent
+Switch item=Bluetooth
+
+
+Switch item=AJPixelgarage
+Switch item=AJPixelBasement
+
+Switch item=House_interacted
+
+
+}
+Frame label="sleeping"{
+Switch item=sleepingSuspected
+Switch item=sleeping
+Switch item=sleepingOverride
+Switch item=gMotionNoBedrooms
+}
+}

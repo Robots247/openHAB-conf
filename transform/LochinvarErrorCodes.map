@@ -1,0 +1,23 @@
+//Blocking Codes (Input Register 30015)
+
+0=Clear
+1=SH blocking
+2=Blocking Due to Low 24 VAC Supply 
+3=Blocking due to General block
+4=Blocking MRHL is open
+5=Blocking due to Switched OFF boiler (Display ENTER switch)
+6=Blocking due to wrong communication of Cascade 
+7=Blocking due to High Delta
+8=Blocking due to High Flue Temperature
+9=Blocking due to High Outlet Temperature
+10=Service blocking
+12=DHW blocking high outlet temperature (DHW configured as storage tank)
+13=Blocking anti-cycling time
+14=Storage Tank demand Blocked due to Fan problems
+15=No system sensor connected and leader control present 
+16=Limit fan speed due to high outlet temperature
+17=Fan min decreased due to low flame current
+18=Limit max fan speed due to high Delta T
+19=Limit max fan speed due to high flue temp
+32767 = Code not present
+= initializing 

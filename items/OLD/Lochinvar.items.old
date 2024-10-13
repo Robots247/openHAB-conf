@@ -1,0 +1,105 @@
+Group Lochinvar_items
+Group Lochinvar_inputs (Lochinvar_items)
+Group Indicators (Lochinvar_items)
+Group Temperatures (Lochinvar_items)
+Group Setpoints (Lochinvar_items)
+Group Boiler_Switches (Indicators)
+Group Alarms (Indicators)
+Group Pumps (Lochinvar_items)
+Group Codes (Lochinvar_items)
+Group CFH (Lochinvar_items)
+Group DHW (Lochinvar_items)
+Group Limits (Lochinvar_items)
+Group Contacts (Lochinvar_items)
+Group Rates (Lochinvar_items)
+
+
+
+
+//Coils (read/write) (do not control Boiler, refer to holding registers)
+	Switch CFH_Hi_COIL  "Call for heat High Temp" (CFH) {modbus="<[CFH_Status:0], >[Holding_Coils:0]"}
+	Switch CFH_Med_COIL  "Call for heat Mid Temp" (CFH) {modbus="CFH_Status:1"}
+	Switch CFH_Low_COIL  "Call for heat Low Temp" (CFH) {modbus="CFH_Status:2"}
+	Switch Tank_Thermostat  "Hot Water Heater call for heat" (CFH,DHW) {modbus="CFH_DHW_Status:0"}
+//Discrete Inputs (values non-editable on/off only)
+
+	Switch Flow_Switch	"Boiler Flow Switch" (Boiler_Switches) {modbus="Discrete_Switches:0"}
+	Switch Gas_Pressure_Switch	"Gas Pressure Switch" (Boiler_Switches) {modbus="Discrete_Switches:1"}
+	Switch Louver_Proving_Switch	"Louver Proving Switch" (Boiler_Switches) {modbus="Discrete_Switches:2"}
+	Switch Louver_Proving_Switch	"Louver Proving Switch" (Boiler_Switches) {modbus="Discrete_Switches:3"}
+	Switch LouverProvingSwitch	"Louver Proving Switch" (Boiler_Switches) {modbus="Discrete_Switches:3"}
+	Switch Blocked_Drain_Switch	"Blocked Drain Switch" (Boiler_Switches) {modbus="Discrete_Switches:4"}
+	Switch Auto_Reset_High_Limit	"Auto Reset High Limit" (Limits,Switches) {modbus="Discrete_Switches:5"}
+	Switch Flame_indicator "Flame Switch" (Boiler_Switches) {modbus="Discrete_Switches:6"}
+	Switch CFH1_indicator	"Call for heat Temp 1 indicator" (CFH) {modbus="Discrete_Switches:7"}
+	Switch CFH_DHW_indicator	"Call for heat H20 Tank indicator " (CFH) {modbus="Discrete_Switches:8"}
+	Switch CFH2_indicator	"Call For heat 2 indicator" (CFH) {modbus="Discrete_T-Stat_2:0"}
+	Switch R_T_Contacts "Boiler Runtime Contacts" (Contacts) {modbus="Discrete_Contacts:0"}
+	Switch Alarm_Contacts "Boiler Alarm Indicator" (Alarms) {modbus="Discrete_Contacts:1"}
+	Switch CH_Pump	"CH Pump" (Pumps) {modbus="Discrete_Contacts:2"}
+	Switch DHW_Pump_indicator "DHW Pump Status" (Pumps) {modbus="Discrete_Contacts:3"}
+	Switch Gas_Valve_Switch	"Gas_Valve_Switch" (Boiler_Switches) {modbus="Discrete_Contacts:4"}
+	Switch System_Pump_indicator "System Pump Status" (Pumps) {modbus="Discrete_Contacts:5"}
+	Switch DHW_Recirc_Pump_indicator "DHW Pump Status"	(Pumps,DHW) {modbus="Discrete_DHW_Recirc:0"}
+
+//Input Registers (read Only)
+
+	//Discrete Inputs
+		String Discrete_inputs_1_16	"Discrete inputs 1-16" (Lochinvar_inputs) {modbus="Discrete_Inputs_HEX:0"}
+		String Discrete_inputs_17_32	"Discrete_inputs_17-32" (Lochinvar_inputs) {modbus="Discrete_Inputs_HEX:1"}
+		String Discrete_inputs_32_48	"Discrete_inputs_32-48" (Lochinvar_inputs) {modbus="Discrete_Inputs_HEX:2"}
+	//Input Temps
+		Number System__Temp_Setpoint	"Boiler System Setpoint" (Setpoints) {modbus="System_Temp_SP:0"}
+		
+		// System temp outlet
+		Number System_Outlet_Setpoint	"System Outlet Setpoint" (Setpoints) {modbus="Sys_Temps:0"}
+		
+		Number System_Outlet_Temp	"System Outlet Temperature [%.1f °F]  " (Temperatures) {modbus="<[Sys_Temps:1:transformation=JS(MBtoF.js)]"}
+		Number System_Inlet_Temp	"System Inlet Temperature [%.1f °F]" (Temperatures) {modbus="<[Sys_Temps:2:transformation=JS(MBtoF.js)]"}
+		Number Boiler_flue_Temp	"Boiler Flue Temperature [%.1f °F]" (Temperatures) {modbus="<[Sys_Temps:3:transformation=JS(MBtoF.js)]"}
+	//Input System Rates
+		Number System_Pump_Speed "System Pump Speed [%d %%]" (Pumps) {modbus="Input_System_Rates:0"}
+		//cascades commented out due to not used in this system
+		//Number Cascade_Total_Power "Cascade Total Power [%d %%]" (Lochinvar_inputs) {modbus="Input_System_Rates:1"}
+		//Number Cascade_Current_Power "Cascade Current Power [%d %%]" (Lochinvar_inputs) {modbus="Input_System_Rates:2"}
+	//Input Boiler Rates	
+		Number Boiler_Firing_Rate "Boiler Firing Rate [%d %%]" (Rates) {modbus="Input_Boiler_Rates:0"}
+		Number Boiler_Pump_Speed "Boiler Pump Speed [%d %%]" (Pumps) {modbus="Input_Boiler_Rates:1"}
+	//Input Boiler Status Codes
+		String Boiler_Status_Code	"Boiler Status Code" (Codes) {modbus="Boiler_Status:0"}
+	//Input Boiler_Blocking_Codes
+		Number Boiler_Blocking "Boiler Blocking Code" (Codes)	{modbus="Boiler_Blocking:0"}
+	//Input Boiler Lockout Codes
+		Number Boiler_Lockout_Code "Boiler Lockout Code" (Codes) {modbus="Boiler_Lockout:0"}
+	
+//Holding Registers
+	
+		//Config Bits 
+		Number Boiler_Configuration "Boiler Configuration" (Lochinvar_Inputs) {modbus="holding_config:<0:>0"}
+		//Coils (controls boiler CFH)
+
+		Number Boiler_Coils	"Boiler Coils" (Lochinvar_Inputs) {modbus="holding_coils:<0:>0"}
+		//0-10V Input/ Rate Command /Setpoint Command %
+
+		Number input_RateCommand_SetpointCommand "Input 0-10V, Rate Command, & Setpoint Command [%d %%]" (Lochinvar_Inputs) {modbus="holding_rate:0"}
+
+		//Temps
+		Number DHW_Tank_Setpoint "DHW Tank Temperature Setpoint" (DHW,Setpoints) {modbus="holding_temps:0"}
+		Number DHW_Tank_Temperature "DHW Tank Temperature [%.1f °F]" (Temperatures, DHW) {modbus="<[holding_temps:1:transformation=JS(MBtoF.js)]"}
+		Number Outdoor_Temperature "Outdoor Temperature [%.1f °F]"(Temperatures, gOutdoor_Sensors_AVG) {modbus="<[holding_temps:2:transformation=JS(MBtoF.js)]"}
+		Number System_Supply_Temp "System Supply Temperature [%.1f °F]" (Temperatures) {modbus="<[holding_temps:3:transformation=JS(MBtoF.js)]"}
+		Number DHW_Recirc__Temp "DHW Recirculation Temperature [%.1f °F] " (Temperatures,DHW) {modbus="<[holding_temps:4:transformation=JS(MBtoF.js)]"}
+	
+
+
+		
+
+
+
+
+
+
+
+
+
+

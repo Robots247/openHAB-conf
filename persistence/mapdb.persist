@@ -1,0 +1,27 @@
+Strategies {
+    everyHour : "0 0 * * * ?"
+    everyDay : "0 0 0 * * ?"
+    everyTenMins : "0 */10 * * * ?"
+    everyMinute : "0 * * * * ?"    
+
+    default = everyChange, restoreOnStartup
+}
+Items {
+    * : strategy = everyHour, restoreOnStartup
+    Heating_Mode : strategy = everyUpdate, restoreOnStartup
+    gHeating_PresetNormal* : strategy = everyUpdate, restoreOnStartup
+    gTstatModes* : strategy = everyUpdate, restoreOnStartup
+    gHysteresis* : strategy = everyUpdate, restoreOnStartup
+    gHeating_Presets* : strategy = everyUpdate, restoreOnStartup
+    
+    //Save Items
+    pSave* : strategy = everyChange, restoreOnStartup
+    //persistence Tracking
+		
+    gTstatModes* : strategy = everyUpdate, restoreOnStartup
+   	gHysteresis* : strategy = everyUpdate, restoreOnStartup
+    gHeating_Presets* : strategy = everyUpdate, restoreOnStartup
+    gMS_Temps* : strategy = everyUpdate, restoreOnStartup
+    gScenes* : strategy = everyUpdate, restoreOnStartup
+    
+}

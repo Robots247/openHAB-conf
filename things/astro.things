@@ -1,0 +1,8 @@
+astro:sun:set120 [geolocation="39.74397243413142,-105.13802426082246",altitude=5000,interval=60] {
+        Channels:
+                
+                Type rangeEvent : set#start [
+                        offset=-120
+                ]
+}
+ // { channel="astro:sun:set120:set#start", ToD="init"[tod_state="AFTERNOON"] }

@@ -1,0 +1,60 @@
+Group gAstro  "Astronomical information" <sun_clouds>
+
+
+Number:Angle     Sun_Azimuth            "Azimuth"                      (gAstro)      	{ channel="astro:sun:local:position#azimuth" }
+
+Number:Length    Moon_Distance       "MoonDistance [%.1f mi]"   (gAstro)      	{ channel="astro:moon:local:distance#distance" }
+
+Number:Intensity Total_Radiation    "Radiation [%.2f %unit%]"      (gAstro)      	{ channel="astro:sun:local:radiation#total" }
+
+Number:Intensity Diffuse_Radiation  "Diffuse Radiation [%.2f %unit%]" (gAstro)    	{ channel="astro:sun:local:radiation#diffuse" }
+
+//
+DateTime    Current_DateTime     "Time Now [%1$tA, %1$tm/%1$td/%1$tY]"                <clock>  (gAstro) {channel="ntp:ntp:local:dateTime"}
+//
+DateTime    Sunset_Time          "Sunset [%1$tH:%1$tM]"                            <sun>    (gAstro) {channel="astro:sun:local:set#start"}
+DateTime    Sunrise_Time         "Sunrise [%1$tH:%1$tM]"                           <sun>    (gAstro) {channel="astro:sun:local:rise#end"}
+DateTime    Evening_Time         "Evening [%1$tH:%1$tM]"                                    (gAstro) {channel="astro:sun:set120:set#start"}
+//
+String      Day_Phase            "Phase of Day [MAP(weather.map):%s]"                         (gAstro) {channel="astro:sun:local:phase#name"}
+
+Switch      Night_State          "Night"                                                    (gAstro)
+//
+String      Season_Name          "Season [MAP(weather.map):%s]"                               (gAstro) {channel="astro:sun:local:season#name"}
+String      Zodiac_Sign          "Zodiac [MAP(weather.map):%s]"                      <zodiac> (gAstro) {channel="astro:sun:local:zodiac#sign"}
+Number:Angle      Sun_Elevation        "Sun Elevation [%.1f °]"                          <sun>    (gAstro) {channel="astro:sun:local:position#elevation"}
+
+Number      Moon_Elevation       "Moon Elevation [%.1f °]"                         <moon>   (gAstro) {channel="astro:moon:local:position#elevation"}
+String      Moon_Phase           "Moon Phase [MAP(weather.map):%s]"                  <moon>   (gAstro) {channel="astro:moon:local:phase#name"}
+String PhaseName "Moon phase name" {channel="astro:moon:local:phase#name"}
+
+DateTime    Moon_Next_Full       "Next Full Moon [%1$td.%1$tm.%1$tY, %1$tH:%1$tM]" <moon>   (gAstro) {channel="astro:moon:local:phase#full"}
+DateTime    Moon_Next_New        "Next New Moon [%1$td.%1$tm.%1$tY, %1$tH:%1$tM]"  <moon>   (Astro) {channel="astro:moon:local:phase#new"}
+
+
+
+
+String vTimeOfDay "Current Time of Day [MAP(weather.map):%s]" <tod> (gAstro)
+
+Group TimeOfDay_StartTimes (gAstro)
+
+
+DateTime vMorning_Time "Morning [%1$tH:%1$tM]" <sunrise> (TimeOfDay_StartTimes) 
+    { ToD="init"[start_time="06:00",tod_state="MORNING"] }
+
+DateTime vDay_Time "Day [%1$tH:%1$tM]" <sun> (TimeOfDay_StartTimes)
+    { channel="astro:sun:local:rise#start", ToD="init"[tod_state="DAY"] }
+
+DateTime vAfternoon_Time "Afternoon [ %1$tH:%1$tM]" <sunset> (TimeOfDay_StartTimes)
+  { channel="astro:sun:set120:set#start", ToD="init"[tod_state="AFTERNOON"] }
+
+DateTime vEvening_Time "Evening [%1$tH:%1$tM]" <sunset> (TimeOfDay_StartTimes)
+    { channel="astro:sun:local:set#start", ToD="init"[tod_state="EVENING"] }
+    
+DateTime vNight_Time "Night [%1$tH:%1$tM]" <moon> (TimeOfDay_StartTimes)
+    { ToD="init"[start_time="23:00", tod_state="NIGHT"] } 
+
+DateTime vBed_Time "Bed [%1$tH:%1$tM]" <bedroom_blue> (TimeOfDay_StartTimes)
+    { ToD="init"[start_time="00:02",tod_state="BED"] }
+
+    

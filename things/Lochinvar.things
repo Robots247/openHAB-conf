@@ -1,0 +1,250 @@
+//Bridge Setup Full Link to Lochinvar Modbus Documentation http://www.lochinvar.com/_linefiles/MODB-I-O%20Rev%20B.pdf
+
+Bridge modbus:serial:lochinvar [ port="/dev/ttyUSB0", baud=19200, id=1, stopBits="2.0", parity="none", dataBits=8, encoding="rtu" ] {
+
+//Poller Coils (read only) Single Bit
+	//(add. 00001-00005)
+    Bridge poller Lochinvar_Boiler_Coils [ start=0, length=3, refresh=234000, type="coil" ] {
+   		     Thing data roomThermostat1 [ readStart="0", readValueType="bit"]
+   		     Thing data roomThermostat2 [ readStart="1", readValueType="bit"]
+   		     Thing data roomThermostat3 [ readStart="2", readValueType="bit"]
+     }
+     
+     
+      Bridge poller Lochinvar_Tank_Coils [ start=4, length=1, refresh=234000, type="coil" ] {
+   		     Thing data tankThermostat 	[ readStart="4", readValueType="bit"]
+     }
+/*****************************************************************************************************************************     
+     
+     Discrete Inputs (Read Only) (4 pollers)
+     
+
+*****************************************************************************************************************************/     
+
+     //(add. 10002-10010)
+     Bridge poller Lochinvar_Discrete_Inputs [ start=1, length=9, refresh=234000, type="discrete" ] {
+			Thing data flowSwitch			[ readStart="1", readValueType="bit"]
+   		     Thing data gasPressureSwitch 	[ readStart="2", readValueType="bit"]
+   		     Thing data louverProvingSwitch [ readStart="3", readValueType="bit"]
+   		     Thing data airPressureSwitch 	[ readStart="4", readValueType="bit"]
+   		     Thing data blockedDrainSwitch	[ readStart="5", readValueType="bit"]
+   		     Thing data autoResetHighLimit 	[ readStart="6", readValueType="bit"]
+   		     Thing data flame 				 [ readStart="7", readValueType="bit"]
+   		     Thing data roomThermostat1DI 	[ readStart="8", readValueType="bit"]
+   		     Thing data tankThermostatDI	  [ readStart="9", readValueType="bit"]
+
+     }
+
+	 //(add. 100022)
+     Bridge poller Lochinvar_Discrete_Inputs_2 [ start=23, length=1, refresh=234000, type="discrete" ] {
+
+   		     Thing data roomThermostat2DI 	[ readStart="23", readValueType="bit"]
+     }
+     
+     //(add. 10032-100039)
+     Bridge poller Lochinvar_Discrete_Inputs_3 [ start=32, length=7, refresh=234000, type="discrete" ] {
+
+   		     Thing data runTimeContacts		[ readStart="32", readValueType="bit"]
+   		     Thing data alarmContacts	 	[ readStart="33", readValueType="bit"]
+   		     Thing data chPump				[ readStart="34", readValueType="bit"]
+   		     Thing data dhwPump 			[ readStart="35", readValueType="bit"]
+   		    
+			   //Thing data LouverRelay			[ readstart="36", readValueType="bit"] 
+			Thing data gasValve 			[ readStart="37", readValueType="bit"]
+   		     Thing data systemPump 			[ readStart="38", readValueType="bit"]
+
+
+     }
+     
+     Bridge poller Lochinvar_Discrete_Inputs_4 [ start=43, length=1, refresh=234000, type="discrete" ] {
+           Thing data dhwRecircPump   [ readStart="43", readValueType="bit"]
+         }
+/*****************************************************************************************************************************     
+     
+     INPUT REGISTERS (Read Only)
+   
+
+*****************************************************************************************************************************/
+	//(add. 30001-30016)
+     Bridge poller Lochinvar_InputRegisters 		[ start=0, length=16, refresh=234000, type="input" ] {
+			     
+
+           Thing data lochinvarDiscreteInputs0116	[ readStart="0", readValueType="int16"]
+   		     Thing data lochinvarDiscreteInputs1732 [ readStart="1", readValueType="int16"]
+   		     Thing data lochinvarDiscreteInputs3348 [ readStart="2", readValueType="int16"]
+
+           //system setpoint (or cascade setpoint if running cascade)
+   		     Thing data lochinvarSystemSetPoint [ readStart="3", readValueType="int16", readTransform="JS(boil05.js)"]
+
+
+   		     Thing data lochinvarSystemPumpSpeed	[ readStart="4", readValueType="int16"]
+   		     Thing data lochinvarCascadeTotalPower 	[ readStart="5", readValueType="int16"]
+   		     Thing data lochinvarCascadeCurrentPower [ readStart="6", readValueType="int16"]
+   		     Thing data lochinvarOutletSetPoint	 	[ readStart="7", readValueType="int16", readTransform="JS(boil05.js)"]
+   		     Thing data lochinvarOutletTemperature	[ readStart="8", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvarInletTemperature 	[ readStart="9", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvarFlueTemperature 	[ readStart="10", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvarFiringRate 		[ readStart="11", readValueType="int16"]
+   		     Thing data lochinvarBoilerPumpSpeed	[ readStart="12", readValueType="int16"]
+   		     
+   		 
+/*****************************************************************************************************************************/   		     
+   		      
+   		     Thing data lochinvarBoilerStatusCode	[ readStart="13", readValueType="int16" ]
+   		     
+/******************************************************************************************************************************
+BOILER STATSUS CODES:
+   		     
+Status Codes (Input Register 30014)
+2 = Heat Demand blocked due to high absolute outlet
+temperature
+3 = Heat Demand blocked due to high absolute flue
+temperature
+4 = Heat Demand blocked due to high absolute Delta T
+(Outlet - Inlet)
+8 = Heat Demand blocked due to Low 24 VAC
+9 = Outdoor shutdown
+10 = Block due to switch OFF boiler (ON/OFF of Display)
+12 = Block due to no correct communication Cascade
+16 = Service function
+19 = DHW function Storage Tank
+21 = SH function Heat demand from Room Thermostat
+22 = SH function Heat demand from Boiler Management
+System
+23 = SH function Heat demand from Cascade
+30 = Heat demand activated by Freeze Protection
+32 = DHW Pump Delay
+33 = SH Pump Delay
+34 = No heat function (after pump delay)
+40 = Lockout
+32764 = Busy with updating status
+32765 = DHW blocked due to no present tank sensor
+32766 = Burner control(s) manually shut down
+32767 = Code not present
+
+
+
+******************************************************************************************************************************/
+   		     
+   		     Thing data lochinvarBoilerBlockingCode [ readStart="14", readValueType="int16" ]
+   		     
+/******************************************************************************************************************************
+BOILER BLOCKING CODES:
+   		     
+Blocking Codes (Input Register 30015)
+0 = No blocking _> is divided into sub blockings
+1 = SH blocking
+2 = Blocking Due to Low 24 VAC Supply
+3 = Blocking due to General block
+4 = Blocking MRHL is open
+5 = Blocking due to Switched OFF boiler (Display ENTER
+switch)
+6 = Blocking due to wrong communication of Cascade
+7 = Blocking due to High Delta
+8 = Blocking due to High Flue Temperature
+9 = Blocking due to High Outlet Temperature
+10 = Service blocking
+12 = DHW blocking high outlet temperature (DHW configured
+as storage tank)
+13 = Blocking anti-cycling time
+14 = Storage Tank demand Blocked due to Fan problems
+15 = No system sensor connected and leader control present
+16 = Limit fan speed due to high outlet temperature
+17 = Fan min decreased due to low flame current
+18 = Limit max fan speed due to high Delta T
+19 = Limit max fan speed due to high flue temp
+32767 = Code not present
+
+******************************************************************************************************************************/
+
+   		     Thing data lochinvarBoilerLockoutCode	[ readStart="15", readValueType="int16" ]
+          }
+/******************************************************************************************************************************
+BOILER LOCKOUT CODES
+ 		     
+161 = EEPROM code Parameters not Re-Programmed by Lochinvar
+164 = EEPROM code No Reset Allowed (> 15 minutes)
+166 = EEPROM code Auto Reset High Limit
+167 = EEPROM code Blocked Drain
+168 = EEPROM code Louver Proving
+169 = EEPROM code Gas Pressure Sw
+170 = EEPROM code Flow Switch
+177 = Sensor 3 short (Flue Sensor)
+178 = Sensor 3 open (Flue Sensor)
+179 = Sensor 2 short (Inlet Sensor)
+180 = Sensor 2 open (Inlet Sensor)
+192 = Sensor 1 short (Outlet Sensor)
+193 = Sensor 1 open (Outlet Sensor)
+204 = CRC EEPROM failed
+205 = EEPROM programmed (display shows “PP”)
+206 = EEPROM error in programming
+207 = Write error EEPROM
+229 = EEPROM code Watch Dog
+230 = EEPROM code fan low (should be high)
+231 = EEPROM code fan high (should be low)
+232 = EEPROM code no flame when running
+233 = EEPROM code no flame after ignition
+234 = EEPROM code simultaneous output APS and Fan
+235 = EEPROM code APS active not Closed
+236 = EEPROM code APS active not Open
+237 = EEPROM code flame out of sequence
+239 = EEPROM code when gas valve relay test fails
+240 = EEPROM code MRHL
+
+******************************************************************************************************************************
+   		 
+  
+
+    
+     
+Holding Registers (Read/Write) (for controlling boiler from OpenHab)
+
+*****************************************************************************************************************************/     
+   
+     Bridge poller LochinvarHoldingRegisters 	[ start=0, length=8, refresh=60000, type="holding" ] {
+     
+/****************************************************************************************************************************/          
+//add. 40001
+
+      Thing data lochinvarConf_boiler_enable 		[ readStart="0.0", readValueType="bit"]
+      Thing data lochinvarConf_Tank_Thermostat 	[ readStart="0.1", readValueType="bit"]
+      Thing data lochinvarConf_Rate_Command 		[ readStart="0.2", readValueType="bit"]
+   		Thing data lochinvarConf_Tank_Setpoint 		[ readStart="0.3", readValueType="bit"]
+   		Thing data lochinvarConf_System_Supply_Temp [ readStart="0.4", readValueType="bit"]
+   		Thing data lochinvarConf_Outdoor_Temp 		[ readStart="0.5", readValueType="bit"]
+   		Thing data lochinvarConf_Tank_Temp 		  	[ readStart="0.6", readValueType="bit"]
+   		Thing data lochinvarConf_Return_Temp		  [ readStart="0.7", readValueType="bit"]
+
+ /******************************************************************************************************************************
+ CONFIGURATION INFO
+ 
+ 							Address 40001 contains configuration bits sent from the BAS to the boiler. These bits tell the boiler to use its own internal inputs,
+							or inputs from the BAS. When a bit is set to 1, the boiler will ignore the corresponding value contained internally, and expect the
+							BAS to write that value into the Holding Registers. The configuration bits are as follows:
+					
+							Bit 0 (LSB): Boiler Enable
+							Bit 1: Tank Thermostat
+							Bit 2: Rate Command / 10 - 10V Input / Setpoint Command
+							Bit 3: Tank Setpoint
+							Bit 4: System Supply Temperature
+							Bit 5: Outdoor Temperature
+							Bit 6: Tank Temperature
+							Bit 7: System Return Temperature
+							Bit 8 - 15: Not Used (Default = 0)
+														
+*******************************************************************************************************************************/
+//Configuration CONT.
+//add. 40002-40008
+
+
+
+   		     Thing data lochinvar_HR_Coils 					[ readStart="1", readValueType="int16"]
+   		     Thing data lochinvar_HR_RateCommand				[ readStart="2", readValueType="int16"]
+   		     Thing data lochinvar_HR_TankSetpoint	 			[ readStart="3", readValueType="int16", readTransform="JS(boil05.js)"]
+   		     Thing data lochinvar_HR_TankTemperature 			[ readStart="4", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvar_HR_OutdoorTemperature 		[ readStart="5", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvar_HR_SystemSupplyTemperatureHR	[ readStart="6", readValueType="int16", readTransform="JS(MBtoF.js)"]
+   		     Thing data lochinvar_HR_SystemReturnTemp	 		[ readStart="7", readValueType="int16", readTransform="JS(MBtoF.js)"] 
+
+     }
+}

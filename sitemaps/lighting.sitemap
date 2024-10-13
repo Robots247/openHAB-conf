@@ -1,0 +1,74 @@
+sitemap lighting label="lighting" {
+ Frame label="Scenes" {
+		Selection item=vSceneLocation label="Scene location" mappings=[MF="Upstairs", Den="Den", MR="MudRoom", MBr="Master Bedroom", GA="Garage", LR="LivingRoom", Rec="Rec Room", Cor="Corridors", BMT="Basement", BMTBr="BMT BedRoom"]
+		Selection item=vSceneNumber label="Scene [MAP(scene.map):%s]" mappings=[0="Morning", 1="01: Day", 2="02: Afternoon", 3="03: Evening", 4="04: Night", 5="05: Dinner", 6="06: Movie", 7="07: Bed"]
+    	Switch item=vSceneLoad label="Load saved scene" icon=button
+    	Switch item=vSceneSave label="save current scene"
+}
+
+	
+Frame label="Den" visibility=[vSceneLocation=="Den"]{
+		Slider item=gDen_Dimmer label="All Den Lights" icon="slider"
+		Setpoint item=gDen_Dimmer label="All Den Lights Fine Control [%.1f %%]" icon="slider" minValue=0 maxValue=100 step=0.5
+
+		Slider item=DenCanDimmer label="All Den Can Lights" icon="slider"
+		Setpoint item=DenCanDimmer label="Den Can Fine Control[%.1f %%]" minValue=0 maxValue=100 step=0.5 
+		
+		Default item=DenAccDim label="Den Accent Lighting"	icon="slider" 
+		Setpoint item=DenAccDim label="Den Accent Fine control [%.1f %%]"	icon="slider" minValue=0 maxValue=100 step=0.5
+
+		Default	 item=DenFPDim	label="Den Fireplace Lighting"	icon="slider"
+		Setpoint	item=DenFPDim	label="Den Fireplace Fine Control [%.1f %%]"	icon="slider" minValue=0 maxValue=100 step=0.5
+
+		
+		Group item=gDenCans label="Den Can light Individual control"
+		Slider item=DenCanColors label="All Den Colors" icon="colorwheel"
+
+}
+Frame label="Living Room" visibility=[vSceneLocation=="LR"]{
+		Slider item=gLR_Lighting label="All Living Room Lighting Brightness" icon="slider"
+		Slider item=gLR_Colors label="All Living Room Colors" icon="colorwheel"
+		Default item=gLR_Colors label="Individual Living Room Light Colors" icon="colorwheel"
+}
+Frame label="Dining Room" visibility=[vSceneLocation=="LR"]{
+		Slider item=gDining_Lighting label="Dining lights" icon="slider"
+		Default item=DiningChandelier label="Dining Room Chandelier" icon="slider"
+}
+Frame label="Basement Bedroom" visibility=[vSceneLocation=="BMTBr"]{
+		Slider item=BasementBedroomDim label="Basement Bedroom Lights" icon="slider"
+}
+
+Frame label="Rec Room" visibility=[vSceneLocation=="REC"]{
+		Slider item=gREC_Lighting label="All Rec Lights" icon="slider"
+		Slider item=RecRoomDim label="All Rec Can Lights" icon="slider"
+		Colorpicker item=RecCanColors label="All Rec Colors" icon="colorwheel"
+		Default item=RecSconceDim label="Rec Accent Ligthing"	icon="slider"
+		Default item=RecCanColors label="LED Light Color" icon="colorwheel"
+		Default item=RecCanLgts label="Rec Can Lights" icon="dimmer"
+		Default item=BarCanSw	label="Bar Light" icon="dimmer"
+		Group item=gRecCans label="Rec Can light Individual control"
+		
+	
+	}
+Frame label="Master BedRoom" visibility=[vSceneLocation=="MBr"]{
+		Slider item=gMBr_Lighting label="Master Can lights" icon="slider"
+
+}
+ Frame label="Outdoors" {
+    	Switch item=gODSWs	label="ALL Outdoor Lights" icon="switch"
+    	Default item=DWSW 	label="DriveWay Lighting"	icon="switch"
+    	Default item=BYSW 	label="BackYard Lighting"	icon="switch"
+    	Default item=BPSW 	label="Back Porch Switch"	icon="switch"
+    	Default item=ChrismasLights_Switch 	label="Christmas Lights" icon="switch"
+    	
+}   
+Frame label="Corridors" {
+		Switch item=BmtHallSW label="Basement Hall Lights"
+		Slider item=StairDim label="Stair Lights"
+		Slider item=gEntry_Lighting label="Foyer Lights"
+}		
+Frame label="Garage"{
+		Slider item=GADim label="Garage Dimmer" icon="slider"
+}	
+}	
+		

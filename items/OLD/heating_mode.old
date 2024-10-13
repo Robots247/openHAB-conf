@@ -1,0 +1,48 @@
+/*high temp heating targets*/
+Group Thermostats "Thermostats"
+Group Heating_Targets "Heating Targets" (setpoints)
+Group:Number:AVG gOutdoor_Sensors_AVG "Avg. Outdoor Temperature [%.1f °F]"
+Group:Number:AVG gHeating_Setpoint_AVG "Average Heating Setpoint [%.1f °F]" 
+
+Number LR_Heating_TargetTemp "Livingroom Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number GB_Heating_TargetTemp "Guest Bed/Bath Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number BMT_Heating_TargetTemp "Basement Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number GA_Heating_TargetTemp "Garage Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG)["Thermostat"]
+Number MR_Heating_TargetTemp "Mud Room Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+
+/*low temp heating targets*/
+
+Number DEN_Heating_TargetTemp "Den Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number MBa_Heating_TargetTemp "Master Bathroom Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number KIT_Heating_TargetTemp "Kitchen Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+Number MBe_Heating_TargetTemp "Master Bedroom Heating Target [%.1f °F]" (Heating_Targets,Thermostats,gHeating_Setpoint_AVG) ["Thermostat"]
+
+//heating mode switches
+String Heating_Mode "Global Heating Mode [%s]" (Thermostats)
+Switch Heating_UpdateHeater "Send Target Temperatures to Heaters" (Thermostats)
+
+//manual override
+Group Manual_Overrides "manual override group"
+Group:Switch:OR(ON,OFF) Heating_Manual_Override "There is a Manual Heat Setpoint Override"
+Switch LR_Heating_Manual_Override "Living Room Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch GB_Heating_Manual_Override "Guest Bedroom Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch BMT_Heating_Manual_Override "Basement Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch GA_Heating_Manual_Override "Garage Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MR_Heating_Manual_Override "Mud Room Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+
+Switch DEN_Heating_Manual_Override "DEN Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MBa_Heating_Manual_Override "MBa Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MBe_Heating_Manual_Override "MBe Manual Heat Setpoint Override" (Manual_Overrides, Heating_Manual_Override,Thermostats)
+
+//normal temps
+Group Heating_PresetNormal_Group
+Number LR_Heating_PresetTempNormal "Livingroom Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number GB_Heating_PresetTempNormal "Guest Bed/Bath Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number BMT_Heating_PresetTempNormal "Basement Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number GA_Heating_PresetTempNormal "Garage Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number MR_Heating_PresetTempNormal "Mud Room Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+
+Number DEN_Heating_PresetTempNormal "Den Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number MBa_Heating_PresetTempNormal "Master Bathroom Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+Number MBe_Heating_PresetTempNormal "Master Bedroom Heating Preset (Normal Mode) [%.1f °F]" (Heating_PresetNormal_Group)
+

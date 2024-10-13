@@ -1,0 +1,6 @@
+
+
+//Garage Fan	
+
+
+Number:Temperature GaHeaterIntakeTemp "Garage Heater Intake Temperature [%.1f °F]" (HVAC) ["CurrentTemperature", "Fahrenheit"] {expire="2h,-999" }

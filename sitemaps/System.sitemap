@@ -1,0 +1,69 @@
+sitemap System label="System Information" {
+
+Text label="Systeminfo" {
+    Frame label="Network Information" {
+        Default item=piNetwork_AdapterName
+        Default item=piNetwork_Name
+        Default item=piNetwork_IP
+        Default item=piNetwork_Mac
+        Default item=piNetwork_DataSent
+        Default item=piNetwork_DataReceived
+        Default item=piNetwork_PacketsSent
+        Default item=piNetwork_PacketsReceived
+    }
+    Frame label="CPU Information" {
+        Default item=piCPU_Name
+        Default item=piCPU_Description
+        Default item=piCPU_Load1
+        Default item=piCPU_Load5
+        Default item=piCPU_Load15
+        Default item=piCPU_Threads
+        Default item=piCPU_Uptime
+    }
+    Frame label="Drive Information" {
+        Default item=piDrive_Name
+        Default item=piDrive_Model
+        Default item=piDrive_Serial
+    }
+    Frame label="Storage Information" {
+        Default item=piStorage_Name
+        Default item=piStorage_Type
+        Default item=piStorage_Description
+        Default item=piStorage_Available
+        Default item=piStorage_Used
+        Default item=piStorage_Total
+        Default item=piStorage_Available_Percent
+        Default item=piStorage_Used_Percent
+    }
+    Frame label="Memory Information" {
+        Default item=piMemory_Available
+        Default item=piMemory_Used
+        Default item=piMemory_Total
+        Default item=piMemory_Available_Percent
+        Default item=piMemory_Used_Percent
+    }
+    Frame label="Swap Memory Information" {
+        Default item=piSwap_Available
+        Default item=piSwap_Used
+        Default item=piSwap_Total
+        Default item=piSwap_Available_Percent
+        Default item=piSwap_Used_Percent
+    }
+    Frame label="Battery, Display and Sensor Information" {
+        Default item=piBattery_Name
+        Default item=piBattery_RemainingCapacity
+        Default item=piBattery_RemainingTime
+        Default item=piDisplay_Description
+        Default item=piSensor_CPUTemp
+        Default item=piSensor_CPUVoltage
+        Default item=piSensor_FanSpeed
+    }
+    Frame label="Process Information" {
+        Default item=piProcess_load
+        Default item=piProcess_used
+        Default item=piProcess_name
+        Default item=piProcess_threads
+        Default item=piProcess_path
+    }
+}
+}

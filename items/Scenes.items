@@ -1,0 +1,303 @@
+
+Group:Switch:OR(ON,OFF) gScene "Scene Activated [%d]" <light> (gV_Switches) {expire="30m" }
+Group pSave          "Persistence Save"                  // mapdb -> everyChange, restoreOnStartup
+Group pGraph         "Persistence Graph"                 // influxdb -> everyChange 
+Group gScene_Switches "Scenes"                               
+
+/*
+//Homeseer Switches
+
+
+//Homeseer Scenes ********* Replaced by dsf
+Number DenScene "Den Scene Selection" <light> (DenSws, gScene, gHomeseerSwitches, gDEN_Scene)
+	
+//Den homeseer functions
+//Number DenScene "Den Scene" (DenSws, gScene, gHomeseerSwitches)
+Number Denmode "Den Dimmer Mode of operation" <light> (gHomeseerSwitches, gDen)
+Number DenLEDColor "Den LED Color" <light> (gHomeseerSwitches, gDen)
+Number DenLEDFreq "Den Flashing Frequency" <light> (gHomeseerSwitches, gDen)
+			//homeseer functions
+Number BmtHallScene "Hall Scene" (gScene, gHomeseerSwitches, gBMT_Scene)
+Number BmtHallMode "Basement Hall Dimmer Mode of operation" (gHomeseerSwitches, gBMT)
+Number BmtHallLEDColor "Basement Hall LED Color" (gHomeseerSwitches, gBMT)
+Number BmtHallLEDFreq "Basement Hall Flashing Frequency" (gHomeseerSwitches, gBMT)
+
+Number RecScene "Rec Room Scene" (gRec_Scene)
+Number RecMode "Rec Dimmer Mode of operation" (gHomeseerSwitches, gREC)
+Number RecLEDColor "Rec LED Colors" (gHomeseerSwitches, gREC)
+Number RecLEDFreq	"Rec LED Frequency" (gHomeseerSwitches, gREC)
+
+Number MbrScene "Master Bedroom Scene" 
+Number MbrMode "Master Bedroom Mode"(gHomeseerSwitches)
+Number MbrLEDColor	"Master Bedroom LED Color"(gHomeseerSwitches)
+Number MbrLEDFreq "master Bedroom LED Frequency"(gHomeseerSwitches)
+
+Number MbaScene "Master Bathroom Scene" (gScene)
+
+//Stair Scene
+Number StairScene "Stair Scene Selection" <light> (StairSws, gScene, gHomeseerSwitches)
+	
+//Stair homeseer functions
+//Number StairScene "Stair Scene" (gScene, gHomeseerSwitches)
+Number Stairmode "Stair Dimmer Mode of operation" <light> (gHomeseerSwitches)
+Number StairLEDColor "Stair LED Color" <light> (gHomeseerSwitches)
+Number StairLEDFreq "Stair Flashing Frequency" <light> (gHomeseerSwitches) 
+*/
+
+//Motion Location items
+String motionLast "last motion detector triggered was [%s]"
+Switch vMovement "multiple motion detectors triggered, movement suspected [%d]" {expire="15m"}
+
+//Scene selector items
+Switch vSceneSave "Scene Save button" (gV_Switches)
+Switch vSceneLoad "Scene Save button" (gV_Switches)
+
+//sitemap scene name
+String vSceneName "Scene Name [%s]"
+
+String sceneName "Scene Name [%s]"
+String sceneSelected "Selected Scene"
+//Scene Names
+//sitemap scene location
+String vSceneLocation "scene Location [%s]"
+
+String sceneLocation "Scene Location [%s]"
+String sceneNumber "Scene Number[%s]"
+
+//sitemap switch
+String vSceneNumber "Scene Number[%s]"
+
+//Override scene switch
+Switch sceneOverride "Scene Override Activated" {expire="15m"}
+ 
+//Scene Groups
+Group gScenes "Scenes" 
+
+//Room Based Scenes
+	Group gDEN_Scene     "Scene Den"         (gDen, gScenes) // group containing all items recorded in Den Scene
+		
+		// Scene items
+		Number vDEN_Scene       "Scene Den [%d]"             (vDEN_Scene, pSave) //virtual number for scene number
+		Switch vDEN_Scene_Save  "Scene Den save"             (vDEN_Scene) 
+ /*0="00: OFF",
+                                                                                    1="01: ON",
+                                                                                    2="02: Morning",                                                                                 
+                                                                                    3="03: Day",
+                                                                                    4="04: Afternoon", 
+                                                                                    5="05: Evening", 
+                                                                                    6="06: Night", 
+                                                                                    7="07: Dinner", 
+                                                                                    8="08: Movie", 
+                                                                                    9="09: Fire", 
+                                                                                    10="10: Bed",
+                                                                                    12="12: Computer"
+*/																					
+		DateTime vDEN_Scene_0  	 	"Den Off Scene [%1$td.%1$tm.%1$tY %1$tT]" 				 	(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_1	   	"Den ON Scene [%1$td.%1$tm.%1$tY %1$tT]" 					(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_2  		"Den Morning Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)  // add as many scenes as want to have
+		DateTime vDEN_Scene_3 	  	"Den Day Scene [%1$td.%1$tm.%1$tY %1$tT]" 					(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_4 		"Den Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]" 			(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_5  		"Den Evening Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_6 		"Den Night Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_7 		"Den Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_8 		"Den Movie Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_9  		"Den Fire Scene [%1$td.%1$tm.%1$tY %1$tT]" 				 	(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_10 		"Den Bed Scene [%1$td.%1$tm.%1$tY %1$tT]" 				 	(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_11 		"Den Saved Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+		DateTime vDEN_Scene_12 		"Den Computer Scene [%1$td.%1$tm.%1$tY %1$tT]" 				(gDEN_Scene, pSave)
+
+//virtual scene Switches
+		
+		Switch vDEN_Scene_2_switch  		"Den Morning Scene" 		(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}  // add as many scenes as want to have
+		Switch vDEN_Scene_3_switch 	  		"Den Day Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_4_switch 			"Den Afternoon Scene" 		(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_5_switch  		"Den Evening Scene" 		(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_6_switch 			"Den Night Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_7_switch 			"Den Dinner Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_8_switch 			"Den Movie Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_9_switch  		"Den Fire Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_10_switch 		"Den Bed Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_11_switch 		"Den Saved Scene" 			(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+		Switch vDEN_Scene_12_switch 		"Den Computer Scene" 		(gScene_Switches)  		{ga="Scene" [roomHint="Den"]}
+
+Group gLR_Scene     "Scene LR"         (gLR, gScenes) // group containing all items recorded in LR Scene
+		
+		// Scene items
+		Number vLR_Scene       "Scene LR [%d]"             (vLR_Scene, pSave) //virtual number for scene number
+		Switch vLR_Scene_Save  "Scene LR save"             (vLR_Scene) 
+
+		DateTime vLR_Scene_0  	"LR OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_1  	"LR ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_2 	"LR Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)  // add as many scenes as want to have
+		DateTime vLR_Scene_3  	"LR Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_4 	"LR Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_5 	"LR Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_6 	"LR Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_7 	"LR Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_8 	"LR Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_9 	"LR Fireplace Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_10	"LR Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+		DateTime vLR_Scene_11	"LR Saved State Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gLR_Scene, pSave)
+
+		Switch vLR_Scene_2_switch 	"Living Room Morning Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}  // add as many scenes as want to have
+		Switch vLR_Scene_3_switch   "Living Room Day Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_4_switch 	"Living Room Afternoon Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_5_switch 	"Living Room Evening Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_6_switch 	"Living Room Night Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_7_switch 	"Living Room Dinner Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_8_switch 	"Living Room Movie Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_9_switch 	"Living Room Fireplace Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_10_switch	"Living Room Bed Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+		Switch vLR_Scene_11_switch	"Living Room Saved State Scene"  (gScene_Switches)		{ga="Scene" [roomHint="Den"]}
+
+	
+Group gMBr_Scene     "Scene MBr"         (gMBr, gScenes) // group containing all items recorded in MBr Scene
+		
+		// Scene items
+		Number vMBr_Scene       "Scene MBr [%d]"             (vMBr_Scene, pSave) //virtual number for scene number
+		Switch vMBr_Scene_Save  "Scene MBr save"             (vMBr_Scene) 
+
+		DateTime vMBr_Scene_0   "MBe OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_1   "MBe ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_2  	"MBe Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)  // add as many scenes as want to have
+		DateTime vMBr_Scene_3   "MBe Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_4 	"MBe Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_5  	"MBe Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_6 	"MBe Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_7 	"MBe Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_8 	"MBe Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_9  	"MBe Fire Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_10 	"MBe Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_11	"MBe Saved State Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+		DateTime vMBr_Scene_12	"MBe SexyTime Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMBr_Scene, pSave)
+
+Group gRec_Scene     "Scene Rec"         (gRec, gScenes) // group containing all items recorded in Rec Scene
+		
+		// Scene items
+		Number vRec_Scene       "Scene Rec [%d]"             (vRec_Scene, pSave) //virtual number for scene number
+		Switch vRec_Scene_Save  "Scene Rec save"             (vRec_Scene) 
+
+		DateTime vRec_Scene_0   "REC OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_1   "REC ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_2  	"REC Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)  // add as many scenes as want to have
+		DateTime vRec_Scene_3   "REC Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_4 	"REC Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_5  	"REC Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_6 	"REC Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_7 	"REC Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_8 	"REC Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_9  	"REC Bar Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_10 	"REC Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+		DateTime vRec_Scene_11	"REC Saved State Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gRec_Scene, pSave)
+
+		Switch vRec_Scene_2_switch  "Rec Room Morning Scene"  (gScene_Switches)      {ga="Scene" [roomHint="Rec Room"]} // add as many scenes as want to have
+		Switch vRec_Scene_3_switch  "Rec Room Day Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_4_switch 	"Rec Room Afternoon Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_5_switch  "Rec Room Evening Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_6_switch 	"Rec Room Night Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_7_switch 	"Rec Room Dinner Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_8_switch 	"Rec Room Movie Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_9_switch  "Rec Room Bar Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_10_switch "Rec Room Bed Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+		Switch vRec_Scene_11_switch	"Rec Room Saved State Scene"  (gScene_Switches) {ga="Scene" [roomHint="Rec Room"]}
+
+Group gCor_Scene     "Scene Cor"         (gCor, gScenes) // group containing all items recorded in Cor Scene
+		
+		// Scene items
+		Number vCor_Scene       "Scene Cor [%d]"             (vCor_Scene, pSave) //virtual number for scene number
+		Switch vCor_Scene_Save  "Scene Cor save"             (vCor_Scene) 
+
+		DateTime vCor_Scene_0   "Corridor OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_1   "Corridor ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_2  	"Corridor Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)  // add as many scenes as want to have
+		DateTime vCor_Scene_3   "Corridor Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_4 	"Corridor Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_5  	"Corridor Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_6 	"Corridor Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_7 	"Corridor Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_8 	"Corridor Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_9  	"Corridor Fireplace Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_10 	"Corridor Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vCor_Scene_11	"Corridor Saved Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+Group gGA_Scene     "Scene Cor"         (gCor, gScenes) // group containing all items recorded in Cor Scene
+		
+		// Scene items
+		Number vGA_Scene       "Scene Cor [%d]"             (vGA_Scene, pSave) //virtual number for scene number
+		Switch vGA_Scene_Save  "Scene Cor save"             (vGA_Scene) 
+
+		DateTime vGA_Scene_0    "Corridor OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_1    "Corridor ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_2  	"Corridor Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)  // add as many scenes as want to have
+		DateTime vGA_Scene_3    "Corridor Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_4 	"Corridor Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_5  	"Corridor Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_6 	"Corridor Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_7 	"Corridor Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_8 	"Corridor Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_9  	"Corridor Fireplace Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_10 	"Corridor Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+		DateTime vGA_Scene_11	"Corridor Saved Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gCor_Scene, pSave)
+Group gBMT_Scene     "Scene BMT"         (gBMT, gScenes) // group containing all items recorded in BMT Scene
+		
+		// Scene items
+		Number vBMT_Scene       "Scene BMT [%d]"             (vBMT_Scene, pSave) //virtual number for scene number
+		Switch vBMT_Scene_Save  "Scene BMT save"             (vBMT_Scene) 
+
+		DateTime vBMT_Scene_0   "BMT OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_1   "BMT ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_2  	"BMT Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)  // add as many scenes as want to have
+		DateTime vBMT_Scene_3   "BMT Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_4 	"BMT Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_5  	"BMT Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_6 	"BMT Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_7 	"BMT Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_8 	"BMT Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_9  	"BMT Fireplace Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_10 	"BMT Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+		DateTime vBMT_Scene_11 	"BMT Saved Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMT_Scene, pSave)
+Group gBMTBr_Scene     "Scene BMTBr"         (gBMTBr, gScenes) // group containing all items recorded in BMTBr Scene
+		
+		// Scene items
+		Number vBMTBr_Scene       "Scene BMTBr [%d]"             (vBMTBr_Scene, pSave) //virtual number for scene number
+		Switch vBMTBr_Scene_Save  "Scene BMTBr save"             (vBMTBr_Scene) 
+
+		DateTime vBMTBr_Scene_0   "BMTBr OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_1   "BMTBr ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_2  	"BMTBr Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)  // add as many scenes as want to have
+		DateTime vBMTBr_Scene_3   "BMTBr Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_4 	"BMTBr Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_5  	"BMTBr Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_6 	"BMTBr Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_7 	"BMTBr Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_8 	"BMTBr SexyTime Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_9  	"BMTBr Reading Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_10 	"BMTBr Bed Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+		DateTime vBMTBr_Scene_11	"BMTBr Saved Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gBMTBr_Scene, pSave)
+Group gMF_Scene     "Scene upstairs"         (gMF, gScenes) // group containing all items recorded in MF Scene
+		
+		// Scene items
+		Number vMF_Scene       "Scene upstairs [%d]"             (vMF_Scene, pSave) //virtual number for scene number
+		Switch vMF_Scene_Save  "Scene Upstatirs save"             (vMF_Scene) 
+
+		DateTime vMF_Scene_0   "Main Floor OFF Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_1   "Main Floor ON Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_2  	"Main Floor Morning Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)  // add as many scenes as want to have
+		DateTime vMF_Scene_3   "Main Floor Day Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_4 	"Main Floor Afternoon Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_5  	"Main Floor Evening Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_6 	"Main Floor Night Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_7 	"Main Floor Dinner Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_8 	"Main Floor Movie Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_9  	"Main Floor Fireplace Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_10 	"Main Floor BED Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+		DateTime vMF_Scene_11	"Main Floor Saved Scene [%1$td.%1$tm.%1$tY %1$tT]"  (gMF_Scene, pSave)
+
+
+
+
+
+
+
+
+	
+	 

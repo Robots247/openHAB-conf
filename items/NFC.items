@@ -1,0 +1,3 @@
+Group gNFC "NFC TAG ITEMS"  
+Switch NFCArrival "NFC Arrival Toolbox Tag" (gNFC)
+Switch vNFCArrival "NFC Arrival Virtual Toggle Switch"

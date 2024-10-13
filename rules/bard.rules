@@ -1,0 +1,29 @@
+/*rule "Gradually Change Lighting Scenes"
+when
+    Item Scene1 changed or Item Scene2 changed
+then
+    // Get the current state of the scenes
+    var currentScene1 = Scene1.state
+    var currentScene2 = Scene2.state
+
+    // If the current scene is different from the previous scene,
+    if (currentScene1 != previousScene1 || currentScene2 != previousScene2) {
+        // Calculate the difference between the two scenes
+        var delta = Math.abs(currentScene1 - currentScene2)
+
+        // Set a timer to change the scene over time
+        if (currentScene1 < currentScene2) {
+            // Change the scene up
+            Timer changeSceneTimer.reschedule(delta * 1000)
+        }
+        else {
+            // Change the scene down
+            Timer changeSceneTimer.reschedule(-delta * 1000)
+        }
+
+        // Store the previous scene state
+        previousScene1 = currentScene1
+        previousScene2 = currentScene2
+    }
+end
+*/

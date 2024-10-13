@@ -1,0 +1,19 @@
+var Timer TimerPlayStream = null
+
+
+rule "Doorbell"
+when Item Doorbell changed from OFF to ON
+ then
+ createTimer(now.plusSeconds(3)) [ |
+        say("this is a test")
+    ]
+ if (TimerPlayStream!==null)
+	        	TimerPlayStream.cancel()
+				TimerPlayStream = createTimer(now.plusSeconds(3)) [|
+				playSound("doorbell.mp3")
+				logInfo("doorbell.rule", "Doorbell was pressed")
+				Doorbell.sendCommand(OFF)
+	
+				]  
+
+end

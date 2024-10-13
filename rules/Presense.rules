@@ -1,0 +1,1076 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+
+val String filename = "Presence.rules"
+val String logNamePresence = "presence"
+val String logNameSleeping = "Sleeping"
+var Timer presenceTimer = null
+var Timer ShannonPhoneTimer = null
+var Timer motionTimer = null
+var Timer sleepingTimer = null
+var Timer houseSleepingTimer = null
+var Timer motionnobedroomsTimer = null
+var Timer autodimmingTimer = null
+var String triggeringDetector = null
+
+var String activeSensorMotion = null
+var Number activeSensorLUM = null
+var movement = null
+var Boolean Den = false
+var Boolean MR = false
+var Boolean GAMS = false
+var Boolean LR = false
+var Boolean BMT = false
+var Boolean BMTBr = false
+
+var String room = null
+var String sensor = null
+
+
+var boolean cancelled = false
+
+
+ 
+rule "Initialize uninitialized Presence Items"
+//set everyone to away when system restarts
+when
+    System started
+then
+    createTimer(now.plusSeconds(190)) [ |	
+        logInfo(filename, "Executing 'System started' rule for Presence- Init. null items.")
+        if (Present.state == NULL) Present.postUpdate(OFF){
+      	gPresent_ANY.members.filter[ item | item.state == NULL ].forEach[ item | item.postUpdate(OFF) ]
+    	}
+    ]
+end
+
+ /***************************** Presence AWAY Timer ***********************************/
+
+rule "present"
+when
+    Item gPresent_ANY changed from OFF to ON
+then
+
+	if(PresenceOverride.state != ON) {
+		// Someone is home
+		if(Present.state != ON) {
+				logInfo(logNamePresence, "Presence detected- someone is home")
+				logDebug(logNamePresence, "gPresent_Any= " + gPresent_ANY.state + "Present= " + Present)
+					if(presenceTimer !== null && !presenceTimer.hasTerminated) {
+					presenceTimer.cancel
+					}
+				presenceTimer = null
+				Present.sendCommand(ON)
+		}
+	}
+end
+
+rule "away"
+when
+	Item gPresent_ANY changed from ON to OFF
+then
+	if(Present.state != OFF) {
+		logDebug(logNamePresence, "gPresent_Any= "+ gPresent_ANY.state + "Present= " + Present)
+		logInfo(logNamePresence, "No presence has been detected, setting timer")
+		if(presenceTimer === null) {
+			logDebug(logNamePresence, "creating timer")
+			presenceTimer = createTimer(now.plusMinutes(15), [|
+				if(gPresent_ANY.state == OFF) {
+					logDebug(logNamePresence, "gPresent_ANY= "+ gPresent_ANY )
+					logInfo(logNamePresence, "No presence has been detected after 15 minutes, setting Present to OFF")
+						if(Present.state != OFF) {
+							logDebug(logNamePresence, "presence timer set to null, Presence turned off")
+							Present.sendCommand(OFF)
+						}
+						
+				}
+			])
+
+		presenceTimer = null                                    
+				
+		}
+	}
+        
+end
+
+// nobody is home
+                
+
+ /***************************** Presence Logic ***********************************/
+// Turn Present on when light switch activated
+rule "Light Switch Presence Detection"
+when 
+	Member of gZwaveNoLoad received command
+then
+	if(House_interacted.state != ON) {
+		logInfo(logNamePresence, "manual switch activation detected, someone is home")
+		House_interacted.sendCommand(ON)
+		if(gCell_Detected.state != ON) {
+			sendNotification("bassplayer247@gmail.com", "a switch was pressed without mama or papa present")
+	}
+}	
+end
+
+//when motion is detected and owners aren't home, turn on unknown presence switch
+rule "Unknown Presence Detection"
+when 
+	Item gPresent_ANY changed from OFF to ON or
+	Item gMS_Motion_ANY changed from OFF to ON or
+	Item motionLast changed
+
+then
+	if(gCell_Detected.state == OFF){
+	logDebug(filename, "gCell_Detected = "+ gCell_Detected)
+		logInfo(logNamePresence, "someone is home but it isn't Shannon or Anthony")
+		sendNotification("bassplayer247@gmail.com", "Presence detected by "+ motionLast.state +"motion sensor without mama or papa present")
+		UnknownPresence.sendCommand(ON)
+	}
+end
+  
+
+//when motion is detected, turn on present switch
+rule "motion Presence Detection"
+	when
+	        Member of gMS_Motion received update ON
+	then
+
+        if (Present.state != ON){
+        	Present.sendCommand(ON)
+        	logInfo(filename, "Someone is present through motion, setting presence to on")
+        	
+		}
+
+		Motion_recent.postUpdate(ON)
+
+
+end
+
+
+
+//when a cell phone is detected, turn on present
+rule "Cell Phone Presence detection"
+	when
+	         Item gCell_Detected changed from OFF to ON
+	then
+
+          if (Present.state !=ON) Present.sendCommand(ON)
+          logInfo(filename, "Someone is present through motion, setting presence to on")
+
+end
+
+
+
+
+ 
+
+ /***************************** Presence Lighting Modifications***********************************/
+
+
+//turn off lights when away
+rule "homealone"
+when 
+	Item Present changed from ON to OFF
+then 
+	
+	if(vTimeOfDay.state == "EVENING" || vTimeOfDay.state == "NIGHT" || vTimeOfDay.state == "BED"){
+		logDebug("rule.homealone", "homealone is on, running dimming script")
+				gLights.members.forEach[ i | 	
+					if(i instanceof DimmerItem) {
+					logInfo("rule.housesleep", "dimmeritem found: " + i.name + i.state + "dimming")
+					i.sendCommand(0)
+					}
+					//Switch item
+					else if(i instanceof SwitchItem) {
+						logInfo("Notification", "Iswitchitem: " + i.name +"Turning OFF")
+						i.sendCommand(OFF)
+						
+					}
+					else{
+						logError("admin", "item in wrong group " +i.name)
+					}	
+					
+				]
+	
+	
+		
+		
+		
+		
+	
+		
+	}	
+	
+end
+
+// turn on lights when arriving
+rule "Presence changed from off to on in driveway"
+when
+	 Item gCell_Detected changed from OFF to ON
+then
+	if (Present != ON){
+		logDebug("rule.driveway", "Presence changed from off to on, running rule")
+	 	if(vTimeOfDay.state == "EVENING" || vTimeOfDay.state == "NIGHT" || vTimeOfDay.state == "BED" ){
+	 		if (DWSW.state != (ON)){
+	 		DWSW.sendCommand(ON)
+	 		logInfo(filename, "Someone has arrived home, turning on the driveway lights")
+	 		logDebug(filename, "the DWSW state is" + DWSW.state + "the Present state is" + Present.state)
+	 		}
+	 	
+	 	}
+	}	 
+end
+
+rule "Lighting Welcome Sequence"
+//turn on all lights when someone comes home.
+when
+	Item gPresent_ANY changed from OFF to ON
+then 
+	if (Night_State != OFF){
+	logInfo("rule.Lighting Welcome Sequence", "Someone is home, activating the welcome sequence")
+	
+					gLights.members.forEach[ i | 	
+						if(i instanceof DimmerItem) {
+
+							if( i.state > 0 ) {
+								logInfo("rule.Lighting Welcome Sequence", "dimmeritem found: " + i.name + i.state + "Brighting now")
+								i.sendCommand(15)
+							}
+						}
+
+
+						//Switch item
+						else if(i instanceof SwitchItem) {
+							if (i.state != OFF){
+							logInfo("Notification", "Iswitchitem: " + i.name)
+							// So normal lights get switched off when dim value passes 50%
+							//if (dimmer.state<50){
+								i.sendCommand(ON)
+							//it could have been dimmed below 50% and then dimmed back up again
+							}
+						}
+						//In case someone added light group to non light item
+						else{
+							logError("rule.Lighting Welcome Sequence", i.name + " in wrong group, check items file")
+						}	
+					
+					
+					]
+				}	
+					
+	else{
+		logError("rule.Sleepinghouse", "timer error not null")
+		houseSleepingTimer = null
+	}
+	
+end
+
+
+/*when 
+Item Present changed from OFF to ON or
+Item Driveway_Switch changed from OFF to ON
+
+then 
+	if (sensor == "DENMS"){
+	var Den = 1
+	}
+	if (sensor == "MRMS"){
+	var MR = 1
+	}
+	if (sensor == "GAMS"){
+	var GAMS = 1
+	}
+	if (sensor == "LRMS"){
+	var LR = 1 
+	}
+	if (sensor == "BMTMS"){
+	var BMT = 1
+	}
+	if (sensor == "BMTBrMS"){
+	var BMTBr = 1
+	}
+	
+	if( (Den == 1 && MR == 1 && GAMS == 1)||(Den == 1 && MR == 1 && GAMS == 0)){
+		if (gShannonPresent == ON && gAnthonyPresent == OFF){
+			//if shannon is home alone
+			//voice commands sent via nodered
+			logInfo(filename,"Shannon has Arrived")
+			ShannonArrival.sendCommand(ON)
+			ShannonArrival.postUpdate(OFF)
+		}
+		else if(gShannonPresent == OFF && gAnthonyPresent == ON){
+			logInfo(filename,"Anthony has Arrived")
+			AnthonyArrival.sendCommand(ON)
+			AnthonyArrival.postUpdate(OFF)
+		}
+
+		else {
+			logInfo(filename,"MamaPapa have Arrived together")
+			MamaPapaArrival.sendCommand(ON)
+			MamaPapaArrival.postUpdate(OFF)
+		}
+
+		Den = 0
+		MR = 0
+		GAMS = 0
+		
+		}
+	
+ 
+
+end
+
+rule "brighten lights when opening door to den"
+when Item arrival changed to ON
+	then
+		logDebug(filename, "arrival detected")
+		gDenCans.sendCommand("50")
+end
+
+*/
+
+
+/***************************** Last Motion Detector Triggered***********************************/
+rule "Motion Detection Location"
+when Member of gMS_Motion_ANY changed from OFF to ON
+then
+		//pull sensor name before underscore and store to variable sensor
+		sensor = triggeringItem.name.split("_").get(0)
+		room = triggeringItem.name.split("MS").get(0)
+		//logDebug("variable assignment", "room variable is " + room)
+		//logDebug("variable assignment", "Sensor variable is " + sensor)
+		val String sensorLUM = sensor + "_LUM"
+		//logDebug("variable assignment", "SensorLum is "+ sensorLUM)
+		activeSensorLUM = (ScriptServiceUtil.getItemRegistry.getItem(sensorLUM).state as Number)
+		//logDebug("variable assignment", "active senor lum is now "+ activeSensorLUM)
+		motionLast.postUpdate(triggeringItem.name)
+		logInfo(filename,"Motion last detected by the: " + motionLast.state)
+
+		
+	
+
+		
+		
+end
+ /***************************** Automatic Lighting Logic ***********************************/
+rule "init null scene items" 
+//set everyone to away when system restarts
+when
+    System started
+then
+    createTimer(now.plusSeconds(200)) [ |
+        logInfo(filename, "Executing 'System started' rule for scenes- Init. null items.")
+        if (sceneLocation.state == NULL){
+        	sceneLocation.postUpdate("Den")
+    	}
+    	if (sceneNumber.state == NULL){
+        	sceneNumber.postUpdate(0)
+    	}
+    	if (sceneOverride.state == NULL || sceneOverride.state == UNDEF){
+        	sceneOverride.postUpdate(OFF)
+    	}
+    ]
+end
+
+ /***************************** Auto Scene Overrides***********************************/
+rule "scene sitemap location override"
+//vsceneLocation is the sitemap
+//sceneLocation is the scene location
+//automatically update scene location if sitemap is updated.
+//set flag for override with timer to prevent auto scene changes.
+	when 
+		// sitemap scene location is vsceneLocation
+		Item vSceneLocation received command
+	then
+		//logDebug("rule-scene sitemap", "vSceneLocation Changed in sitemap")
+		sceneLocation.postUpdate(receivedCommand.toString)
+		logDebug("rule-scene sitemap", "sceneLocation has been updated after sitemap change, receivedCommand is " + receivedCommand.toString)
+		//logDebug(filename, "vSceneLocation state is: " + receivedCommand)
+			
+		if(sceneOverride.state != "ON"){
+			sceneOverride.sendCommand(ON)
+			//logDebug("rule-scene sitemap", "Scene override set to on")
+			//logDebug("rule-scene sitemap", "sceneOverride is: " + sceneOverride)
+		}
+end
+rule "scene sitemap scene override"
+	when 
+		Item vSceneNumber received command
+	then
+		logDebug("rule scene sitemap scene", "vSceneNumber Changed to "+ receivedCommand.toString + " in sitemap")
+		//logDebug("variables", "Scene number is " + sceneNumber.state + ", vSceneNumber is "+ receivedCommand.toString )
+		sceneNumber.postUpdate(receivedCommand.toString )
+		//logDebug(filename, "Updated sceneNumber to " + receivedCommand.toString )
+		//logDebug(filename, "vSceneNumber is " + receivedCommand.toString + " Scenenumber is " + sceneNumber.state + " sceneOverride is " + sceneOverride)
+		if(sceneOverride.state != ON){
+			sceneOverride.sendCommand(ON)
+			logDebug("rule-scene sitemap-scene", "Scene override set to on")
+			logDebug("rule-scene sitemap-scene", "sceneOverride is: " + sceneOverride.state)
+		}
+end
+
+ /***************************** Auto Sitemap Scenes***********************************/
+
+rule "Auto Sitemap Location"
+	when 
+		Item motionLast changed
+		
+	then
+		logDebug("rule.Auto Sitemap Location", "room variable is now " + room)
+		
+		//automagically update sitemap to current room location.
+
+		if (Present.state == ON && gMS_Motion_SUM.state <= 1){
+			 //logDebug("auto scenes", "scene location updated to "+ room + " present is "+ Present.state)
+			 logDebug("rule.Auto Sitemap Location", "motion sum is < 1, updating scene location")
+
+			 vSceneLocation.postUpdate(room)
+		}
+		// update scene according to time of day.
+		//if the room is dark and someone is home
+		/*if (Present.state == ON && activeSensorLUM < 5 && sleeping != ON && sleepingSuspected != ON){ 
+			sceneLocation.postUpdate(room)
+			logDebug("auto scenes", activeSensorLUM + " Luminance is < 5, Loading " + vTimeOfDay.state + " scene in "+ room)
+			logDebug("auto scenes", "motion detected, auto loading scene in"+ room)
+
+			val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + "11")
+			//logDebug("RULE.sceneload", "timestamp =" + timestamp)
+
+			val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g" + sceneLocation.state + "_Lighting")as GroupItem
+			//logDebug("RULE.sceneload", "timestamp =" + timestamp)
+			//logDebug("RULE.sceneload", "sceneGroup =" + sceneGroup)
+
+			val jodaTimestamp = new DateTime(timestamp.state.toString)
+			//logDebug("RULE.autoscenes", "jodaTimestamp =" + jodaTimestamp)
+		//(sceneLocation).members.forEach[hsb | { hsb.sendCommand(hsb.historicState(parse(timestamp),"influxdb").state.toString) } ]
+		   auto load ( not used, see ** rule below)  sceneGroup.members.forEach[i | {
+		    	if(i.name.contains("Den") && DenTV_State != OFF){
+		    		return;
+		    	}
+		    	i.sendCommand(i.historicState(jodaTimestamp,"influxdb").state.toString) 
+		    } ]
+		}
+*/
+ 
+end
+
+
+
+
+
+ /***************************** Presence Sleeping Logic ***********************************
+//unneeded due to group or function
+rule "expire motionnobedrooms"
+when 
+	Item gMotionNoBedrooms received update ON
+
+
+then
+    if(motionnobedroomsTimer === null || motionnobedroomsTimer.hasTerminated()) {
+        motionnobedroomsTimer = createTimer(now.plusMinutes(1), [|
+            gMotionNoBedrooms.postUpdate(OFF)
+            motionnobedroomsTimer = null
+        ])
+    }
+    else {
+        motionnobedroomsTimer.reschedule(now.plusMinutes(1))
+    }
+end
+*/
+/***************************** Presence Sleeping Logic ***********************************/
+
+rule "Bedroom Sleeping Suspected Logic"
+
+when 
+	Item motionLast changed or 
+	Item gMS_Motion_ANY received update or
+	Time cron "0 0 21-23 ? * * *" or
+	Time cron "0 0 0-6 ? * * *"
+
+
+then
+
+	//pull sensor variable
+	if(sleepingSuspected.state != ON){
+
+
+		if (vTimeOfDay.state == "BED" || vTimeOfDay.state == "NIGHT"){
+			//logDebug("sleeping Detection", " vTimeOfDay is " + vTimeOfDay.state + " activating Sleep detection")
+			//logDebug("rule.bedroom sleeping suspected logic", "sensor variable is " + sensor)
+			//pull active Lum variable
+			//activeSensorLUM = ScriptServiceUtil.getItemRegistry.getItem(sensor + "_LUM")
+			//logDebug(filename, "motionLast changed by " + sensor)
+			//logDebug("location variable", "motionLocation is " + motionLast.state)
+
+			//logDebug("rule.sleeping suspected", "activeSensorLUM is set to " + activeSensorLUM) 
+
+			//do things if sensors are bedroom sensors
+			if (sensor.contains("Br")){
+	 			sleepingSuspected.sendCommand(ON)
+	 			logInfo("rule.sleeping suspected", "Sleeping probable in "+ sensor + ", activating sleepingSuspected Switch")
+
+	 		}	
+ 		}
+		
+ 		
+	} 
+ 
+ end	 
+rule "Detect Awake Mode"
+
+when
+    Member of gMS_Motion_ANY changed from OFF to ON
+then
+
+     	if(gMotionNoBedrooms.state == ON && sleepingSuspected.state != OFF) {
+                        logInfo("rule.Detect Awake Mode", "Sleeping Suspected turned off due to motion detected in " + triggeringItem.name.split("MS_").get(0))
+                        if(sleepingTimer !== null && !sleepingTimer.hasTerminated) {
+                                sleepingTimer.cancel
+                        }
+                        sleepingTimer = null
+                        sleepingSuspected.sendCommand(OFF)
+						if(sleeping.state != OFF){
+							sleeping.sendCommand(OFF)
+						}   
+		 }
+end
+
+rule "Detect Sleeping Mode"
+
+when
+    Item sleepingSuspected changed from OFF to ON
+then
+
+                // somebody is sleeping
+              //if motionnobedrooms is off and sleeping suspected state is on, set the timer.	 
+              if(gMotionNoBedrooms.state != ON) {
+                        
+                        logInfo("rule.sleepingSuspected", "Sleeping has been presumed, setting timer")
+                        if(sleepingTimer === null) {
+								
+								logDebug("rule sleeping", "Sleeping timer starting")
+							
+                                sleepingTimer = createTimer(now.plusMinutes(1), [|
+                                
+                                //if sleeping suspected is on and sleeping state is off, after 15 minutes turn on sleeping detection
+								//sleeping suspected will turn off if there is motion outside of bedroom zones
+                                        if(sleepingSuspected.state != OFF && sleeping.state != ON) {
+                                                logInfo(logNameSleeping, "No movement was been detected in 15 minutes, someone is sleeping")
+                                                sleeping.sendCommand(ON)
+                                        		sleepingTimer = null
+                                    	
+                                         }
+                                      //if above expression is false, turn sleeping off.
+                              		  	 else{
+                                                logInfo(logNameSleeping, "motion detected before 15 minutes were up, someone is awake")
+                                                	if(sleeping.state != OFF) {
+                                                		sleeping.sendCommand(OFF)
+                                                		sleepingTimer = null
+                                        			}
+                                        	}				
+                              	  ])
+                         }
+                }
+		     
+			 
+	  
+
+end
+
+rule "Sleepinghouse, sleep house items after 5 minutes"
+when
+	Item sleeping received command ON
+then
+	logInfo("rule.sleepinghouse", "Sleeping is probable, activating housesleep mode")
+	if(houseSleepingTimer === null){
+		houseSleepingTimer = createTimer(now.plusMinutes(30), [|
+			
+			
+				if(sleeping == ON){
+					logDebug("rule.sleepinghouse", "Sweet Dreams Pika's Place, running dimming script")
+					houseSleepingTimer = null
+					gLights.members.forEach[ i | 	
+						if(i instanceof DimmerItem) {
+
+							if( i.state > 0 ) {
+								logInfo("rule.housesleep", "dimmeritem found: " + i.name + i.state + "dimming now")
+								i.sendCommand(0)
+							}
+						}
+
+
+						//Switch item
+						else if(i instanceof SwitchItem) {
+							if (i.state != OFF){
+							logInfo("Notification", "Iswitchitem: " + i.name)
+							// So normal lights get switched off when dim value passes 50%
+							//if (dimmer.state<50){
+								i.sendCommand(OFF)
+							//it could have been dimmed below 50% and then dimmed back up again
+							}
+						}
+						//In case someone added light group to non light item
+						else{
+							logError("rule.sleepinghouse", i.name + " in wrong group, check items file")
+						}	
+					
+					
+					]
+				}	
+					else{
+					houseSleepingTimer = null
+					}	
+			
+
+
+
+
+		])
+	}
+	else{
+		logError("rule.Sleepinghouse", "timer error not null")
+		houseSleepingTimer = null
+	}
+	
+end
+rule "movement detection"
+when
+Item gMS_Motion_SUM changed	
+then
+	//movement only detected if multiple sensors go off at same time. 
+	if(gMS_Motion_SUM.state as Number > 1){
+		vMovement.sendCommand(ON)	
+	}
+	else(vMovement.sendCommand(OFF))
+end
+
+/*rule "Auto dimming Activated"
+when
+	Item motionLast changed 
+then
+	
+		
+		//set the variables for the current motion detection state change
+		val motionLocationOld = previousState
+		val motionLocationNew = triggeringItem.state
+		
+		//if timer is already running, don't do anything
+		if(motionLast.state == "DENMS_Motion" && DenTV_State.state == ON){
+			return;
+		}
+		if( autodimmingTimer === null){
+
+		
+			//set a timer to execute code in 15 minutes
+			autodimmingTimer = createTimer(now.plusMinutes(15), [	|
+				// if after 15 minutes the motion location is not the same
+				logDebug("rule.auto dimming activated", "Executing timer, Motionlocation old = " + motionLocationOld + " motionLast is " + motionLast.state)
+				if (motionLocationOld != motionLast.state && gMS_Motion_SUM.state < 1){ //add motion sum here.
+					logDebug("rule.Auto dimming Activated", "previous state is "+ previousState + " motionlocationold state is "+ motionLocationOld + " . motionLast is " + motionLast.state + " motion location that triggered rule state is "+ motionLocationNew )
+					//get the scene group from the previous motion detector
+					val roomName =  previousState.toString.split("MS_").get(0)
+					val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g"+ roomName +"_Lighting") as GroupItem
+
+					val dimOnSum  = sceneGroup.members.filter[d|d.state>1].size
+					val switchOnSum = sceneGroup.members.filter[s|s.state==ON ].size
+					//val totalOn = switchOnSum + dimOnSum 
+					logInfo("rule.Auto dimming Activated", "autodimming the " + roomName + ". Dimming " + dimOnSum + " Lights and turning off " + switchOnSum + " Lights.")
+					sceneGroup.members.forEach[i | { 
+						//Dimmers in room 
+						if(i instanceof DimmerItem) {
+							
+								if( i.state > 1 ) {
+									logInfo("rule.Auto dimming Activated", "dimmer found: " + i.name + i.state + " -Dimming now")
+									i.sendCommand(1)
+								}
+						}
+							//Switch item
+							else if(i instanceof SwitchItem) {
+								if (i.state != OFF){
+								logInfo("rule.Auto dimming Activated", "switch found: " + i.name + " -Turning OFF now.")
+								// So normal lights get switched off when dim value passes 50%
+								//if (dimmer.state<50){
+									i.sendCommand(OFF)
+								//it could have been dimmed below 50% and then dimmed back up again
+								}
+							}
+							//In case someone added light group to non light item
+							else{
+								logError("rule.Auto dimming Activated", i.name + " in wrong group, check items file")
+							}	
+							
+						} ]
+					if (autodimmingTimer !== null){
+						autodimmingTimer = null
+					}
+				}
+				return;
+			])
+		}
+		if (autodimmingTimer !== null) autodimmingTimer = null
+	}
+
+end
+/*
+
+/*rule "cancel dimming after sleeping"
+	when 
+		Item sleeping changed from ON to OFF or
+		Item vSceneLoad changed from OFF to ON or
+		Item gMS_Motion_ANY changed from OFF to ON
+	then	
+		cancelled = true
+end
+*/
+
+
+
+ /***************************** auto dimming Logic ***********************************/
+
+
+
+rule "autodimming"
+when
+Member of gMS_Motion changed from ON to OFF
+then	
+	if(vMovement == ON){
+		return;
+	}
+	else{
+		
+	}
+
+
+
+
+
+
+
+end
+//save lighting state when motion off
+rule "dimming save"
+when
+Member of gMS_Motion changed from ON to OFF
+//Member of gMS_Luminances changed 
+then
+	var String sensorName = null
+	
+		//get the room name example DENMS_LUM room name would be DenMS
+		sensorName = triggeringItem.name.split("_").get(0)
+		val roomName = triggeringItem.name.split("MS_").get(0)
+	//*********************************************
+
+//get the lum sensor name
+	//logDebug("rule.dimmingsave", "variable sensor name is set to " + sensorName)
+	val LumSensor = (ScriptServiceUtil.getItemRegistry.getItem(sensorName + "_LUM").state)
+	//logInfo("RULE.dimmingsave", "Rule Dimming Save Triggered, SceneLocation set to" + sensorName)
+	//logDebug("rule.Dimmingsave", "Lumsensor state is " + LumSensor)
+//get the lighting group name
+	val group = ScriptServiceUtil.getItemRegistry.getItem("g"+ roomName +"_Lighting") as GroupItem
+	//val dimmer=ScriptServiceUtil.getItemRegistry.getItem(sensorName +"_Dimmer") as DimmerItem
+
+//set the scene variable to 11 depending on the room name and parse the variable string to the varaible sceneItem
+	val sceneItem = ScriptServiceUtil.getItemRegistry.getItem("v" + roomName + "_Scene_" + 11)
+
+	//logDebug("RULE.dimmingsave", "SceneLocation = " + sensorName)
+	//logDebug("RULE.dimmingsave", "SceneItem is now = " + sceneItem.name + sceneItem.state)
+
+		val dimOnSum  = group.members.filter[d|d.state>1].size
+		val switchOnSum = group.members.filter[s|s.state==ON ].size
+		val totalOn = switchOnSum + dimOnSum 
+
+	if(group === null) {
+		logDebug("rule.dimmingsave", "Cannot find Item g" + sensorName +"_Lighting")
+		return;
+	}
+
+	//if the lights are on and the brightness is greater than .1
+	//add light on/ dimmed detection here !!!
+	if(LumSensor > 5 || totalOn >= 1){
+	sceneItem.sendCommand(new DateTimeType(now.toString()))
+	logDebug("RULE.dimmingsave", "scene Item  = " + sceneItem.name + ", Lum sensor value is " + LumSensor + ", total Lights on = " + totalOn)
+	logInfo("rule.dimmingsave", triggeringItem.name.split("_").get(0) + " lighting state saved for recall")
+	}
+	else{
+		logDebug("rule.dimmingsave", sensorName +" is dark and there are " + totalOn + " Lights On.  no save created")
+
+		
+	}
+	
+end
+
+    //recall lighting states when motion detected if lights are off and it's not bedtime
+rule "dimming recall"
+
+
+//need to make sure that lights do not turn off if they are on and motion is detected
+
+	when 
+		Member of gMS_Motion changed from OFF to ON
+	then	
+
+		val sensorName = triggeringItem.name.split("MS").get(0)
+		val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sensorName + "_Scene_" + 11)
+		val LumSensor = ScriptServiceUtil.getItemRegistry.getItem(sensorName + "MS_LUM")
+		val group = ScriptServiceUtil.getItemRegistry.getItem("g"+ sensorName +"_Lighting") as GroupItem
+		val dimOnSum  = group.members.filter[d|d.state>1].size
+		val dimOffSum  = group.members.filter[d|d.state<1].size
+		val switchOnSum = group.members.filter[s|s.state==ON ].size
+		val switchOffSum = group.members.filter[s|s.state==OFF].size 
+		val totalOn = switchOnSum + dimOnSum 
+		val totalOff = switchOffSum + dimOffSum
+	
+	
+	//if lights are on, don't turn off lights on motion
+	if(LumSensor.state > 2) {
+		logDebug( "rule.dimmingrecall", "In the " + sensorName + ", There was light detected, therefore, the lights were not changed")
+		return;
+	}
+
+	//debug messages displayed if log is set to debug 
+	if( totalOn >= 1 ) {
+		logDebug("rule.dimmingrecall", "In the " + sensorName + ", there are " + totalOn + " lights on consisting of " + switchOnSum + " switched & " + dimOnSum + " dimmed.")
+
+	}
+	else{ 		
+		logDebug("rule.dimmingrecall", "In the " + sensorName + ", there are " + totalOff + " lights off consisting of " + switchOffSum + " switched & " + dimOffSum + " dimmed.")
+
+	}	
+
+
+
+
+	//if motion is in bedroom during sleeeping dont do anything
+	if ((sensorName.contains("Be") || sensorName.contains("Br")) && (sleeping.state == ON || vTimeOfDay.state == "BED" || vTimeOfDay.state == "NIGHT" || vTimeOfDay.state == "MORNING"|| vTimeOfDay.state == "DAY")){
+		logDebug("rule.dimmingrecall", "motion is in bedroom, no update made because sleeping is suspected")
+		return;
+	}
+
+	//**todo if it is early in the morning, only turn on light to 5 percent in bedrooms **todo
+
+	//Special Den programming - dont autodim during TV ON
+	if (sensorName.contains("DEN")){
+			if (DenTV_State.state == ON){
+				logDebug("rule.dimmingrecall", "Den tv is on and scene is in Den: Aborting autodimming procedure")
+				return;
+			}
+			
+			//special den rules
+			else if (LumSensor.state < 5 && totalOn <= 2){
+				//if someone leaves the room and comes back within the hour, load the saved sceene, otherwise, if it  has been more than one hour, load the Time of day scene
+				logDebug("rule.dimmingrecall", "Den case, lum sensor is <5 and there are <2 lights on, restoring saved scene")
+				var SensorUpdated = triggeringItem.updatedSince(now.minusHours(1))
+				sceneLocation.sendCommand(sensorName)
+				if(SensorUpdated == false) {
+					logDebug("rule.dimmingrecall", "It is "+ SensorUpdated + " that the sensor has been updated within the hour, loading time of day scene")
+
+					switch(vTimeOfDay.state){
+					/* 0="00: OFF",
+					1="01: ON",
+					2="02: MORNING",                                                                                 
+					3="03: Day",
+					4="04: Afternoon", 
+					5="05: Evening", 
+					6="06: Night", 
+					7="07: Dinner", 
+					8="08: Movie", 
+					9="09: Fire", 
+					10="10: Bed",
+					12="12: Computer"
+					*/
+						case "MORNING" : {
+							sceneNumber.sendCommand(2)
+							
+						}
+						case "DAY" : {
+							sceneNumber.sendCommand(3)
+						}
+						case "AFTERNOON" : {
+							sceneNumber.sendCommand(4)
+						}
+						case "EVENING" : {
+							sceneNumber.sendCommand(5)
+						}
+						case "NIGHT" : {
+							sceneNumber.sendCommand(6)
+						}
+						case "BED" : {
+							sceneNumber.sendCommand(10)
+						}	
+						case "UNKNOWN" : {
+							sceneNumber.sendCommand(11)
+						}
+					}
+					logDebug("rule.dimmingrecall", sceneLocation + "scene is now " + sceneNumber)
+					vSceneLoad.sendCommand(ON)
+				}
+				else{
+					logInfo("rule.dimingrecall", "it is "+ SensorUpdated + " that the sensor has been updated within the hour, loading saved scene in " + sceneLocation.state)
+					sceneNumber.sendCommand(11)
+					vSceneLoad.sendCommand(ON)
+				}
+
+
+		return;
+			} 
+		}
+			
+		//special Garage rules
+		if (sensorName.contains("GA")){
+			logDebug("rule.dimmingrecall.garage", "special garage rules activated")
+
+			if (GALight_current.state > 5){
+				logDebug("rul.dimmingrecall.garage", "The garage light is drawing current, so the light must be on.  No changes made.")
+				return;
+			}
+			
+			if (LumSensor.state < 2 && totalOn < 1 ){
+				//if someone leaves the room and comes back within the hour, load the saved sceene, otherwise, if it  has been more than one hour, load the Time of day scene
+				logDebug("rule.dimmingrecall", "Garage lum sensor is" + LumSensor.state + " and there are " + totalOn + " lights on, restoring saved scene")
+				var SensorUpdated = triggeringItem.updatedSince(now.minusHours(1))
+				sceneLocation.sendCommand(sensorName)
+				if(SensorUpdated == false) {
+					logDebug("rule.dimmingrecall", "It is "+ SensorUpdated + " that the sensor has been updated within the hour, loading time of day scene")
+
+					switch(vTimeOfDay.state){
+					/* 0="00: OFF",
+					1="01: ON",
+					2="02: MORNING",                                                                                 
+					3="03: Day",
+					4="04: Afternoon", 
+					5="05: Evening", 
+					6="06: Night", 
+					7="07: Dinner", 
+					8="08: Movie", 
+					9="09: Fire", 
+					10="10: Bed",
+					12="12: Computer"
+					*/
+						case "MORNING" : {
+							sceneNumber.sendCommand(2)
+						}
+						case "DAY" : {
+							sceneNumber.sendCommand(3)
+						}
+						case "AFTERNOON" : {
+							sceneNumber.sendCommand(4)
+						}
+						case "EVENING" : {
+							sceneNumber.sendCommand(5)
+						}
+						case "NIGHT" : {
+							sceneNumber.sendCommand(6)
+						}
+						case "BED" : {
+							sceneNumber.sendCommand(10)
+						}	
+						case "UNKNOWN" : {
+							sceneNumber.sendCommand(11)
+						}
+					}
+					logDebug("rule.dimmingrecall", sceneLocation + "scene is now " + sceneNumber)
+					vSceneLoad.sendCommand(ON)
+				}
+				else{
+					logInfo("rule.dimingrecall", "it is "+ SensorUpdated + " that the sensor has been updated within the hour, loading saved scene in " + sceneLocation.state)
+					sceneNumber.sendCommand(11)
+					vSceneLoad.sendCommand(ON)
+				}
+
+
+		return;
+			} 
+	} 
+
+
+
+	if(timestamp.state == null){
+			logInfo("rule.dimmingrecall", "no saved scene available to load")
+			return;
+	}
+
+	
+	// if its not bedtime and dark, restore scene
+	if (vTimeOfDay.state != "BED" && triggeringItem != "DENMS_Motion"){
+		//logInfo("rule.dimmingrecall", "vtime of day is " + vTimeOfDay.state + " Restoring Scene" )
+		if(LumSensor.state < 2 && totalOn < 2){
+			var SensorUpdated = triggeringItem.updatedSince(now.minusHours(1))
+			logDebug("rule.dimmingrecall", "it is "+ SensorUpdated + " that the sensor has been updated within the hour")
+			sceneLocation.sendCommand(sensorName)
+			//Load pre-programmed scene if the room has been unoccupied for more than 1 hour
+			if(SensorUpdated == false) {
+				switch(vTimeOfDay.state){
+				/* 0="00: OFF",
+				1="01: ON",
+				2="02: MORNING",                                                                                 
+				3="03: Day",
+				4="04: Afternoon", 
+				5="05: Evening", 
+				6="06: Night", 
+				7="07: Dinner", 
+				8="08: Movie", 
+				9="09: Fire", 
+				10="10: Bed",
+				12="12: Computer"
+				*/
+					case "MORNING" : {
+						sceneNumber.sendCommand(2)
+						
+					}
+					case "DAY" : {
+						sceneNumber.sendCommand(3)
+					}
+					case "AFTERNOON" : {
+						sceneNumber.sendCommand(4)
+					}
+					case "EVENING" : {
+						sceneNumber.sendCommand(5)
+					}
+					case "NIGHT" : {
+						sceneNumber.sendCommand(6)
+					}
+					case "BED" : {
+						sceneNumber.sendCommand(10)
+					}	
+					case "UNKNOWN" : {
+						sceneNumber.sendCommand(11)
+					}
+				}
+				logDebug("rule.dimmingrecall", sceneLocation.state + "not occupied for more than 1 hour, loading " + sceneNumber.state)
+				vSceneLoad.sendCommand(ON)
+			}
+			else{
+				//load the saved scene if room was recently occupied
+				logInfo("rule.dimmingrecall", sceneLocation.state + " occupied within the hour, loading saved scene in " + sceneLocation.state)
+				sceneNumber.sendCommand(11)
+				vSceneLoad.sendCommand(ON)
+			}
+			
+			
+		}
+			
+		else{
+			logDebug("rule.dimmingrecall", totalOn + " lights are on in the " + sensorName + " and the lum is " + LumSensor.state + " , No scene change made.")
+		}
+	}
+			
+	else{ 
+		//if its bedtime and dark, brighten to bedtime scene
+		if (sceneLocation.state != "DEN"){
+			logInfo("rule.dimmingrecall", "It's " + vTimeOfDay.state + "time - loading the " + sceneName.state + " scene in the " + sensorName)
+			sceneLocation.sendCommand(sensorName)
+			sceneNumber.sendCommand(10)
+			vSceneLoad.sendCommand(ON)
+		}
+	}
+
+end
+
+
+
+
+
+
+
+
+
+
+

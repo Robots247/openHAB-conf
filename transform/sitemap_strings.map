@@ -1,0 +1,50 @@
+ OFF=Presence Not detected
+ ON=Presence detected
+
+2 = Boiler OFF- high outlet temperature
+    
+3 = Boiler OFF- high flue temperature
+    
+4 = Boiler OFF-ERROR High Delta T
+    
+8 = Boiler Error- Low 24VAC
+    
+9 = Boiler OFF- Outdoor Shutdown
+    
+10 = Boiler turned off at switch in boiler room
+    
+12 = Boiler OFF ERROR!
+    
+16 = Boiler in Service Mode
+    
+19 = Boiler ON- Heating Hot Water
+    
+21 = Boiler ON- High temp CFH
+    
+22 = Boiler ON- Heating Radiant Only
+    
+23 = SH function heat demand from cascade
+      
+30 = Boiler ON- Freeze Protection!!!
+    
+32 = Boiler OFF
+    
+33 = Boiler OFF
+    
+34 = Boiler OFF
+    
+40 = Boiler Lockout!!
+    
+32764 = Busy with updating status
+    
+32765 = Boiler Error
+    
+32766 = Burner control(s) manually shut down
+    
+32767 = Code not present
+
+closed = ON
+
+Open = OFF
+  
+= initializing 	

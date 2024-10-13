@@ -1,0 +1,21 @@
+sitemap watch label="watch" {
+    Frame label="Scenes" {
+		Switch item=vDEN_Scene_8_switch label="Den Movie Scene"
+        Switch item=vDEN_Scene_7_switch label="Den Dinner Scene"
+        Switch item=vDEN_Scene_6_switch label="Den Bedtime Scene"
+        Default item=AVR2000InputToggle label="Input Selector" 
+    }
+    Frame label="Controls" {
+        Slider item=gDenCanDimmer label="All Den Lights" icon="slider"
+        Slider item=DenCanDimmer label="All Den Can Lights" icon="slider"
+        Switch item=gODSWs	label="ALL Outdoor Lights" icon="switch"
+        Switch item=GAZV label="Garage Zone Valve"
+
+}
+	Frame label="Statuses" {
+        Default item=Boiler_Status_Code label="Boiler Status"
+        Default item=Outdoor_Temperature
+    }
+
+}	
+		

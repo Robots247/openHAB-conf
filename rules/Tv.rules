@@ -1,0 +1,15 @@
+rule "Panasonic refresh"
+when
+Item DenTVString changed
+then
+if (DenTVString.state.toString === null) {
+logInfo("TV Rules","TV is off R:Panasonicrefresh" )
+
+postUpdate(DenTV_State, OFF)
+}
+else if (DenTVString.state.toString == "1") { 	
+logInfo("TV Rules","TV is  on  R:Panasonicrefresh" )
+
+postUpdate(DenTV_State, ON)
+}
+end

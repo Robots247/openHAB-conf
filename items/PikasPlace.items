@@ -1,0 +1,59 @@
+//Locations
+Group gMainFloor "Main Level" <firstfloor> (gLocations) ["FirstFloor"] { synonyms="Main Level,UpStairs, Up Stairs, Upper Level" }
+	Group gDen "Den" <corridor> (gMainFloor) ["LivingRoom"] { synonyms="Den" }
+	Group gGa "Garage" <garage> (gMainFloor) ["Garage"] { synonyms="Ga" }
+	Group gMR "Mud Room" <corridor> (gMainFloor) ["Corridor"] { synonyms="Mud Room, MR" }
+	Group gLR "Living Room" <corridor> (gMainFloor) ["LivingRoom"] { synonyms="Living Room, LR" }
+//Group gFP 
+//Group gBP
+	Group gKIT "Kitchen" <kitchen> (gMainFloor) ["Kitchen"] { synonyms="KIT" }
+	Group gGBr "Guest Bedroom" <bedroom> (gMainFloor)["Bedroom"] { synonyms="Guest Bedroom, GBr, back bedroom, south bedroom" }
+	Group gGBa "Guest Bathroom"<bath> (gMainFloor) ["Bathroom"] { synonyms="Guest Bathroom, Main Bathroom" }
+	Group gMBa "Master Bathroom" <bath> (gMainFloor) ["Bathroom"] { synonyms="Master Bathroom, MBa, Master Bath, Experience Shower" }
+	Group gMBe "Master Bedroom"<bedroom> (gMainFloor) ["Bedroom"] { synonyms="Master Bedroom, Master, MBe, Sex Palace" }
+
+Group gBMT "Basement" <groundfloor> (gLocations) ["GroundFloor"] { synonyms="Basement,DownStairs, Down Stairs, Lower Level" }
+	Group gStair "Stairs" <corridor> ["Corridor"] { synonyms="Stairs" }
+	Group gBoil "Boiler Room" (gBMT) ["Building"] { synonyms="Control Room, Boiler Room, Boiler, Utility room, BR" }
+        Group gLochinvar (gHeating)
+	Group gBMTBa "Basement Bathroom" <bath> (gBMT) ["Bathroom"] { synonyms="Basement Bathroom, BMTBa" }
+	Group gBMTBr "Basement Bedroom" <bedroom> (gBMT) ["Bedroom"] { synonyms="Basement Bathroom, BMTBr" }
+	Group gLAU "Laundry Room" <washingmachine_2> (gBMT) ["Corridor"] { synonyms="Laundry Room" }
+	Group gREC "Rec Room" <video> (gBMT) ["LivingRoom"] { synonyms="Rec Room, Rec, Theatre, REC, Anthony's' OFFICE, Studio" }
+        Group gREC_pSwitches    "Physical Rec Room Switch items" (gP_Switches, gREC)
+        Group gREC_vSwitches    "Virtual Rec Room Switch items" (gV_Switches, gREC)
+        //Group gREC_Media Assigned on Config File
+        //Group gREC_Lighting lighting groups assigned on Lighting items config file
+        //
+
+Group gEquipment "Equipment Types" 
+    Group gV_Switches "Virtual Switches" (gEquipment)
+    
+    Group gP_Switches "Physial Switches" (gEquipment)
+    
+    Group gHVAC "HVAC Equipment" (gEquipment)
+        Group gHeating (gHVAC)
+            Group:Switch:OR(ON, OFF) Heating "Heating" (gHVAC)
+                Group gLowTemp_Heating "Low Temperature Heating Items" (Heating, gHeating)
+                    Group RH "Radiant Heating"(gHeating)
+                        Group:Switch:OR(ON, OFF) RHZV "Radiant Heating On" (RH, gV_Switches)  
+                    Group g_HighTemp_Heating "High Temperature Heating Items" (gHeating)
+                    Group:Switch:OR(ON, OFF) ZV		"High-Temp Heating On" (Heating, gV_Switches, gHeating)
+                    Group 24VAC_Relays "24vac Relays" (gHeating)
+                    Group 24VDC_Relays  "24Vdc Relays" (gHeating)
+                    Group gCFH "Calls For Heat" (gHeating)
+                    Group gPumps "Pumps" (gHeating)
+
+        Group gCooling "Cooling" (gHVAC)
+            Group gSwamp "Swamp" (gCooling)
+        Group gVentilation "Ventalition" (gHVAC)
+    
+    
+    Group gPresence "presence" (gEquipment) //see presence.items file
+
+
+
+        
+        
+        
+Group gLocations "Locations"

@@ -1,0 +1,118 @@
+Group gHeating_Presets "Heating Presets" (gHeating)
+//heating preset items
+//sitemap switch to enable setpoint changing
+Switch Heating_PresetSwitch "Switch to Enable Heating Preset Mode" (gHeating_Presets)
+ 
+  
+
+//these values are unbound and used to hold data for heating presets.  Used in sitemaps to change values on the fly
+
+Number Summer_HeatingMinTemp "Minimum Summer Heating Temperature (all items) [%.1f °F]" (gHeating_PresetNormal)
+
+//heating mode switches
+String Heating_Mode "Global Heating Mode [%s]" (Thermostats)
+Switch Heating_UpdateHeater "Send Target Temperatures to Heaters" (Thermostats)
+
+//manual override
+Group gManual_Overrides "manual override group"
+Group:Switch:OR(ON,OFF) Heating_Manual_Override "There is a Manual Heat Setpoint Override"
+Switch LR_Heating_Manual_Override "Living Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch GBr_Heating_Manual_Override "Guest Bedroom Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch BMT_Heating_Manual_Override "Basement Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch GA_Heating_Manual_Override "Garage Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MR_Heating_Manual_Override "Mud Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch KIT_Heating_Manual_Override "Kitchen Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+ 
+Switch DEN_Heating_Manual_Override "DEN Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MBa_Heating_Manual_Override "MBa Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+Switch MBe_Heating_Manual_Override "MBe Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
+
+ //Normal Preset temps
+Group gHeating_PresetTempNormal (gHeating_Presets)
+Number LR_Heating_PresetTempNormal "Livingroom Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number GBr_Heating_PresetTempNormal "Guest Bed/Bath Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number BMT_Heating_PresetTempNormal "Basement Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number GA_Heating_PresetTempNormal "Garage Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number MR_Heating_PresetTempNormal "Mud Room Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+
+Number DEN_Heating_PresetTempNormal "Den Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number MBa_Heating_PresetTempNormal "Master Bathroom Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number MBe_Heating_PresetTempNormal "Master Bedroom Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number KIT_Heating_PresetTempNormal "Kitchen Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+
+//Home Preset temps
+Group gHeating_PresetTempHome (gHeating_Presets)
+Number LR_Heating_PresetTempHome "Livingroom Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number GBr_Heating_PresetTempHome "Guest Bed/Bath Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number BMT_Heating_PresetTempHome "Basement Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number GA_Heating_PresetTempHome "Garage Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number MR_Heating_PresetTempHome "Mud Room Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+
+Number DEN_Heating_PresetTempHome "Den Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number MBa_Heating_PresetTempHome "Master Bathroom Heating Preset (Home Mode) [%.1f °F]" (gHeating_PresetHome)
+Number MBe_Heating_PresetTempHome "Master Bedroom Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+Number KIT_Heating_PresetTempHome "Kitchen  Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
+
+//Away Mode Preset temps
+Group gHeating_PresetTempAway (gHeating_Presets)
+Number LR_Heating_PresetTempAway "Livingroom Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number GBr_Heating_PresetTempAway "Guest Bed/Bath Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number BMT_Heating_PresetTempAway "Basement Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number GA_Heating_PresetTempAway "Garage Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number MR_Heating_PresetTempAway "Mud Room Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number KIT_Heating_PresetTempAway "Kitchen Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+
+
+Number DEN_Heating_PresetTempAway "Den Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number MBa_Heating_PresetTempAway "Master Bathroom Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+Number MBe_Heating_PresetTempAway "Master Bedroom Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetAway)
+//Preset Pika Home temps
+Group gHeating_PresetTempPika (gHeating_Presets)
+Number LR_Heating_PresetTempPika "Livingroom Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number GBr_Heating_PresetTempPika "Guest Bed/Bath Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number BMT_Heating_PresetTempPika "Basement Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number GA_Heating_PresetTempPika "Garage Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number MR_Heating_PresetTempPika "Mud Room Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number KIT_Heating_PresetTempPika "Kitchen Room Heating Preset (Away Mode) [%.1f °F]" (gHeating_PresetPika)
+
+Number DEN_Heating_PresetTempPika "Den Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number MBa_Heating_PresetTempPika "Master Bathroom Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+Number MBe_Heating_PresetTempPika "Master Bedroom Heating Preset (Pika Mode) [%.1f °F]" (gHeating_PresetPika)
+//Company Preset temps
+Group gHeating_PresetTempCompany (gHeating_Presets)
+Number LR_Heating_PresetTempCompany "Livingroom Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number GBr_Heating_PresetTempCompany "Guest Bed/Bath Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number BMT_Heating_PresetTempCompany "Basement Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number GA_Heating_PresetTempCompany "Garage Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number MR_Heating_PresetTempCompany "Mud Room Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number KIT_Heating_PresetTempCompany "Kitchen Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+
+Number DEN_Heating_PresetTempCompany "Den Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number MBa_Heating_PresetTempCompany "Master Bathroom Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+Number MBe_Heating_PresetTempCompany "Master Bedroom Heating Preset (Company Mode) [%.1f °F]" (gHeating_PresetCompany)
+//Bed Time Preset temps
+Group gHeating_PresetTempBedtime (gHeating_Presets)
+Number LR_Heating_PresetTempBedtime "Livingroom Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number GBr_Heating_PresetTempBedtime "Guest Bed/Bath Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number BMT_Heating_PresetTempBedtime "Basement Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number GA_Heating_PresetTempBedtime "Garage Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number MR_Heating_PresetTempBedtime "Mud Room Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+
+Number DEN_Heating_PresetTempBedtime "Den Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number MBa_Heating_PresetTempBedtime "Master Bathroom Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number MBe_Heating_PresetTempBedtime "Master Bedroom Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+Number KIT_Heating_PresetTempBedtime "Kitchen Heating Preset (Bedtime Mode) [%.1f °F]" (gHeating_PresetBedtime)
+
+//Summer Preset temps
+Group gHeating_PresetTempSummer (gHeating_Presets)
+Number LR_Heating_PresetTempSummer "Livingroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number GBr_Heating_PresetTempSummer "Guest Bed/Bath Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number BMT_Heating_PresetTempSummer "Basement Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number GA_Heating_PresetTempSummer "Garage Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number MR_Heating_PresetTempSummer "Mud Room Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number KIT_Heating_PresetTempSummer "Kitchen Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+
+Number DEN_Heating_PresetTempSummer "Den Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number MBa_Heating_PresetTempSummer "Master Bathroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+Number MBe_Heating_PresetTempSummer "Master Bedroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
+

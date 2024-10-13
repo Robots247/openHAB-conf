@@ -1,0 +1,59 @@
+sitemap admin label="Pikas Place Administration" {
+ Frame label="Admin" {
+        Text label="Lighting" icon="chart" {
+            Group item=gLightGroups
+            Group item=gLightLocations 
+			
+			
+			
+        	}
+        Text label="Astro" icon="chart" {
+            Group item=gAstro
+             
+			
+			
+			
+        	}
+        	
+        	Text label="Media" icon="chart" {
+            Group item=gMedia
+        	}
+        	Text label="Astro" icon="chart" {
+            Group item=gAstro
+        	}
+        Text label="MultiSensors" icon="chart" {
+			Group item=gMS_Batteries	
+			Group item=gMS_Motion 
+			Group item=gMS_Tampers
+			Group item=gMS_Humidity
+			Group item=gMS_Temps
+			Group item=gMS_Luminances	
+			Group item=gMS_UV_LVL		
+    
+        	}
+         Text label="HVAC" icon="chart" {
+        		Text label="Boiler" icon="chart" {
+					Group item=Lochinvar_inputs
+					Group item=Indicators
+					Group item=Temperatures
+					Group item=Setpoints
+					Group item=Boiler_Switches 
+					Group item=Alarms 
+					Group item=Pumps
+					Group item=Codes
+					Group item=CFH
+					Group item=Limits
+					Group item=Contacts
+					Group item=Rates	
+    
+        			}
+       		 Text label="Heat/cool/vent" icon="chart" {	
+       				Group item=Heating
+					Group item=Cooling
+					Group item=Ventilation
+
+        		}
+			}        
+        }	
+     }    
+     

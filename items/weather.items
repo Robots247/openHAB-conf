@@ -1,0 +1,372 @@
+// atmosphere
+Group gWeather
+Number   Weather_Current_Humidity    	 "Current Humidity [%d %%]" (gWeather, gWeather_current)  	  {weather="locationId=PikasPlace, type=atmosphere, property=humidity"}
+Number   Weather_Current_Visibility    	 "Current Visibility [%.2f km]" (gWeather, gWeather_current)  {weather="locationId=PikasPlace, type=atmosphere, property=visibility"}
+Number   Weather_Current_VisibilityMph  "Current Visibility [%.2f mi]" (gWeather, gWeather_current)  {weather="locationId=PikasPlace, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Current_Pressure    	 "Current Pressure [%.2f mb]" (gWeather, gWeather_current)    {weather="locationId=PikasPlace, type=atmosphere, property=pressure"}
+Number   Weather_Current_PressureInches "Current Pressure [%.2f in]" (gWeather, gWeather_current)    {weather="locationId=PikasPlace, type=atmosphere, property=pressure, unit=inches"}
+String   Weather_Current_PressureTrend  "Current Pressuretrend [%s]" (gWeather, gWeather_current)    {weather="locationId=PikasPlace, type=atmosphere, property=pressureTrend"}
+Number   Weather_Current_Ozone           "Current Ozone [%d ppm]" (gWeather, gWeather_current)    	  {weather="locationId=PikasPlace, type=atmosphere, property=ozone"}
+Number   Weather_Current_UVIndex        "Current UV Index" (gWeather, gWeather_current)              {weather="locationId=PikasPlace, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Current_Clouds  "Current Clouds [%.0f %%]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=clouds, property=percent"}
+
+// condition
+String   Weather_Current_Condition       "Current Condition [%s]" (gWeather, gWeather_current)      {weather="locationId=PikasPlace, type=condition, property=text"}
+String   Weather_Current_ConditionId	 "Current Condition id [%s]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=condition, property=id"}
+DateTime Weather_Current_ObservationTime "Current Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=condition, property=observationTime"}
+DateTime Weather_Current_LastUpdate      "Current Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_current)        {weather="locationId=PikasPlace, type=condition, property=lastUpdate"}
+String   Weather_Current_CommonId        "Current Common id [%s]" (gWeather, gWeather_current)      {weather="locationId=PikasPlace, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Current_Rain         "Current Rain [%.2f mm/h]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=precipitation, property=rain"}
+Number   Weather_Current_RainInches  "Current Rain [%.2f in/h]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Current_Snow         "Current Snow [%.2f mm/h]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=precipitation, property=snow"}
+Number   Weather_Current_SnowInches  "Current Snow [%.2f in/h]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Current_PrecipProbability  "Current Precip probability [%d %%]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=precipitation, property=probability"}
+
+// temperature
+Number   Weather_Current_Temperature   "Current Temperature [%.2f °F]" (gWeather, gWeather_current, gOutdoor_Sensors_AVG)       {weather="locationId=PikasPlace, type=temperature, property=current"}
+Number   Weather_Current_TempFeel     "Current Temperature feel [%.2f °F]" (gWeather, gWeather_current)  {weather="locationId=PikasPlace, type=temperature, property=feel"}
+Number   Weather_Current_TempDewpoint "Current Dewpoint [%.2f °F]" (gWeather, gWeather_current)          {weather="locationId=PikasPlace, type=temperature, property=dewpoint"}
+// min and max values only available in forecasts
+Number   Weather_Current_TempMin      "Current Temperature min [%.2f °F]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=temperature, property=min"}
+Number   Weather_Current_TempMax      "Current Temperature max [%.2f °F]" (gWeather, gWeather_current)   {weather="locationId=PikasPlace, type=temperature, property=max"}
+String   Weather_Current_TempMinMax   "Current Min/Max [%s °F]" (gWeather, gWeather_current)             {weather="locationId=PikasPlace, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Current_WindSpeed_Mph      "Current Windspeed [%.2f mph]" (gWeather, gWeather_current)     {weather="locationId=PikasPlace, type=wind, property=speed, unit=mph"}
+String	 Weather_Current_WindDirection      "Current Wind direction [%s]" (gWeather, gWeather_current)      {weather="locationId=PikasPlace, type=wind, property=direction"}
+Number   Weather_Current_WindDegree         "Current Wind degree [%.0f °]" (gWeather, gWeather_current)     {weather="locationId=PikasPlace, type=wind, property=degree"}
+Number   Weather_Current_Wind_Gust_Mph       "Current Wind gust [%.2f mph]" (gWeather, gWeather_current)     {weather="locationId=PikasPlace, type=wind, property=gust, unit=mph"}
+Number   Weather_Current_Wind_Chill		     "Current Wind chill [%.2f °F]" (gWeather, gWeather_current)     {weather="locationId=PikasPlace, type=wind, property=chill"}
+
+// weather station (only Hamweather)
+//String   Station_Name        "Current Station Name [%s]" (gWeather, gWeather_current)        {weather="locationId=PikasPlace, type=station, property=name"}
+//String   Station_Id          "Current Station Id [%s]" (gWeather, gWeather_current)          {weather="locationId=PikasPlace, type=station, property=id"}
+//Number   Station_Latitude    "Current Station Latitude [%.6f]" (gWeather, gWeather_current)  {weather="locationId=PikasPlace, type=station, property=latitude, scale=6"}
+//Number   Station_Longitude   "Current Station Longitude [%.6f]" (gWeather, gWeather_current) {weather="locationId=PikasPlace, type=station, property=longitude, scale=6"}
+
+//today's forecast
+// atmosphere
+Number   Weather_Forcast_Today_Humidity    	 "forcast today Humidity [%d %%]" (gWeather, gWeather_today)  	  {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_Today_Visibility    	 "forcast today Visibility [%.2f km]" (gWeather, gWeather_today)  {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_Today_VisibilityMph  "forcast today Visibility [%.2f mi]" (gWeather, gWeather_today)  {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_Today_Pressure    	 "forcast today Pressure [%.2f mb]" (gWeather, gWeather_today)    {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_Today_PressureInches "forcast today Pressure [%.2f in]" (gWeather, gWeather_today)    {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=pressure, unit=inches"}
+String   Weather_Forcast_Today_PressureTrend  "forcast today Pressuretrend [%s]" (gWeather, gWeather_today)    {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=pressureTrend"}
+Number   Weather_Forcast_Today_Ozone           "forcast today Ozone [%d ppm]" (gWeather, gWeather_today)    	  {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_Today_UVIndex        "forcast today UV Index" (gWeather, gWeather_today)              {weather="locationId=PikasPlace, forecast=0, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_Today_Clouds  "forcast today Clouds [%.0f %%]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_Today_Condition       "forcast today Condition [%s]" (gWeather, gWeather_today)      {weather="locationId=PikasPlace, forecast=0, type=condition, property=text"}
+DateTime Weather_Forcast_Today_ObservationTime "forcast today Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=condition, property=observationTime"}
+DateTime Weather_Forcast_Today_LastUpdate      "forcast today Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_today)        {weather="locationId=PikasPlace, forecast=0, type=condition, property=lastUpdate"}
+String   Weather_Forcast_Today_CommonId        "forcast today Common id [%s]" (gWeather, gWeather_today)      {weather="locationId=PikasPlace, forecast=0, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_Today_Rain         "forcast today Rain [%.2f mm/h]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=precipitation, property=rain"}
+Number   Weather_Forcast_Today_RainInches  "forcast today Rain [%.2f in/h]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_Today_Snow         "forcast today Snow [%.2f mm/h]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=precipitation, property=snow"}
+Number   Weather_Forcast_Today_SnowInches  "forcast today Snow [%.2f in/h]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_Today_PrecipProbability  "forcast today Precip probability [%d %%]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_Today_TempMin      "forcast today Temperature min [%.2f °F]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=temperature, property=min"}
+Number   Weather_Forcast_Today_TempMax      "forcast today Temperature max [%.2f °F]" (gWeather, gWeather_today)   {weather="locationId=PikasPlace, forecast=0, type=temperature, property=max"}
+String   Weather_Forcast_Today_TempMinMax   "forcast today Min/Max [%s °F]" (gWeather, gWeather_today)             {weather="locationId=PikasPlace, forecast=0, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_Today_WindSpeed_Mph      "forcast today Windspeed [%.2f mph]" (gWeather, gWeather_today)     {weather="locationId=PikasPlace, forecast=0, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_Today_WindDirection      "forcast today Wind direction [%s]" (gWeather, gWeather_today)      {weather="locationId=PikasPlace, forecast=0, type=wind, property=direction"}
+Number   Weather_Forcast_Today_WindDegree         "forcast today Wind degree [%.0f °]" (gWeather, gWeather_today)     {weather="locationId=PikasPlace, forecast=0, type=wind, property=degree"}
+Number   Weather_Forcast_Today_Wind_Gust_Mph       "forcast today Wind gust [%.2f mph]" (gWeather, gWeather_today)     {weather="locationId=PikasPlace, forecast=0, type=wind, property=gust, unit=mph"}
+Number   Weather_Forcast_Today_Wind_Chill		     "forcast today Wind chill [%.2f °F]" (gWeather, gWeather_today)     {weather="locationId=PikasPlace, forecast=0, type=wind, property=chill"}
+
+
+
+
+//Day2
+// atmosphere
+Number   Weather_Forcast_Tomorrow_Humidity    	 "Day 2Humidity [%d %%]" (gWeather, gWeather_Day2)  	  {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_Tomorrow_Visibility    	 "Day 2Visibility [%.2f km]" (gWeather, gWeather_Day2)  {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_Tomorrow_VisibilityMph  "Day 2Visibility [%.2f mi]" (gWeather, gWeather_Day2)  {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_Tomorrow_Pressure    	 "Day 2Pressure [%.2f mb]" (gWeather, gWeather_Day2)    {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_Tomorrow_PressureInches "Day 2Pressure [%.2f in]" (gWeather, gWeather_Day2)    {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=pressure, unit=inches"}
+Number   Weather_Forcast_Tomorrow_Ozone           "Day 2Ozone [%d ppm]" (gWeather, gWeather_Day2)    	  {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_Tomorrow_UVIndex        "Day 2UV Index" (gWeather, gWeather_Day2)              {weather="locationId=PikasPlace, forecast=1, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_Tomorrow_Clouds  "Day 2Clouds [%.0f %%]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_Tomorrow_Condition       "Day 2Condition [%s]" (gWeather, gWeather_Day2)      {weather="locationId=PikasPlace, forecast=1, type=condition, property=text"}
+DateTime Weather_Forcast_Tomorrow_ObservationTime "Day 2Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=condition, property=observationTime"}
+DateTime Weather_Forcast_Tomorrow_LastUpdate      "Day 2Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day2)        {weather="locationId=PikasPlace, forecast=1, type=condition, property=lastUpdate"}
+String   Weather_Forcast_Tomorrow_CommonId        "Day 2Common id [%s]" (gWeather, gWeather_Day2)      {weather="locationId=PikasPlace, forecast=1, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_Tomorrow_Rain         "Day 2Rain [%.2f mm/h]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=precipitation, property=rain"}
+Number   Weather_Forcast_Tomorrow_RainInches  "Day 2Rain [%.2f in/h]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_Tomorrow_Snow         "Day 2Snow [%.2f mm/h]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=precipitation, property=snow"}
+Number   Weather_Forcast_Tomorrow_SnowInches  "Day 2Snow [%.2f in/h]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_Tomorrow_PrecipProbability  "Day 2Precip probability [%d %%]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_Tomorrow_TempMin      "Day 2Temperature min [%.2f °F]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=temperature, property=min"}
+Number   Weather_Forcast_Tomorrow_TempMax      "Day 2Temperature max [%.2f °F]" (gWeather, gWeather_Day2)   {weather="locationId=PikasPlace, forecast=1, type=temperature, property=max"}
+String   Weather_Forcast_Tomorrow_TempMinMax   "Day 2Min/Max [%s °F]" (gWeather, gWeather_Day2)             {weather="locationId=PikasPlace, forecast=1, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_Tomorrow_WindSpeed_Mph      "Day 2Windspeed [%.2f mph]" (gWeather, gWeather_Day2)     {weather="locationId=PikasPlace, forecast=1, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_Tomorrow_WindDirection      "Day 2Wind direction [%s]" (gWeather, gWeather_Day2)      {weather="locationId=PikasPlace, forecast=1, type=wind, property=direction"}
+Number   Weather_Forcast_Tomorrow_WindDegree         "Day 2Wind degree [%.0f °]" (gWeather, gWeather_Day2)     {weather="locationId=PikasPlace, forecast=1, type=wind, property=degree"}
+Number   Weather_Forcast_Tomorrow_Wind_Gust_Mph       "Day 2Wind gust [%.2f mph]" (gWeather, gWeather_Day2)     {weather="locationId=PikasPlace, forecast=1, type=wind, property=gust, unit=mph"}
+
+
+//Day3
+// atmosphere
+Number   Weather_Forcast_2day_Humidity    	 "Day 3 Humidity [%d %%]" (gWeather, gWeather_Day3)  	  {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_2day_Visibility    	 "Day 3 Visibility [%.2f km]" (gWeather, gWeather_Day3)  {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_2day_VisibilityMph  "Day 3 Visibility [%.2f mi]" (gWeather, gWeather_Day3)  {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_2day_Pressure    	 "Day 3 Pressure [%.2f mb]" (gWeather, gWeather_Day3)    {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_2day_PressureInches "Day 3 Pressure [%.2f in]" (gWeather, gWeather_Day3)    {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=pressure, unit=inches"}
+Number   Weather_Forcast_2day_Ozone           "Day 3 Ozone [%d ppm]" (gWeather, gWeather_Day3)    	  {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_2day_UVIndex        "Day 3 UV Index" (gWeather, gWeather_Day3)              {weather="locationId=PikasPlace, forecast=2, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_2day_Clouds  "Day 3 Clouds [%.0f %%]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_2day_Condition       "Day 3 Condition [%s]" (gWeather, gWeather_Day3)      {weather="locationId=PikasPlace, forecast=2, type=condition, property=text"}
+DateTime Weather_Forcast_2day_ObservationTime "Day 3 Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=condition, property=observationTime"}
+DateTime Weather_Forcast_2day_LastUpdate      "Day 3 Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day3)        {weather="locationId=PikasPlace, forecast=2, type=condition, property=lastUpdate"}
+String   Weather_Forcast_2day_CommonId        "Day 3 Common id [%s]" (gWeather, gWeather_Day3)      {weather="locationId=PikasPlace, forecast=2, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_2day_Rain         "Day 3 Rain [%.2f mm/h]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=precipitation, property=rain"}
+Number   Weather_Forcast_2day_RainInches  "Day 3 Rain [%.2f in/h]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_2day_Snow         "Day 3 Snow [%.2f mm/h]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=precipitation, property=snow"}
+Number   Weather_Forcast_2day_SnowInches  "Day 3 Snow [%.2f in/h]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_2day_PrecipProbability  "Day 3 Precip probability [%d %%]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_2day_TempMin      "Day 3 Temperature min [%.2f °F]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=temperature, property=min"}
+Number   Weather_Forcast_2day_TempMax      "Day 3 Temperature max [%.2f °F]" (gWeather, gWeather_Day3)   {weather="locationId=PikasPlace, forecast=2, type=temperature, property=max"}
+String   Weather_Forcast_2day_TempMinMax   "Day 3 Min/Max [%s °F]" (gWeather, gWeather_Day3)             {weather="locationId=PikasPlace, forecast=2, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_2day_WindSpeed_Mph      "Day 3 Windspeed [%.2f mph]" (gWeather, gWeather_Day3)     {weather="locationId=PikasPlace, forecast=2, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_2day_WindDirection      "Day 3 Wind direction [%s]" (gWeather, gWeather_Day3)      {weather="locationId=PikasPlace, forecast=2, type=wind, property=direction"}
+Number   Weather_Forcast_2day_WindDegree         "Day 3 Wind degree [%.0f °]" (gWeather, gWeather_Day3)     {weather="locationId=PikasPlace, forecast=2, type=wind, property=degree"}
+Number   Weather_Forcast_2day_Wind_Gust_Mph       "Day 3 Wind gust [%.2f mph]" (gWeather, gWeather_Day3)     {weather="locationId=PikasPlace, forecast=2, type=wind, property=gust, unit=mph"}
+
+//Day4
+// atmosphere
+Number   Weather_Forcast_3day_Humidity    	 "Day 4 Humidity [%d %%]" (gWeather, gWeather_Day4)  	  {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_3day_Visibility    	 "Day 4 Visibility [%.2f km]" (gWeather, gWeather_Day4)  {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_3day_VisibilityMph  "Day 4 Visibility [%.2f mi]" (gWeather, gWeather_Day4)  {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_3day_Pressure    	 "Day 4 Pressure [%.2f mb]" (gWeather, gWeather_Day4)    {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_3day_PressureInches "Day 4 Pressure [%.2f in]" (gWeather, gWeather_Day4)    {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=pressure, unit=inches"}
+Number   Weather_Forcast_3day_Ozone           "Day 4 Ozone [%d ppm]" (gWeather, gWeather_Day4)    	  {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_3day_UVIndex        "Day 4 UV Index" (gWeather, gWeather_Day4)              {weather="locationId=PikasPlace, forecast=3, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_3day_Clouds  "Day 4 Clouds [%.0f %%]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_3day_Condition       "Day 4 Condition [%s]" (gWeather, gWeather_Day4)      {weather="locationId=PikasPlace, forecast=3, type=condition, property=text"}
+DateTime Weather_Forcast_3day_ObservationTime "Day 4 Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=condition, property=observationTime"}
+DateTime Weather_Forcast_3day_LastUpdate      "Day 4 Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day4)        {weather="locationId=PikasPlace, forecast=3, type=condition, property=lastUpdate"}
+String   Weather_Forcast_3day_CommonId        "Day 4 Common id [%s]" (gWeather, gWeather_Day4)      {weather="locationId=PikasPlace, forecast=3, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_3day_Rain         "Day 4 Rain [%.2f mm/h]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=precipitation, property=rain"}
+Number   Weather_Forcast_3day_RainInches  "Day 4 Rain [%.2f in/h]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_3day_Snow         "Day 4 Snow [%.2f mm/h]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=precipitation, property=snow"}
+Number   Weather_Forcast_3day_SnowInches  "Day 4 Snow [%.2f in/h]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_3day_PrecipProbability  "Day 4 Precip probability [%d %%]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_3day_TempMin      "Day 4 Temperature min [%.2f °F]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=temperature, property=min"}
+Number   Weather_Forcast_3day_TempMax      "Day 4 Temperature max [%.2f °F]" (gWeather, gWeather_Day4)   {weather="locationId=PikasPlace, forecast=3, type=temperature, property=max"}
+String   Weather_Forcast_3day_TempMinMax   "Day 4 Min/Max [%s °F]" (gWeather, gWeather_Day4)             {weather="locationId=PikasPlace, forecast=3, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_3day_WindSpeed_Mph      "Day 4 Windspeed [%.2f mph]" (gWeather, gWeather_Day4)     {weather="locationId=PikasPlace, forecast=3, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_3day_WindDirection      "Day 4 Wind direction [%s]" (gWeather, gWeather_Day4)      {weather="locationId=PikasPlace, forecast=3, type=wind, property=direction"}
+Number   Weather_Forcast_3day_WindDegree         "Day 4 Wind degree [%.0f °]" (gWeather, gWeather_Day4)     {weather="locationId=PikasPlace, forecast=3, type=wind, property=degree"}
+Number   Weather_Forcast_3day_Wind_Gust_Mph       "Day 4 Wind gust [%.2f mph]" (gWeather, gWeather_Day4)     {weather="locationId=PikasPlace, forecast=3, type=wind, property=gust, unit=mph"}
+
+
+//Day5
+// atmosphere
+Number   Weather_Forcast_4day_Humidity    	 "Day 5 Humidity [%d %%]" (gWeather, gWeather_Day5)  	  {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_4day_Visibility    	 "Day 5 Visibility [%.2f km]" (gWeather, gWeather_Day5)  {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_4day_VisibilityMph  "Day 5 Visibility [%.2f mi]" (gWeather, gWeather_Day5)  {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_4day_Pressure    	 "Day 5 Pressure [%.2f mb]" (gWeather, gWeather_Day5)    {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_4day_PressureInches "Day 5 Pressure [%.2f in]" (gWeather, gWeather_Day5)    {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=pressure, unit=inches"}
+String   Weather_Forcast_4day_PressureTrend  "Day 5 Pressuretrend [%s]" (gWeather, gWeather_Day5)    {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=pressureTrend"}
+Number   Weather_Forcast_4day_Ozone           "Day 5 Ozone [%d ppm]" (gWeather, gWeather_Day5)    	  {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_4day_UVIndex        "Day 5 UV Index" (gWeather, gWeather_Day5)              {weather="locationId=PikasPlace, forecast=4, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_4day_Clouds  "Day 5 Clouds [%.0f %%]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_4day_Condition       "Day 5 Condition [%s]" (gWeather, gWeather_Day5)      {weather="locationId=PikasPlace, forecast=4, type=condition, property=text"}
+DateTime Weather_Forcast_4day_ObservationTime "Day 5 Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=condition, property=observationTime"}
+DateTime Weather_Forcast_4day_LastUpdate      "Day 5 Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather, gWeather_Day5)        {weather="locationId=PikasPlace, forecast=4, type=condition, property=lastUpdate"}
+String   Weather_Forcast_4day_CommonId        "Day 5 Common id [%s]" (gWeather, gWeather_Day5)      {weather="locationId=PikasPlace, forecast=4, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_4day_Rain         "Day 5 Rain [%.2f mm/h]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=precipitation, property=rain"}
+Number   Weather_Forcast_4day_RainInches  "Day 5 Rain [%.2f in/h]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_4day_Snow         "Day 5 Snow [%.2f mm/h]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=precipitation, property=snow"}
+Number   Weather_Forcast_4day_SnowInches  "Day 5 Snow [%.2f in/h]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_4day_PrecipProbability  "Day 5 Precip probability [%d %%]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_4day_TempMin      "Day 5 Temperature min [%.2f °F]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=temperature, property=min"}
+Number   Weather_Forcast_4day_TempMax      "Day 5 Temperature max [%.2f °F]" (gWeather, gWeather_Day5)   {weather="locationId=PikasPlace, forecast=4, type=temperature, property=max"}
+String   Weather_Forcast_4day_TempMinMax   "Day 5 Min/Max [%s °F]" (gWeather, gWeather_Day5)             {weather="locationId=PikasPlace, forecast=4, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_4day_WindSpeed_Mph      "Day 5 Windspeed [%.2f mph]" (gWeather, gWeather_Day5)     {weather="locationId=PikasPlace, forecast=4, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_4day_WindDirection      "Day 5 Wind direction [%s]" (gWeather, gWeather_Day5)      {weather="locationId=PikasPlace, forecast=4, type=wind, property=direction"}
+Number   Weather_Forcast_4day_WindDegree         "Day 5 Wind degree [%.0f °]" (gWeather, gWeather_Day5)     {weather="locationId=PikasPlace, forecast=4, type=wind, property=degree"}
+Number   Weather_Forcast_4day_Wind_Gust_Mph       "Day 5 Wind gust [%.2f mph]" (gWeather, gWeather_Day5)     {weather="locationId=PikasPlace, forecast=4, type=wind, property=gust, unit=mph"}
+
+
+
+//day6
+// atmosphere
+Number   Weather_Forcast_5day_Humidity    	 "Day 6 Humidity [%d %%]" (gWeather)  	  {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_5day_Visibility    	 "Day 6 Visibility [%.2f km]" (gWeather)  {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_5day_VisibilityMph  "Day 6 Visibility [%.2f mi]" (gWeather)  {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_5day_Pressure    	 "Day 6 Pressure [%.2f mb]" (gWeather)    {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_5day_PressureInches "Day 6 Pressure [%.2f in]" (gWeather)    {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=pressure, unit=inches"}
+String   Weather_Forcast_5day_PressureTrend  "Day 6 Pressuretrend [%s]" (gWeather)    {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=pressureTrend"}
+Number   Weather_Forcast_5day_Ozone           "Day 6 Ozone [%d ppm]" (gWeather)    	  {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_5day_UVIndex        "Day 6 UV Index" (gWeather)              {weather="locationId=PikasPlace, forecast=5, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_5day_Clouds  "Day 6 Clouds [%.0f %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_5day_Condition       "Day 6 Condition [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=5, type=condition, property=text"}
+DateTime Weather_Forcast_5day_ObservationTime "Day 6 Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=condition, property=observationTime"}
+DateTime Weather_Forcast_5day_LastUpdate      "Day 6 Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)        {weather="locationId=PikasPlace, forecast=5, type=condition, property=lastUpdate"}
+String   Weather_Forcast_5day_CommonId        "Day 6 Common id [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=5, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_5day_Rain         "Day 6 Rain [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=precipitation, property=rain"}
+Number   Weather_Forcast_5day_RainInches  "Day 6 Rain [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_5day_Snow         "Day 6 Snow [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=precipitation, property=snow"}
+Number   Weather_Forcast_5day_SnowInches  "Day 6 Snow [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_5day_PrecipProbability  "Day 6 Precip probability [%d %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_5day_TempMin      "Day 6 Temperature min [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=temperature, property=min"}
+Number   Weather_Forcast_5day_TempMax      "Day 6 Temperature max [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=5, type=temperature, property=max"}
+String   Weather_Forcast_5day_TempMinMax   "Day 6 Min/Max [%s °F]" (gWeather)             {weather="locationId=PikasPlace, forecast=5, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_5day_WindSpeed_Mph      "Day 6 Windspeed [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=5, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_5day_WindDirection      "Day 6 Wind direction [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=5, type=wind, property=direction"}
+Number   Weather_Forcast_5day_WindDegree         "Day 6 Wind degree [%.0f °]" (gWeather)     {weather="locationId=PikasPlace, forecast=5, type=wind, property=degree"}
+Number   Weather_Forcast_5day_Wind_Gust_Mph       "Day 6 Wind gust [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=5, type=wind, property=gust, unit=mph"}
+
+
+
+
+//Day7
+// atmosphere
+Number   Weather_Forcast_6day_Humidity    	 "Day 7 Humidity [%d %%]" (gWeather)  	  {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_6day_Visibility    	 "Day 7 Visibility [%.2f km]" (gWeather)  {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_6day_VisibilityMph  "Day 7 Visibility [%.2f mi]" (gWeather)  {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_6day_Pressure    	 "Day 7 Pressure [%.2f mb]" (gWeather)    {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_6day_PressureInches "Day 7 Pressure [%.2f in]" (gWeather)    {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=pressure, unit=inches"}
+Number   Weather_Forcast_6day_Ozone           "Day 7 Ozone [%d ppm]" (gWeather)    	  {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_6day_UVIndex        "Day 7 UV Index" (gWeather)              {weather="locationId=PikasPlace, forecast=6, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_6day_Clouds  "Day 7 Clouds [%.0f %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_6day_Condition       "Day 7 Condition [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=6, type=condition, property=text"}
+DateTime Weather_Forcast_6day_ObservationTime "Day 7 Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=condition, property=observationTime"}
+DateTime Weather_Forcast_6day_LastUpdate      "Day 7 Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)        {weather="locationId=PikasPlace, forecast=6, type=condition, property=lastUpdate"}
+String   Weather_Forcast_6day_CommonId        "Day 7 Common id [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=6, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_6day_Rain         "Day 7 Rain [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=precipitation, property=rain"}
+Number   Weather_Forcast_6day_RainInches  "Day 7 Rain [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_6day_Snow         "Day 7 Snow [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=precipitation, property=snow"}
+Number   Weather_Forcast_6day_SnowInches  "Day 7 Snow [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_6day_PrecipProbability  "Day 7 Precip probability [%d %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_6day_TempMin      "Day 7 Temperature min [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=temperature, property=min"}
+Number   Weather_Forcast_6day_TempMax      "Day 7 Temperature max [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=6, type=temperature, property=max"}
+String   Weather_Forcast_6day_TempMinMax   "Day 7 Min/Max [%s °F]" (gWeather)             {weather="locationId=PikasPlace, forecast=6, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_6day_WindSpeed_Mph      "Day 7 Windspeed [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=6, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_6day_WindDirection      "Day 7 Wind direction [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=6, type=wind, property=direction"}
+Number   Weather_Forcast_6day_WindDegree         "Day 7 Wind degree [%.0f °]" (gWeather)     {weather="locationId=PikasPlace, forecast=6, type=wind, property=degree"}
+Number   Weather_Forcast_6day_Wind_Gust_Mph       "Day 7 Wind gust [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=6, type=wind, property=gust, unit=mph"}
+
+
+//Day8
+// atmosphere
+Number   Weather_Forcast_7day_Humidity    	  "Day 8 Humidity [%d %%]" (gWeather)  	  {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=humidity"}
+Number   Weather_Forcast_7day_Visibility    	 "Day 8 Visibility [%.2f km]" (gWeather)  {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=visibility"}
+Number   Weather_Forcast_7day_VisibilityMph  "Day 8 Visibility [%.2f mi]" (gWeather)  {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=visibility, unit=mph"}
+Number   Weather_Forcast_7day_Pressure    	 "Day 8 Pressure [%.2f mb]" (gWeather)    {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=pressure"}
+Number   Weather_Forcast_7day_PressureInches "Day 8 Pressure [%.2f in]" (gWeather)    {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=pressure, unit=inches"}
+Number   Weather_Forcast_7day_Ozone           "Day 8 Ozone [%d ppm]" (gWeather)    	  {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=ozone"}
+Number   Weather_Forcast_7day_UVIndex        "Day 8 UV Index" (gWeather)              {weather="locationId=PikasPlace, forecast=7, type=atmosphere, property=uvIndex, scale=0"}
+
+// clouds
+Number   Weather_Forcast_7day_Clouds   "Day 8  Clouds [%.0f %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=clouds, property=percent"}
+
+// condition
+String   Weather_Forcast_7day_Condition        "Day 8  Condition forecast [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=7, type=condition, property=text"}
+DateTime Weather_Forcast_7day_ObservationTime  "Day 8  Observation time [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=condition, property=observationTime"}
+DateTime Weather_Forcast_7day_LastUpdate       "Day 8  Last update [%1$td.%1$tm.%1$tY %1$tH:%1$tM]" (gWeather)        {weather="locationId=PikasPlace, forecast=7, type=condition, property=lastUpdate"}
+String   Weather_Forcast_7day_CommonId         "Day 8  Common id [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=7, type=condition, property=commonId"}
+
+// precipitation
+Number   Weather_Forcast_7day_Rain          "Day 8  Rain [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=precipitation, property=rain"}
+Number   Weather_Forcast_7day_RainInches   "Day 8  Rain [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=precipitation, property=rain, unit=inches"}
+Number   Weather_Forcast_7day_Snow          "Day 8  Snow [%.2f mm/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=precipitation, property=snow"}
+Number   Weather_Forcast_7day_SnowInches   "Day 8  Snow [%.2f in/h]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=precipitation, property=snow, unit=inches"}
+Number   Weather_Forcast_7day_PrecipProbability   "Day 8  Precip probability [%d %%]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=precipitation, property=probability"}
+
+// temperature
+// min and max values only available in forecasts
+Number   Weather_Forcast_7day_TempMin       "Day 8  Temperature min [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=temperature, property=min"}
+Number   Weather_Forcast_7day_TempMax       "Day 8  Temperature max [%.2f °F]" (gWeather)   {weather="locationId=PikasPlace, forecast=7, type=temperature, property=max"}
+String   Weather_Forcast_7day_TempMinMax    "Day 8  Min/Max [%s °F]" (gWeather)             {weather="locationId=PikasPlace, forecast=7, type=temperature, property=minMax"}
+
+// wind
+Number   Weather_Forcast_7day_WindSpeed_Mph       "Day 8  Windspeed [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=7, type=wind, property=speed, unit=mph"}
+String	 Weather_Forcast_7day_WindDirection       "Day 8  Wind direction [%s]" (gWeather)      {weather="locationId=PikasPlace, forecast=7, type=wind, property=direction"}
+Number   Weather_Forcast_7day_WindDegree          "Day 8  Wind degree [%.0f °]" (gWeather)     {weather="locationId=PikasPlace, forecast=7, type=wind, property=degree"}
+Number   Weather_Forcast_7day_Wind_Gust_Mph        "Day 8  Wind gust [%.2f mph]" (gWeather)     {weather="locationId=PikasPlace, forecast=7, type=wind, property=gust, unit=mph"}
+
+
+
+

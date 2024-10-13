@@ -1,0 +1,205 @@
+//Equipment types
+Group gMultisensors (gEquipment)
+//multisensors
+	Group gDENMS "Den Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gGAMS "Garage Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gMRMS "Mud Room Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gLRMS "Living Room Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gFPMS "Front Porch Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gBPMS "Back Porch Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gKITMS "Kitchen Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gGBrMS "Guest Bedroom Multisensor"(gMultisensors) {homekit="MotionSensor"}
+	Group gGBaMS "Guest Bathroom Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gStairsMS "stairway Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gBMTMS "Basement Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gBoilMS "Boiler Room Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gBMTHWMS "Basement Hallway Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gBMTBrMS "Basement Bedroom Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gLAUMS "Laundry Multisensor" (gMultisensors) {homekit="MotionSensor"}
+	Group gMBeMS "Master Bedroom Multisensor"(gMultisensors) {homekit="MotionSensor"}
+	Group gMBaMS "Master Bathroom Multisensor" (gMultisensors) {homekit="MotionSensor"}
+
+	//Tamper Alarms
+	Group gMS_Tampers		(gMultisensors)
+		Group:Switch:OR(ON,OFF)  gMS_Tamper_Alarm	 "Tamper Alarm on any sensor" (gMultisensors)
+		Switch DENMS_TMPR "Den Tamper Alarm" (gDen, gDENMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node13:alarm_tamper", homekit="MotionSensor.TamperedStatus"} 
+		Switch GAMS_TMPR "Garage Tamper Alarm" (gGa, gGAMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node25:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch MRMS_TMPR "Mud Room Tamper Alarm" (gMR, gMRMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node22:basic_sensor_binary"}
+		Switch LRMS_TMPR "Living Room Tamper Alarm" (gLR, gLRMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node14:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch FPMS_TMPR "Front Porch Tamper Alarm" (gFPMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch BPMS_TMPR "Back Porch Tamper Alarm" (gBPMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch KITMS_TMPR "Kitchen Tamper Alarm" (gKITMS, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch GBrMS_TMPR "Guest Bedroom Tamper Alarm" (gGBrMS, gGBr, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node21:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch GBaMS_TMPR "Guest Bathroom Tamper Alarm" (gGBaMS, gGBa, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch StairMS_TMPR "Stair Tamper Alarm" (gStairMS, gStair, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch BMTMS_TMPR "Basement Tamper Alarm" (gBMTMS, gBMT, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node29:basic_sensor_binary", homekit="MotionSensor.TamperedStatus"}
+		Switch BoilMS_TMPR"Boiler Room Tamper Alarm" (gBoilMS, gBoil, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch BMTHWMS_TMPR "Basement Hall Tamper Alarm" (gBMTHWMS, gBMT, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch BMTBrMS_TMPR "Basement Bedroom Tamper Alarm" (gBMTBrMS, gBMTBr, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node7:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch BMTBaMS_TMPR "Basement Bathroom Tamper Alarm" (gBMTBaMS, gBMTBa, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		//Switch LAUMS_TMPR"Laundry Tamper Alarm" (gLAUMS, gLAU, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node30:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch MBaMS_TMPR "Master Bathroom Tamper Alarm" (gMBaMS,gMBa, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node20:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+		Switch MBeMS_TMPR "Master Bedroom Tamper Alarm" (gMBeMS, gMBe, gMS_Tampers, gMS_Tamper_Alarm, gMS_Updates) ["Tampered"]{channel="zwave:device:c603a394:node19:alarm_tamper", homekit="MotionSensor.TamperedStatus"}
+
+	//Relative Humidity
+	Group gMS_Humidity 		(gMultisensors)
+		Group:Number:Dimensionless:AVG   gMS_Humidity_AVG "Avg Room Humidity Level [%.1f %%]" (gMultisensors)
+		Number:Dimensionless DENMS_Humidity "Den Humidity Level [%.1f %%]" (gDen, gDen_Tstat, gDENMS, MS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node13:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless GAMS_Humidity "Garage Humidity Level [%.1f %%]" (gGa, gGa_Tstat, gGAMS, MS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node25:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless MRMS_Humidity "Mud Room Humidity Level [%.1f %%]" (gMR, gMR_Tstat, gMRMS,MS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node22:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless LRMS_Humidity "Living Room Humidity Level [%.1f %%]" (gLR, gLR_Tstat, gLRMS,MS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node14:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless FPMS_Humidity "Front Porch Humidity Level [%.1f %%]" (gMS_Humidity,gFPMS, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless BPMS_Humidity "Back Porch Humidity Level [%.1f %%]" (gMS_Humidity, gBPMS, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless KITMS_Humidity "Kitchen Humidity Level [%.1f %%]" (gKIT, gKIT_Tstat, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless GBrMS_Humidity "Guest Bedroom Humidity Level [%.1f %%]" (gGBr, gGB_Tstat,gGBrMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node21:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless GBaMS_Humidity "Guest Bathroom Humidity Level [%.1f %%]" (gGBa, gMS_Humidity, gGBaMS, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless StairMS_Humidity "Stair Humidity Level [%.1f %%]" (gStair, gStairMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless BMTMS_Humidity "Basement Humidity Level [%.1f %%]" (gBMT, gBMT_Tstat, gBMTMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node29:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless BoilMS_Humidity "Boiler Room Humidity Level [%.1f %%]" (gBoil, gMS_Humidity, gBoilMS, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless BMTHWMS_Humidity "Basement Hall Humidity Level [%.1f %%]" (gBMT, gBMTMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless BMTBrMS_Humidity "Basement Bedroom Humidity Level [%.1f %%]" (gBMTBr, gBMTBrMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node7:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless BMTBaMS_Humidity "Basement Bathroom Humidity Level [%.1f %%]" (gBMTBa, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		//Number:Dimensionless LAUMS_Humidity "Laundry Humidity Level [%.1f %%]" (gLAU, gLAUMS, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node30:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless MBa_Humidity "Master Bathroom Humidity Level [%.1f %%]" (gMBa, gMBaMS, gMba_Tstat, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node20:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+		Number:Dimensionless MBe_Humidity "Master Bedroom Humidity Level " (gMBe, gMBeMS, gMBe_Tstat, gMS_Humidity, gMS_Humidity_AVG, gMS_Updates) ["CurrentHumidity", "Humidity", "Measurement"] {channel="zwave:device:c603a394:node19:sensor_relhumidity", ga="thermostatHumidityAmbient", homekit="HumiditySensor" }
+
+	//Temperatures 
+	Group gMS_Temps		(gMultisensors)
+		Group:Number:Temperature:AVG   gMS_Temps_AVG "Avg Room Temperatures [%.1f °F]" (gMultisensors, gMS_Updates) ["Fahrenheit"]
+
+			Number:Temperature DENMS_Temp "Den Temperature [%.1f °F]" (gDen, gDenMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates)  ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node13:sensor_temperature", synonyms="temp, warm" }
+			Number:Temperature GAMS_Temp "Garage Temperature [%.1f °F]" (gGa, gGAMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node25:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature MRMS_Temp "Mud Room Temperature [%.1f °F]" (gMR, gMRMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node22:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature LRMS_Temp "Living Room Temperature [%.1f °F]" (gLR, gLRMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node14:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature FPMS_Temp "Front Porch Temperature [%.1f °F]" (gMS_Temps, gFPMS, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature BPMS_Temp "Back Porch Temperature [%.1f °F]" (gMS_Temps, gBPMS, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature KITMS_Temp "Kitchen Temperature [%.1f °F]" (gKIT, gKITMS, gKIT_Tstat, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature GBrMS_Temp "Guest Bedroom Temperature [%.1f °F]" (gGBr, gGBrMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node21:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature GBaMS_Temp "Guest Bathroom Temperature [%.1f °F]" (gGBa, GGBaMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature StairMS_Temp "Stair Temperature [%.1f °F]" (gStair, gStairMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature BMTMS_Temp "Basement Temperature [%.1f °F]" (gBMT, gBMTMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node29:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature BoilMS_Temp"Boiler Room Temperature [%.1f °F]" (gBoil, gBoilMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature BMTHWMS_Temp "Basement Hall Temperature [%.1f °F]" (gMS_Temps, gBMTHWMS, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature BMTBrMS_Temp "Basement Bedroom Temperature [%.1f °F]" (gBMTBr, gBMTBrMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node7:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature BMTBaMS_Temp "Basement Bathroom Temperature [%.1f °F]" (gMS_Temps, gLBMTBaMS, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			//Number:Temperature LAUMS_Temp"Laundry Temperature [%.1f °F]" (gMS_Temps, gLAUMS, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node30:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature MBaMS_Temp "Master Bathroom Temperature [%.1f °F]" (gMBa, gMBaMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node20:sensor_temperature", synonyms="temp, temperature, warm" }  
+			Number:Temperature MBeMS_Temp	"Master Bedroom Temperature [%.1f °F]" (gMBe, gMBeMS, gMS_Temps, gMS_Temps_AVG, gMS_Updates) ["Fahrenheit", "Temperature", "Measurement"] { channel="zwave:device:c603a394:node19:sensor_temperature", synonyms="temp, temperature, warm" }  
+ 
+	//Luminance Levels
+	Group gMS_Luminances	(gMultisensors)
+		Group:Number:AVG gMS_Luminance_AVG "Avg Luminance [%.1f %unit%]" (gMultisensors)
+
+			Number DENMS_LUM "Den Luminance Level [%.1f %%]" (gDen, gDENMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node13:sensor_luminance", homekit="LightSensor"}
+			Number GAMS_LUM "Garage Luminance Level [%.1f %%]" (gGa, gGAMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node25:sensor_luminance", homekit="LightSensor"}
+			Number MRMS_LUM "Mud Room Luminance Level [%.1f %%]" (gMR, gMRMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node22:sensor_luminance", homekit="LightSensor"}
+			Number LRMS_LUM "Living Room Luminance Level [%.1f %%]" (gLR, gLRMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node14:sensor_luminance", homekit="LightSensor"}
+			//Number FPMS_LUM "Front Porch Luminance Level [%.1f %%]" (gFPMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			//Number BPMS_LUM "Back Porch Luminance Level [%.1f %%]" (gBPMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			//Number KITMS_LUM "Kitchen Luminance Level [%.1f %%]" (gKITMS, gKIT, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			Number GBrMS_LUM "Guest Bedroom Luminance Level [%.1f %%]" (gGBRMS, gGBr, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node21:sensor_luminance", homekit="LightSensor"}
+			//Number GBaMS_LUM "Guest Bathroom Luminance Level [%.1f %%]" (gGBaMS, gGBa, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			//Number StairMS_LUM "Stair Luminance Level [%.1f %%]" (gStair, gStairMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			Number BMTMS_LUM "Basement Luminance Level [%.1f %%]" (gBMT, gBMTMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node29:sensor_luminance", homekit="LightSensor"}
+			Number BoilMS_LUM"Boiler Room Luminance Level [%.1f %%]" (gBoil, gBoilMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			//Number BMTHWMS_LUM "Basement Hall Luminance Level [%.1f %%]" (gBMTHWMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			Number BMTBrMS_LUM "Basement Bedroom Luminance Level [%.1f %%]" (gBMTBr, gBMTBrMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node7:sensor_luminance", homekit="LightSensor"}
+			//Number BMTBaMS_LUM "Basement Bathroom Luminance Level [%.1f %%]" (gBMTBa, gBMTBaMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			//Number LAUMS_LUM "Laundry Luminance Level [%.1f %%]" (gLAU, gMS_Luminances, gLAUMS, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node30:sensor_luminance", homekit="LightSensor"}
+			Number MBaMS_LUM 	"Master Bathroom Luminance Level [%.1f %%]" (gMBa, gMBaMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node20:sensor_luminance", homekit="LightSensor"}
+			Number MBeMS_LUM  	"Master Bedroom Luminance Level [%.1f %%]" (gMBe, gMBeMS, gMS_Luminances, gMS_Luminance_AVG, gMS_Updates) ["Measurement"] {channel="zwave:device:c603a394:node19:sensor_luminance", homekit="LightSensor"}
+
+	//UV Levels
+	Group gMS_UV_LVL		(gMultisensors)
+		Number:Dimensionless DENMS_UV "Den UV Level" (gDen, gDENMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node13:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" } 
+		Number:Dimensionless GAMS_UV "Garage UV Level" (gGa, gGAMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node25:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless MRMS_UV "Mud Room UV Level" (gMR, gMRMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node22:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless LRMS_UV "Living Room UV Level" (gLR, gLRMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node14:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless FPMS_UV "Front Porch UV Level" (ggFPMS, MS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless BPMS_UV "Back Porch UV Level" (gBPMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless KITMS_UV "Kitchen UV Level" (gKITMS, gKIT, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless GBrMS_UV "Guest Bedroom UV Level" (gGBrMS, gGBr, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node21:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless GBaMS_UV "Guest Bathroom UV Level" (gGBaMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless StairMS_UV "Stair UV Level" (gStair, gStairMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless BMTMS_UV "Basement UV Level" (gBMT, gBMTMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node29:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless BoilMS_UV"Boiler Room UV Level" (gBoil, gBoilMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless BMTHWMS_UV "Basement Hall UV Level" (gBMT, gBMTMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless BMTBrMS_UV "Basement Bedroom UV Level" (gBMTBr, gBMTBrMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node7:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless BMTBaMS_UV "Basement Bathroom UV Level" (gBMTBa, gBMTBaMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		//Number:Dimensionless LAUMS_UV"Laundry UV Level" (gLAU, gLAUMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node30:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless MBaMS_UV "Master Bathroom UV Level" (gMBa, gMBaMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node20:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+		Number:Dimensionless MBeMS_UV	"Master Bedroom UV Level" (gMBe, gMBeMS, gMS_UV_LVL, gMultisensors, gMS_Updates) ["Measurement"] { channel="zwave:device:c603a394:node19:sensor_ultraviolet", synonyms="UV Level,UV,Ultra Violet" }
+
+	//Motion
+	Group gMS_Motion  		(gMultisensors)
+		Group:Number:SUM gMS_Motion_SUM "total number of Motion detectors triggered"
+		Group:Switch:OR(ON,OFF, gMS_Updates) gMS_Motion_ANY 	"Motion detection active somewhere"	(gMultisensors, gMS_Updates) 
+			Switch DENMS_Motion "Den Motion Sensor" (gMS_Motion_SUM, gDen, gDENMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node13:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch GAMS_Motion "Garage Motion Sensor" (gMS_Motion_SUM, gGa, gGaMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node25:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch MRMS_Motion "Mud Room Motion Sensor" (gMS_Motion_SUM, gMR, gMRMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node22:alarm_burglar", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch LRMS_Motion "Living Room Motion Sensor" (gMS_Motion_SUM, gLR, gLRMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node14:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch FPMS_Motion "Front Porch Motion Sensor" (gMS_Motion_SUM, gMS_Motion, gFPMS, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"]
+			//Switch BPMS_Motion "Back Porch Motion Sensor" (gMS_Motion_SUM, gMS_Motion, gBPMS, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"]
+			//Switch KITgMS_Motion "Kitchen Motion Sensor" (gMS_Motion_SUM, gKIT, gKITMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"]
+			Switch GBrMS_Motion "Guest Bedroom Motion Sensor" (gMS_Motion_SUM, gGBr, gGBrMS, gMS_Motion, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node21:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch GBaMS_Motion "Guest Bathroom Motion Sensor" (gMS_Motion_SUM, gBaMS, gGBa, gMS_Motion, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] { synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch StairMS_Motion "Stair Motion Sensor" (gMS_Motion_SUM, gStair, gStairMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node30:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch BMTMS_Motion "Basement Motion Sensor" (gMS_Motion_SUM, gBMT, gBMTMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node29:alarm_burglar", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch BoilMS_Motion "Boiler Room Motion Sensor" (gMS_Motion_SUM, gBoilMS,gBoil, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node30:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch BMTHWMS_Motion "Basement Hall Motion Sensor" (gMS_Motion_SUM, gBMTHWMS, gBMT, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node30:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch BMTBrMS_Motion "Basement Bedroom Motion Sensor" (gMS_Motion_SUM, gBMTBrMS, gBMTBr, gMS_Motion, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node7:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch BMTBaMS_Motion "Basement Bathroom Motion Sensor" (gMS_Motion_SUM, gBMTBaMS, gBMTBa, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node30:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			//Switch LAUMS_Motion "Laundry Motion Sensor" (gMS_Motion_SUM, gLAU, gLAUMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node30:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch MBaMS_Motion "Master Bathroom Motion Sensor" (gMS_Motion_SUM, gMBAMS, gMBa, gMS_Motion, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node20:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+			Switch MBeMS_Motion	"Master Bedroom Motion Sensor" (gMS_Motion_SUM, gMBe, gMBeMS, gMS_Motion, gMotionNoBedrooms, gMS_Motion_ANY, gMS_Updates) ["Status", "Presence"] {channel="zwave:device:c603a394:node19:alarm_motion", synonyms="motion, presence, burgler", homekit="MotionSensor.MotionDetectedState" }
+
+	//Battery Levels
+
+	Group gMS_Batteries		(gMultisensors)
+		Group:Number:Dimensionless:AVG gMS_Battery_AVG "Avg Battery Level [%.1f %%]" (gMultisensors)
+			Number:Dimensionless DENMS_Batt "Den Battery Level [%.1f %%]" (gDen, gDENMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node13:battery-level", synonyms="level,battery" }
+			Number:Dimensionless GAMS_Batt "Garage Battery Level [%.1f %%]" (gGa, gGAMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node25:battery-level", synonyms="level,battery" }
+			Number:Dimensionless MRMS_Batt "Mud Room Battery Level [%.1f %%]" (gMR, gMRMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node22:battery-level", synonyms="level,battery" }
+			Number:Dimensionless LRMS_Batt "Living Room Battery Level [%.1f %%]" (gLR, gLRMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node14:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless FPMS_Batt "Front Porch Battery Level [%.1f %%]" (gFP, gFPMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless BPMS_Batt "Back Porch Battery Level [%.1f %%]" (gMS_Batteries, gBPMS, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless KITMS_Batt "Kitchen Battery Level [%.1f %%]" (gKIT, gKITMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { synonyms="level,battery" }
+			Number:Dimensionless GBrMS_Batt "Guest Bedroom Battery Level [%.1f %%]" (gGBr, gGBrMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node21:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless GBaMS_Batt "Guest Bathroom Battery Level [%.1f %%]" (gGBa, gGBa, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { synonyms="level,battery" }
+			//Number:Dimensionless StairMS_Batt "Stair Battery Level [%.1f %%]" (gStair, gStairMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			Number:Dimensionless BMTMS_Batt "Basement Battery Level [%.1f %%]" (gBMT, gBMTMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node29:battery-level", synonyms="level,battery" }
+			Number:Dimensionless BoilMS_Batt"Boiler Room Battery Level [%.1f %%]" (gBoil, gBoilMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless BMTHWMS_Batt "Basement Hall Battery Level [%.1f %%]" (gBMT, gBMTMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			Number:Dimensionless BMTBrMS_Batt "Basement Bedroom Battery Level [%.1f %%]" (gBMTBr, gBMTBr, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node7:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless BMTBaMS_Batt "Basement Bathroom Battery Level [%.1f %%]" (gBMTBa, gBMTBa, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			//Number:Dimensionless LAUMS_Batt "Laundry Battery Level [%.1f %%]" (gLAU, gMS_Batteries, gLAUMS, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node30:battery-level", synonyms="level,battery" }
+			Number:Dimensionless MBaMS_Batt "Master Bathroom Battery Level [%.1f %%]" (gMBe, gMBeMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node20:battery-level", synonyms="level,battery" }
+			Number:Dimensionless MBeMS_Batt	"Master Bedroom Battery Level [%.1f %%]" (gMBa, gMBaMS, gMS_Batteries, gMS_Battery_AVG, gMS_Updates) ["LowBattery", "Sensor"] { channel="zwave:device:c603a394:node19:battery-level", synonyms="level,battery" }
+
+	//Online Statuses
+	Group gMS_Statuses (gMultisensors)
+		Group gDENMS_Status "Den Multisensor Online Status" (gDen, gDENMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gGAMS_Status "Garage Multisensor Online Status" (gGa, gGAMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gMRMS_Status "Mud Room Multisensor Online Status" (gMR, gMRMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gLRMS_Status "Living Room Multisensor Online Status" (gLR, gLRMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gGBRMS_Status "Guest Bedroom Multisensor Online Status" (gGBR, gGBrMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gBMTBrMS_Status "Basement Bedroom Multisensor Online Status" (gBMTBr, gBMTBrMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gBMTMS_Status "Basement Multisensor Online Status" (gBMTMS, gBMT, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gMBaMS_Status "Master Bathroom Multisensor Online Status" (gMBa, gMBaMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		Group gMBeMS_Status "Master Bedroom Multisensor Online Status" (gMBe, gMBeMS, gMS_Statuses, gMS_Updates) ["alarm"] 
+		String aInfo 	"Alarm info [%s]" (gAlarms) 
+
+
+//alarm items
+	Group gAlarms "alarms" 
+	Switch SensorInactive_alarm "Sensor inactive [aInfo]" (gAlarms)
+	Group gMS_Updates "sensor updates" 
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,154 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+import java.util.Map
+
+val Map<String, Timer> timers = newHashMap
+
+rule "Reset Expire binding at startup"
+when
+  System started
+then
+  logInfo("Startup", "Restarting Expire binding Timers")
+  gMS_Statuses.members.forEach[ i | i.postUpdate(i.state)]
+end
+
+rule "Process sensor update"
+when
+    Member of gMS_Temps received update or 
+    Member of gMS_Humidity received update or 
+    Member of gMS_Motion received update
+
+
+then
+    if(timers.get(triggeringItem.name) === null) {
+        createTimer(now.plusMinutes(10), [ | 
+            sendCommand(triggeringItem.name.split("_").get(0)+"_Status", "OFF")
+        ])
+    }
+    else timers.get(triggeringItem.name.reschedule(now.plusSeconds(10)))
+end
+
+rule "A device stopped reporting"
+when
+    Member of gMS_Statuses received command OFF
+then
+    SensorInactive_alarm.sendCommand(ON)
+end
+
+
+
+
+rule "A sensor changed its online state"
+when
+    Member of gMS_Statuses changed
+then
+    if(previousState == NULL) return;
+
+    val alerted = ScriptServiceUtil.getItemRegistry.getItem(triggeringItem.name+"_Alerted") as SwitchItem
+    if(alerted === null) {
+        logError("admin", "Cannot find Item " + triggeringItem.name+"_Alerted")
+        aInfo.sendCommand(triggeringItem.name + " doesn't have an alerted flag, it is now " + transform("MAP", "admin.map", triggeringItem.state.toString) + "!")
+        return;
+    }
+
+    var n = transform("MAP", "admin.map", triggeringItem.name)
+    val name = if(n == "") triggeringItem.name else n
+
+    // If we are flapping, reschedule the timer and exit
+    if(timers.get(triggeringItem.name) !== null) {
+        timers.get(triggeringItem.name).reschedule(now.plusMinutes(1))
+        logWarn("admin", name + " is flapping!")
+        return;
+    }
+
+    if(alerted.state == triggeringItem.state) {
+        val currState = triggeringItem.state
+        // wait one minute before alerting to make sure it isn't flapping
+        timers.put(triggeringItem.name, createTimer(now.plusMinutes(1), [ |
+            // If the current state of the Item matches the saved state after 5 minutes send the alert
+            if(triggeringItem.state == currState) {
+                aInfo.sendCommand(name + " is now " + transform("MAP", "admin.map", triggeringItem.state.toString) + "!")
+                alerted.postUpdate(if(currState == ON) OFF else ON)
+            }
+            timers.put(triggeringItem.name, null)
+        ]))
+    }
+end
+
+rule "Reminder at 08:00 and system start"
+when
+          Time cron "0 0 8 * * ? *" or
+          System started
+then
+    val numNull = gMS_Statuses.members.filter[ sensor | sensor.state == NULL ].size
+    if( numNull > 0) logWarn("admin", "There are " + numNull + " sensors in an unknown state")
+
+    val offline = gSensorStatus.members.filter[ sensor | sensor.state == OFF ]
+    if(offline.size == 0) return;
+
+/*import org.eclipse.smarthome.model.script.ScriptServiceUtil
+import java.util.Map
+
+val Map<String, Timer> timers = newHashMap
+
+rule "A sensor changed its online state2"
+when
+    Member of gSensorStatus changed
+then
+    if(previousState == NULL) return;
+
+    val alerted = ScriptServiceUtil.getItemRegistry.getItem(triggeringItem.name+"_Alerted") as SwitchItem
+    if(alerted === null) {
+        logError("admin", "Cannot find Item " + triggeringItem.name+"_Alerted")
+        aInfo.sendCommand(triggeringItem.name + " doesn't have an alerted flag, it is now " + transform("MAP", "admin.map", triggeringItem.state.toString) + "!")
+        return;
+    }
+
+    var n = transform("MAP", "admin.map", triggeringItem.name)
+    val name = if(n == "") triggeringItem.name else n
+
+    // If we are flapping, reschedule the timer and exit
+    if(timers.get(triggeringItem.name) !== null) {
+        timers.get(triggeringItem.name).reschedule(now.plusMinutes(1))
+        logWarn("admin", name + " is flapping!")
+        return;
+    }
+
+    if(alerted.state == triggeringItem.state) {
+        val currState = triggeringItem.state
+        // wait one minute before alerting to make sure it isn't flapping
+        timers.put(triggeringItem.name, createTimer(now.plusMinutes(1), [ |
+            // If the current state of the Item matches the saved state after 5 minutes send the alert
+            if(triggeringItem.state == currState) {
+                aInfo.sendCommand(name + " is now " + transform("MAP", "admin.map", triggeringItem.state.toString) + "!")
+                alerted.postUpdate(if(currState == ON) OFF else ON)
+            }
+            timers.put(triggeringItem.name, null)
+        ]))
+    }
+end
+
+rule "Reminder at 08:00 and system start"
+when
+          Time cron "0 0 8 * * ? *" or
+          System started
+then
+    val numNull = gSensorStatus.members.filter[ sensor | sensor.state == NULL ].size
+    if( numNull > 0) logWarn("admin", "There are " + numNull + " sensors in an unknown state")
+
+    val offline = gSensorStatus.members.filter[ sensor | sensor.state == OFF ]
+    if(offline.size == 0) return;
+
+    val message = new StringBuilder
+    message.append("The following sensors are known to be offline: ")
+    offline.forEach[ sensor |
+        var name = transform("MAP", "admin.map", sensor.name)
+        if(name == "") name = sensor.name
+        message.append(name)
+        message.append(", ")
+        gOfflineAlerted.members.filter[ a | a.name==sensor.name+"_Alerted" ].head.postUpdate(ON)
+    ]
+    message.delete(message.length-2, message.length)
+
+    aInfo.sendCommand(message.toString)
+end
+*/

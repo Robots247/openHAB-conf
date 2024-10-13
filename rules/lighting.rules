@@ -1,0 +1,145 @@
+val String filename = "Lighting Rules"
+var Timer Lighting_timer = null
+var Timer dimmingTimer = null
+var Number GaDimValue = null
+
+
+/*rule "DenCan Switch Received Command"
+when
+    Item DenCanDimmer received command
+then
+    if(gDENCans.state != receivedCommand) gDENCans.sendCommand(receivedCommand)
+    logInfo(filename, "Den Can Lights updated")
+end
+
+rule "DenCan Switch Updates received update"
+when
+    Item DenCanUpdates received update
+then
+    if(gDenCanDimmer.state != DenCanUpdates.state) gDenCanDimmer.postUpdate(DenCanUpdates.state)
+end
+*/
+
+rule "Outdoor lighting rules"
+when
+	Item gShannonPresent changed from OFF to ON or
+	Item gAnthonyPresent changed from OFF to ON
+then
+	if(Night_State.state == ON){
+		if (DWSW.state != ON){
+			DWSW.sendCommand(ON)
+		}
+		if (BYSW.state !=ON){
+			BYSW.sendCommand(ON)
+		}
+	}
+end
+
+rule "Turn On Outdoor Switches"	
+//turn on outdoor lights at night.  Turn off with Expire settings in item setup
+when
+		Item Night_State changed 
+then 	
+	if (Night_State.state == ON) {
+		
+		//Porch_String_Lights_Switch.sendCommand(ON)
+		gODSWs.sendCommand(ON)
+		logInfo("Rule.Outdoor Lighting Rules", "It is now officially Night. Turning on the Back Porch Light")
+
+	}
+end
+
+//to do.  If There is someone present, turn on indoor scenes when night state is turned on. 
+//to do.  Don't turn off lights when walking into a room
+//to do, add counter state to scenes
+//to do.  add presence detection with manaual present switch
+// to do.  fix gartage lighting dimmer brightness
+
+
+
+rule "Turn Off Outdoor Switches"
+when
+		Item vTimeOfDay changed to "LateNight"
+then
+	
+		gODSWs.sendCommand(OFF)	
+		logInfo("Rule.Outdoor Lighting Rules", "It is now late night. Turning off the ODSWs")
+	
+end
+
+/*/ Examples for use of vTimeOfDay
+rule "Day time started"
+when
+  Item vTimeOfDay changed to "DAY" // does not work prior to OH 2.3 Release
+then
+  // do stuff when DAY starts
+end
+
+rule "Some rule"
+when
+    // some trigger
+then
+  if(vTimeOfDay.state != "BED") return;
+
+  // do stuff to do when it isn't BED time
+end 
+*/
+
+rule "Garage Lighting Switch/Dimmer relationship"
+when 
+	Item GADim received command
+	
+then 
+	
+	GaDimValue = receivedCommand //as Number
+	if (receivedCommand >= 1 || receivedCommand == ON){
+		logDebug("rule.garagelighting", "Storing Dim value as " + GaDimValue)
+		if (GA_Lights_Switch.state != ON){
+		GA_Lights_Switch.sendCommand(ON)
+		logDebug("rule.garagelighting", "garage dimmer is >1 turning lights on")
+			
+			// save dimming states
+			/*if( dimmingTimer === null){
+				logDebug("rule.garagedimmer", "setting 5 second timer")
+			//set a timer to execute code in 5 seconds
+			dimmingTimer = createTimer(now.plusSeconds(5), [	|
+			logDebug("rule.garagedimmer", "dimming timer triggered")
+			logDebug("rule.garagedimmer", "saved dimming variable value = "+ GaDimValue)
+			GADim.sendCommand(GaDimValue)
+			logDebug("rule.garagedimmer", "sending GaDimValue = " + GaDimValue)
+			])
+			
+
+
+			}
+			else 
+			logDebug("gadimmer.rule", "dimming timer already active no timer set.")
+		}
+		*/
+		}
+	}
+
+else
+	if (receivedCommand < 1 || receivedCommand == OFF){
+		logDebug("rule.garagelighting", "received command is " + receivedCommand)
+		if (GA_Lights_Switch.state != OFF){
+			GA_Lights_Switch.sendCommand(OFF)
+			logDebug("rule.garagelighting", "Dimmer off or <1, turning lights off")
+		}
+	}
+end
+
+rule "Turn off all lights when Garage Dimmer is turned off"
+when
+    Item GA_Lights_Switch changed to OFF
+then
+	logInfo("RULE.Garage.Dimmer.Scenes", "Garage OFF")
+    // Get the group of lights to turn off
+                    gGA_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Work")){
+                            i.sendCommand(OFF)
+						}
+					]
+end
+
+

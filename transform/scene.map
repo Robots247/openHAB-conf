@@ -1,0 +1,15 @@
+    0=OFF
+    1=ON
+    2="Morning"
+    3="Day"
+    4="Afternoon"
+    5="Evening"
+    6="Night" 
+    7="Dinner"  
+    8="Movie"
+    9="Fire"  
+    10="Bed"
+    11="Saved Scene for recall"
+    12="Special based on Room"
+    "_"="Undefined"
+    -="- undefined"

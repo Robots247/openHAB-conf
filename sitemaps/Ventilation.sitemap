@@ -1,0 +1,39 @@
+sitemap Ventilation label="Ventilation Control" {
+	Frame label="Venting Status" {
+		Switch item=Venting label="Venting"
+	}		
+            
+   	Frame label="Room Humidity Levels" {
+    	Text item=MS_Humidity_AVG 	label="Average Room Humidity Levels"	icon="humidity"
+    	Text item=DENMS_Humidity 	label="Den Humidity" icon="humidity"
+    	Text item=MRMS_Humidity 	label="Mud Room Humidity "	icon="humidity"
+    	Text item=LRMS_Humidity 	label="Living Room Humidity "	icon="humidity"
+    	Text item=MBaMS_Humidity 	label="Master Bathroom Humidity "	icon="humidity"
+    	Text item=MBrMS_Humidity 	label="Master Bedroom Humidity "	icon="humidity"
+    	Text item=BMTMS_Humidity 	label="Basement Humidity "	icon="humidity"
+    	Text item=BMTBrMS_Humidity	label="Basement Bedroom Humidity "	icon="humidity"
+    	Text item=GBrMS_Humidity 	label="Guest Bedroom Humidity "	icon="humidity"
+    	Text item=BoilMS_Humidity 	label="Boiler Room Humidity "	icon="humidity"
+    	Text item=GAMS_Humidity 	label="Garage Humidity "	icon="humidity"
+
+	}
+	     	
+   Frame label="Heating States" {
+   		Switch item=Heating label="System Heating" icon="radiator"
+   		
+  	} 
+   
+	Frame label="CFH indicators" {
+		Switch item=CFH2 label="CFH 2 low Temp" icon="radiator"
+		Switch item=CFH1 label="CFH 1 High Temp" icon="radiator"
+	}	
+   
+	Frame label="Fans" {
+		Switch item=RecFan label="Rec Room Fan" icon="fan"
+		Switch item=MbaFan label="Master Bath Fan" icon="fan"
+		Switch item=BmtBaFan label="Basement Bath Fan" icon="fan"
+		Switch item=GuestBaFan label="Guest Bath Fan" icon="fan"
+		
+    }
+
+} 

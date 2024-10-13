@@ -1,0 +1,101 @@
+var Timer avrTimer = null
+rule "Den AVR-2000 OFF"
+when Item DenSpeakersIdling changed from OFF to ON or Item sleeping changed from OFF to ON
+    
+then
+ if(avrTimer === null) {
+        avrTimer = createTimer(now.plusMinutes(5), [|    
+            if (AVR2000MainZonePower != OFF && DenSpeakersIdling == ON){
+            AVR2000MainZonePower.sendCommand(OFF)
+            avrTimer = null 
+            }
+        ])
+ }
+end
+
+rule "Den AVR-2000 ON"
+when Item DenSpeakersIdling changed from ON to OFF
+    
+then
+    if(avrTimer !== null) {
+    avrTimer = null
+    }
+    if(AVR2000MainZonePower !=ON){
+        AVR2000MainZonePower.sendCommand(ON)
+    }
+end
+ /***************************** Den TV Logic ***********************************/
+
+
+rule "Den TV refresh"
+when
+Item DenTV_State changed from ON to OFF
+then
+
+DenTVPOWER.sendCommand(OFF)
+
+if (DenTV_Sitemap.state != OFF){
+	DenTV_Sitemap.sendCommand(OFF)
+}
+
+//logDebug("DenTV.presence.rules", "Dentv off through sitemap switch")
+end
+
+rule "DenTV ON"
+when
+Item DenTV_State changed from OFF to ON
+	
+then
+if (DenTV_Sitemap.state != ON){
+	DenTV_Sitemap.sendCommand(ON)
+}
+end
+
+rule "Garage Amp ON"
+when 
+Item Ga_Google_Mini_Idling changed
+then 
+if (Ga_Google_Mini_Idling.state != OFF){
+    if(Ga_AMP.state != ON){
+    Ga_AMP.sendCommand(ON)
+    logDebug("Rule.GarageAmpFF", "Garage amp mini idling state is ON, turning ON garage amp")
+
+    }
+}
+else{ 
+    if (Ga_AMP.state != OFF) {
+    Ga_AMP.sendCommand(OFF)
+    logDebug("Rule.GarageAmpON", "Garage amp mini idling state is OFF, turning off garage amp")
+    }
+}
+end
+
+rule "AVR2000 Apple TV"
+when
+    Item AVR2000InputToggle changed from OFF to ON   
+then
+    if (AVR2000MainZoneInput.state != "TV") {
+        AVR2000MainZoneInput.sendCommand("TV")
+        AVR2000InputToggle.sendCommand(OFF)
+        return;
+    }
+    else if (AVR2000MainZoneInput.state != "MPLAY"){
+        AVR2000MainZoneInput.sendCommand("MPLAY")
+        AVR2000InputToggle.sendCommand(OFF)
+
+    }
+end
+
+rule "Switch Amp input OFF when TV is turned off"
+when
+    Item DenTV_State changed from ON to OFF
+then 
+    AVR2000MainZoneInput.sendCommand("TV")
+end
+
+rule "Switch Amp Input To APPLE TV when TV is turned on"
+when
+    Item DenTV_State changed from OFF to ON
+then 
+    AVR2000MainZoneInput.sendCommand("MPLAY")
+end

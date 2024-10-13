@@ -1,0 +1,34 @@
+rule "Send Notification"
+when
+	Item vNotification received update
+then
+	sendBroadcastNotification(vNotification.state.toString)
+	logWarn("NodeRed", "NOTIFICATION ALERT" + vNotification.state.toString)
+
+end
+
+
+rule "State update"
+when
+	Item vLog received update
+then
+	logInfo("NodeRed", "nodeRed Updated: " + vLog.state.toString)
+
+end
+
+
+rule "Send Error"
+when
+	Item vError received update
+then
+	logError("NodeRed", "******ERROR******" + vError.state.toString)
+
+end
+
+
+rule "Send Speech"
+when
+	Item vSpeech received update
+then
+	say(vSpeech.state.toString)
+end

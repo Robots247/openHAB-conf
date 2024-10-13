@@ -1,0 +1,1459 @@
+sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
+    Frame {
+        Text item=Current_DateTime label="Weather and Astro [%1$tA, %1$tm/%1$td/%1$tY]" icon="sun_clouds" {
+            Frame label="Current Conditions" {
+                //Switch item=Night_State label="Tageszeit" mappings=[OFF="Tag", ON="Nacht"]
+                Text item=Day_Phase icon="sunmoon"
+                Text item=vTimeOfDay icon="sunmoon"
+                Text item=Sunrise_Time icon="sunrise" visibility=[Night_State == ON]
+                Text item=Sunset_Time icon="sunset" visibility=[Night_State == OFF]
+                Text item=Sun_Elevation icon="sunmoon" visibility=[Sun_Elevation > 0]
+                Text item=Moon_Elevation icon="sunmoon" visibility=[Moon_Elevation > 0]
+                Text item=Zodiac_Sign icon="zodiac"
+                Text item=Moon_Phase
+                Text item=Moon_Next_Full icon="fullmoon"
+                    visibility=[Moon_Phase == WAXING_CRESCENT,
+                        Moon_Phase == FIRST_QUARTER,
+                        Moon_Phase == WAXING_GIBBOUS,
+                        Moon_Phase == FULL]
+                Text item=Moon_Next_New icon="fullmoon"
+                    visibility=[Moon_Phase == WANING_GIBBOUS,
+                        Moon_Phase == THIRD_QUARTER,
+                        Moon_Phase == WANING_CRESCENT,
+                        Moon_Phase == NEW]
+            }
+    
+               
+        Frame label="Current local weather" {
+        Text item=localLastMeasurement
+        Text item=localCurrentCondition
+        Image item=localCurrentConditionIcon
+        Text item=localCurrentTemperature
+        Text item=localCurrentApparentTemperature
+        Text item=localCurrentPressure
+        Text item=localCurrentHumidity
+        Text item=localCurrentDewpoint
+        Text item=localCurrentWindSpeed
+        Text item=localCurrentWindDirection
+        Text item=localCurrentGustSpeed
+        Text item=localCurrentCloudiness
+        Text item=localCurrentUvindex
+        Text item=localCurrentRainVolume
+        Text item=localCurrentSnowVolume
+        Text item=localCurrentVisibility
+    }
+    Frame label="Local forecast for today" {
+        Text item=localTodayTimestamp
+        Text item=localTodayPrecipProbability
+        Text item=localTodaySunrise
+        Text item=localTodaySunset
+        Text item=localTodayCondition
+        Image item=localTodayConditionIcon
+        Text item=localTodayMinTemperature
+        Text item=localTodayMaxTemperature
+        Text item=localTodayMorningTemperature
+        Text item=localTodayMorningApparent
+        Text item=localTodayDayTemperature
+        Text item=localTodayDayApparent
+        Text item=localTodayEveningTemperature
+        Text item=localTodayEveningApparent
+        Text item=localTodayNightTemperature
+        Text item=localTodayNightApparent
+        Text item=localTodayPressure
+        Text item=localTodayHumidity
+        Text item=localTodayDewpoint
+        Text item=localTodayWindSpeed
+        Text item=localTodayWindDirection
+        Text item=localTodayGustSpeed
+        Text item=localTodayCloudiness
+        Text item=localTodayUvindex
+        Text item=localTodayRainVolume
+        Text item=localTodaySnowVolume
+        Text item=localTodayVisibility
+    }
+    Frame label="Local forecast for tomorrow" {
+        Text item=localTomorrowTimestamp
+        Text item=localTomorrowPrecipProbability
+        Text item=localTomorrowSunrise
+        Text item=localTomorrowSunset
+        Text item=localTomorrowCondition
+        Image item=localTomorrowConditionIcon
+        Text item=localTomorrowMinTemperature
+        Text item=localTomorrowMaxTemperature
+        Text item=localTomorrowMorningTemperature
+        Text item=localTomorrowMorningApparent
+        Text item=localTomorrowDayTemperature
+        Text item=localTomorrowDayApparent
+        Text item=localTomorrowEveningTemperature
+        Text item=localTomorrowEveningApparent
+        Text item=localTomorrowNightTemperature
+        Text item=localTomorrowNightApparent
+        Text item=localTomorrowPressure
+        Text item=localTomorrowHumidity
+        Text item=localTomorrowDewpoint
+        Text item=localTomorrowWindSpeed
+        Text item=localTomorrowWindDirection
+        Text item=localTomorrowGustSpeed
+        Text item=localTomorrowCloudiness
+        Text item=localTomorrowUvindex
+        Text item=localTomorrowRainVolume
+        Text item=localTomorrowSnowVolume
+        Text item=localTomorrowVisibility
+    }
+    Frame label="Local forecast in 6 days" {
+        Text item=localDay6Timestamp
+        Text item=localDay6PrecipProbability
+        Text item=localDay6Sunrise
+        Text item=localDay6Sunset
+        Text item=localDay6Condition
+        Image item=localDay6ConditionIcon
+        Text item=localDay6MinTemperature
+        Text item=localDay6MaxTemperature
+        Text item=localDay6MorningTemperature
+        Text item=localDay6MorningApparent
+        Text item=localDay6DayTemperature
+        Text item=localDay6DayApparent
+        Text item=localDay6EveningTemperature
+        Text item=localDay6EveningApparent
+        Text item=localDay6NightTemperature
+        Text item=localDay6NightApparent
+        Text item=localDay6Pressure
+        Text item=localDay6Humidity
+        Text item=localDay6Dewpoint
+        Text item=localDay6WindSpeed
+        Text item=localDay6WindDirection
+        Text item=localDay6GustSpeed
+        Text item=localDay6Cloudiness
+        Text item=localDay6Uvindex
+        Text item=localDay6RainVolume
+        Text item=localDay6SnowVolume
+        Text item=localDay6Visibility
+        Text item=localDay6SnowVolume
+    }
+    Frame label="Yesterdays local weather" {
+        Text item=localHistory1LastMeasurement
+        Text item=localHistory1Condition
+        Text item=localHistory1Sunrise
+        Text item=localHistory1Sunset
+        Image item=localHistory1ConditionIcon
+        Text item=localHistory1Temperature
+        Text item=localHistory1ApparentTemperature
+        Text item=localHistory1Pressure
+        Text item=localHistory1Humidity
+        Text item=localHistory1Dewpoint
+        Text item=localHistory1WindSpeed
+        Text item=localHistory1WindDirection
+        Text item=localHistory1GustSpeed
+        Text item=localHistory1Cloudiness
+        Text item=localHistory1Uvindex
+        Text item=localHistory1RainVolume
+        Text item=localHistory1SnowVolume
+        Text item=localHistory1Visibility
+    }
+}
+        }
+
+            
+        
+
+    Frame{
+        Text label="Cameras" icon="camera" {
+            Frame label="Front Door Cameras" {
+                        Video icon="video" url="rtsp://10.0.0.4:7447/VT5hiQTUCEhLQ2Ju" encoding="mjpeg"    
+            }
+            
+            Frame label="Front Door Motion Detected" {
+                Switch item=Front_Door_Camera_Motion label="Front Door Motion Detected" icon="alarm" 
+            }
+        }
+    }
+
+
+
+
+    Frame{
+        Text item=vSceneLocation label="Localized Control Panel [Predicted in %s]" icon="location"{
+            Frame label="Scene Status"{
+                Text item=Current_DateTime label="Date today is [%1$tm/%1$td/%1$tY]"
+                Text item=vTimeOfDay label="time of day is [%s]"
+                Text item=Current_DateTime label="Current Time is [%1$tI:%1$tM %1$Tp]"
+                Text item=sceneNumber label="Current loaded Scene is [MAP(scene.map):%s]"
+                Text item=sceneLocation label="Current loaded Scene location is [%s]" 
+
+            }
+            Frame label="Scenes" {
+            Selection item=vSceneLocation label="Scene location" mappings=[     
+                                                                            MF="Upstairs", 
+                                                                            DEN="Den", 
+                                                                            MR="MudRoom", 
+                                                                            MBr="Master Bedroom", 
+                                                                            GA="Garage", LR="LivingRoom", 
+                                                                            REC="Rec Room", Cor="Corridors", 
+                                                                            BMT="Basement", 
+                                                                            BMTBr="BMT BedRoom"
+                                                                        ]
+            Selection item=vSceneNumber label="Scene [MAP(scene.map):%s]" visibility=[vSceneLocation == "DEN"] mappings=[ 
+                                                                                    0="00: OFF",
+                                                                                    1="01: ON",
+                                                                                    2="02: Morning",                                                                                 
+                                                                                    3="03: Day",
+                                                                                    4="04: Afternoon", 
+                                                                                    5="05: Evening", 
+                                                                                    6="06: Night", 
+                                                                                    7="07: Dinner", 
+                                                                                    8="08: Movie", 
+                                                                                    9="09: Fire", 
+                                                                                    10="10: Bed",
+                                                                                    12="12: Computer"
+                                                                                    
+                                                                                    
+                                                                                    ] 
+
+            Selection item=vSceneNumber label="Scene [MAP(scene.map):%s]" visibility=[vSceneLocation != "DEN"]   mappings=[ 
+                                                                                    0="00: OFF",
+                                                                                    1="01: ON",
+                                                                                    2="02: Morning",                                                                                 
+                                                                                    3="03: Day",
+                                                                                    4="04: Afternoon", 
+                                                                                    5="05: Evening", 
+                                                                                    6="06: Night", 
+                                                                                    7="07: Dinner", 
+                                                                                    8="08: Movie", 
+                                                                                    9="09: Fire", 
+                                                                                    10="10: Bed"
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    ]                                                                       
+            Switch item=vSceneLoad label="Load saved scene" icon=button
+            Switch item=vSceneSave label="save current scene"
+    }
+
+    
+            Frame label="Den Lighting" visibility=[vSceneLocation=="DEN"]{
+                    Slider item=gDEN_Dimmer label="All Den Lights" icon="slider"
+                    Setpoint item=gDEN_Dimmer label="All Den Lights Fine Control [%.1f %%]" icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Slider item=gDENCans label="All Den Can Lights" icon="slider"
+                    Setpoint item=gDENCans label="Den Can Fine Control[%.1f %%]" minValue=0 maxValue=100 step=0.5 
+                    
+                    Default item=DenAccDim label="Den Accent Lighting"  icon="slider" 
+                    Setpoint item=DenAccDim label="Den Accent Fine control [%.1f %%]"   icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Default  item=DenFPDim  label="Den Fireplace Lighting"  icon="slider"
+                    Setpoint    item=DenFPDim   label="Den Fireplace Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Default item=DenFPChristmas label="Den Fireplace Christmas Lights" visibility=[vChristmas==ON]
+                    
+                    Default item=Den_Lamp_1 label="Den Lamp 1"
+                    Setpoint    item=Den_Lamp_1   label="Den Lamp 1 Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Slider item=DenCanColors label="All Den Colors" icon="colorwheel"
+                    Text item=DENMS_LUM label="Den Luminance" icon="Luminance"
+                    Group item=gDENCans label="Den Can light Individual control"
+
+                    Text label="Counters" icon="rgb"{
+                    Switch item=Kit_Counter
+                    Slider item=Kit_Counter
+                    Colorpicker item=Kit_Counter
+                    
+                    }
+
+                  
+                    Switch item=KitchenStoveLight
+                    Slider item=KitchenStoveLight
+            
+                    
+                    Slider item=KitDimmer   
+                    Setpoint    item=KitDimmer   label="Kitchen Overhead Lighting Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                       
+            }
+
+ 
+            
+            Frame label="Den Heating Controls" visibility=[vSceneLocation=="DEN"]{
+                    Text item=Outdoor_Temperature
+                    Text item=DENMS_Temp
+                    Text item=DENMS_Humidity
+                    Setpoint item=DEN_Heating_TargetTemp
+
+
+            }
+
+             Frame label="AMP Controls" visibility=[vSceneLocation=="DEN"]{
+                Default item=AVR2000InputToggle label="Input Selector" 
+                Default item=AVR2000MainZonePower label="Den AVR-2000 Power"
+                Default item=AVR2000MainZoneVolume label="Den AVR-2000 Volume"
+                Default item=AVR2000MainZoneMute label="DEN AVR-2000 Mute"
+                Default item=AVR2000Zone2Input label="Input source" 
+                Text item=gAVR_2000 label="AVR_2000 all controls" icon="none" {
+                    Default item=AVR2000GeneralPower label="Power"
+                    Default item=AVR2000GeneralSurroundProgram label="Surround program"
+                    Default item=AVR2000GeneralArtist label="Now playing (artist)"
+                    Default item=AVR2000GeneralAlbum label="Now playing (album)"
+                    Default item=AVR2000GeneralTrack label="Now playing (track)"
+                    Default item=AVR2000GeneralCommand label="Send a custom command"
+                    Default item=AVR2000MainZonePower label="Power (zone)"
+                    Default item=AVR2000MainZoneVolume label="Volume"
+                    Default item=AVR2000MainZoneVolumeDB label="Volume (d b)"
+                    Default item=AVR2000MainZoneMute label="Mute"
+                    Default item=AVR2000MainZoneInput label="Input source"
+                    Default item=AVR2000Zone2Power label="Power (zone)"
+                    Default item=AVR2000Zone2Volume label="Volume"
+                    Default item=AVR2000Zone2VolumeDB label="Volume (d b)"
+                    Default item=AVR2000Zone2Mute label="Mute"
+                    Default item=AVR2000Zone2Input label="Input source"
+                }
+
+            }
+
+
+            Frame label="Den TV Control" visibility=[DenTV_Sitemap==ON]{
+                    Switch item=DenTV_State label="Den TV is [%s]"
+                    Switch item=DenTVVOLUP  label="Volume up" icon="volume"
+                    Switch item=DenTVVOLDOWN    label="Volume down" icon="volume"
+                    Switch item=DenTVMUTE   label="Mute" icon="mute"
+                    Switch item=DenTVPOWER label="Turn OFF" icon="power"
+                    Group item=gDenTV label="ALL Den TV Controls" icon="remote"
+                    Switch item=AVR2000InputToggle label="AppleTV / Google Audio input toggle"
+
+                    
+            }
+          
+    
+            
+            Frame label="Display Controls" visibility=[vSceneLocation=="DEN"]{
+                Default item=Den_Google_Display_Control label="Den Google Display Media control"
+                Default item=Den_Google_Display_Volume label="Den Google Display Volume"
+                Default item=Den_Google_Display_Mute label="Den Google Display Mute"
+                Text item=gDen_Google label="Den Google Display all controls" icon="none" {
+                    Default item=Den_Google_Display_Control label="Den Google Display Media control"
+                    Default item=Den_Google_Display_Volume label="Den Google Display Volume"
+                    Default item=Den_Google_Display_Mute label="Den Google Display Mute"
+                    Default item=Den_Google_Display_Playuri label="Den Google Display Play uri"
+                    Default item=Den_Google_Display_AppName label="Den Google Display App"
+                    Default item=Den_Google_Display_AppId label="Den Google Display App"
+                    Default item=Den_Google_Display_Idling label="Den Google Display Idling"
+                    Default item=Den_Google_Display_Statustext label="Den Google Display App status"
+                    Default item=Den_Google_Display_CurrentTime label="Den Google Display Current time"
+                    Default item=Den_Google_Display_Duration label="Den Google Display Duration"
+                    Default item=Den_Google_Display_MetadataType label="Den Google Display Media type"
+                    Default item=Den_Google_Display_AlbumArtist label="Den Google Display Album artist"
+                    Default item=Den_Google_Display_AlbumName label="Den Google Display Album name"
+                    Default item=Den_Google_Display_Artist label="Den Google Display Media artist"
+                    Default item=Den_Google_Display_BroadcastDate label="Den Google Display Broadcast date"
+                    Default item=Den_Google_Display_Composer label="Den Google Display Composer"
+                    Default item=Den_Google_Display_CreationDate label="Den Google Display Creation date"
+                    Default item=Den_Google_Display_DiscNumber label="Den Google Display Disc number"
+                    Default item=Den_Google_Display_EpisodeNumber label="Den Google Display Episode number"
+                    Default item=Den_Google_Display_Image label="Den Google Display Image"
+                    Default item=Den_Google_Display_ImageSrc label="Den Google Display Image url"
+                    Default item=Den_Google_Display_LocationName label="Den Google Display Location name"
+                    Default item=Den_Google_Display_Location label="Den Google Display Location"
+                    Default item=Den_Google_Display_ReleaseDate label="Den Google Display Release date"
+                    Default item=Den_Google_Display_SeasonNumber label="Den Google Display Season number"
+                    Default item=Den_Google_Display_SeriesTitle label="Den Google Display Series title"
+                    Default item=Den_Google_Display_Studio label="Den Google Display Studio"
+                    Default item=Den_Google_Display_Subtitle label="Den Google Display Subtitle"
+                    Default item=Den_Google_Display_Title label="Den Google Display Media title"
+                    Default item=Den_Google_Display_TrackNumber label="Den Google Display Track number"
+                }
+        }
+            Frame label="Speaker Controls" visibility=[vSceneLocation=="DEN"]{
+                Default item=DenSpeakersControl label="Den Speakers Media control"
+                Default item=DenSpeakersVolume label="Den Speakers Input Volume"
+                Default item=DenSpeakersMute label="DEN Speakers Mute"
+                 Text item=gDenSpeakers label="Den Speaker Chromecast All Controls" icon="none" {
+                   Default item=DenSpeakersControl label="Media control"
+                   Default item=DenSpeakersVolume label="Volume"
+                   Default item=DenSpeakersMute label="Mute"
+                   Default item=DenSpeakersPlayuri label="Play uri"
+                   Default item=DenSpeakersAppName label="App"
+                   Default item=DenSpeakersAppId label="App"
+                   Default item=DenSpeakersIdling label="Idling"
+                   Default item=DenSpeakersStatustext label="App status"
+                   Default item=DenSpeakersCurrentTime label="Current time"
+                   Default item=DenSpeakersDuration label="Duration"
+                   Default item=DenSpeakersMetadataType label="Media type"
+                   Default item=DenSpeakersAlbumArtist label="Album artist"
+                   Default item=DenSpeakersAlbumName label="Album name"
+                   Default item=DenSpeakersArtist label="Media artist"
+                   Default item=DenSpeakersBroadcastDate label="Broadcast date"
+                   Default item=DenSpeakersComposer label="Composer"
+                   Default item=DenSpeakersCreationDate label="Creation date"
+                   Default item=DenSpeakersDiscNumber label="Disc number"
+                   Default item=DenSpeakersEpisodeNumber label="Episode number"
+                   Default item=DenSpeakersImage label="Image"
+                   Default item=DenSpeakersImageSrc label="Image url"
+                   Default item=DenSpeakersLocationName label="Location name"
+                   Default item=DenSpeakersLocation label="Location"
+                   Default item=DenSpeakersReleaseDate label="Release date"
+                   Default item=DenSpeakersSeasonNumber label="Season number"
+                   Default item=DenSpeakersSeriesTitle label="Series title"
+                   Default item=DenSpeakersStudio label="Studio"
+                   Default item=DenSpeakersSubtitle label="Subtitle"
+                   Default item=DenSpeakersTitle label="Media title"
+                   Default item=DenSpeakersTrackNumber label="Track number"
+               }
+            }
+
+        
+
+            Frame label="Living Room" visibility=[vSceneLocation=="LR"]{
+                    Slider item=gLR_Lighting label="All Living Room Lighting Brightness" icon="slider"
+                    Setpoint item=gLR_Lighting label="All Living Room Lighting Fine Control [%.1f %%]" minValue=0 maxValue=100 step=0.5
+                    Slider item=LR_FPDimmer label="Living Room Fireplace Lights" icon="slider"
+                    Setpoint item=LR_FPDimmer label="Living Room Fireplace Lights Fine Control [%.1f %%]" minValue=0 maxValue=100 step=0.5
+                    Slider item=LR_Lamp1Dim label="Living Room Lamp"    icon="Slider"
+                    Setpoint item=LR_Lamp1Dim label="Living Room Lamp Fine Control [%.1f %%]" minValue=0 maxValue=100 step=0.5
+                    Switch item=LR_christmasTree_Switch label="Christmas Tree Lighting" visibility=[vChristmas==ON]
+                    
+                 
+            }
+            Frame label="Dining Room" visibility=[vSceneLocation=="LR"]{
+                    Slider item=gDining_Lighting label="Dining lights" icon="slider"
+                    Default item=DiningChandelier label="Dining Room Chandelier" icon="slider"
+                    Default item=DiningAccentDimmer label="Dining Room Accent Lights"
+                    Default item=LR_FPDimmer label="Living Room Fireplace Dimmer"
+            }
+            Frame label="Basement Bedroom Lighting" visibility=[vSceneLocation=="BMTBr"]{
+                    Slider item=gBMTBr_Lighting label="All Basement Bedroom Lights" icon="slider"
+                    Slider item=BMTBrDimmer label="Basement Bedroom Overhead Light" icon="slider"
+                    Slider item=BMTBrLampLeft label="Basement Bedroom Lamp Left" icon="slider"
+                    Slider item=BMTBrLampRight label="Basement Bedroom Lamp Right" icon="slider"
+            }
+            
+            Frame label="Basement Bedrom Heating Controls" visibility=[vSceneLocation=="BMTBr"]{
+                        Text item=Outdoor_Temperature
+                        Text item=BMTBrMS_Temp
+                        Text item=BMTBrMS_Humidity
+                        Setpoint item=BMT_Heating_TargetTemp
+                        Text item=BMTZV label="Heating Zone Activated" visibility=[BMTZV==ON]
+
+
+                }
+
+            Frame label="Basement Bedroom Media" visibility=[vSceneLocation=="BMTBr"]{
+                    Default item=BMTBr_Mini
+                    Default item=BMTBr_Mini_Volume
+
+                    Default item=BmtBr_Mini_Artist visibility=[BMTBr_Google_Mini_Idling != OFF]
+                    Default item=BmtBr_Mini_StatusText
+                    Default item=BmtBr_Mini_Image
+                    Default item=BmtBr_Mini_Title
+                    Default item= BmtBr_Mini_Subtitle
+
+
+            }
+
+
+            Frame label="Rec Room" visibility=[vSceneLocation=="REC"]{
+                    Slider item=gREC_Lighting label="All Rec Lights" icon="slider"
+                    Slider item=gRecCans label="All Rec Can Lights" icon="slider"
+                    Colorpicker item=RecCanColors label="All Rec Colors" icon="colorwheel"
+                    Default item=RecSconceDim label="Rec Accent Ligthing"   icon="slider"
+                    Default item=RecCanColors label="LED Light Color" icon="colorwheel"
+                    Default item=RecCanLgts label="Rec Can Lights" icon="dimmer"
+                    Default item=BarCanSw   label="Bar Light" icon="switch"
+                    Group item=gRecCans label="Rec Can light Individual control"
+                    
+                
+                }
+            Frame label="Master BedRoom" visibility=[vSceneLocation=="MBr"]{
+                    Slider item=gMBe_Lighting label="Master Can lights" icon="slider"
+
+            }
+            Frame label="Outdoors" {
+                    Switch item=gODSWs  label="ALL Outdoor Lights" icon="switch"
+                    Default item=DWSW   label="DriveWay Lighting"   icon="switch"
+                    Default item=BYSW   label="BackYard Lighting"   icon="switch"
+                    Default item=BPSW   label="Back Porch Switch"   icon="switch"
+                    Default item=Porch_String_Lights_Switch  label="Back Porch String Lights" icon="switch"
+                    Default item=FrontPorch_Outlet label="Front Porch Outlet" icon="switch"
+
+                    
+            }   
+            Frame label="Christmas" visibility=[vChristmas==ON]{
+                Group item=gChristmasLighting label="ALL Christmas Lights" 
+            }
+            
+            Frame label="Corridors" {
+                    Switch item=BmtHallSW label="Basement Hall Lights"
+                    Slider item=StairDim label="Stair Lights"
+                    Slider item=gEntry_Lighting label="Foyer Lights"
+            }       
+            Frame label="Garage"{
+                    Slider item=GADim label="Garage Dimmer" icon="slider"
+                    Switch item=GA_Lights_Switch label="Garage Lights Switch"
+
+            }   
+                }
+
+            }
+/***************************************************Presence Detection****************************************************/
+
+    /*Frame{    
+       Text item=gComputers label="Computers" icon="Computer" {
+            Switch item=QQVivePC_WakeOnLAN label="Command" icon="computer" mappings=[ON="Wake Up"]
+            //Switch item=QQVivePC_Command label="Command" icon="computer" mappings=[sleep="Sleep", shutdown="Shutdown"]
+            //Switch item=QQVivePC_Command label="Command" icon="computer" mappings=[kodi="Start Kodi", notepad="Notepad"]
+        }
+    }
+    */
+
+    Frame{
+        Text item=Present label="Presence Detection [MAP(sitemap_strings.map):%s]" icon="presence"{
+            Frame label="Presence detection"{
+                Text item=gShannonPresent icon="iphone" label="Shannon is Present" visibility=[gShannonPresent == ON]
+                Text item=gAnthonyPresent icon="iphone" label="Anthony is Present" visibility=[gAnthonyPresent == ON]
+            }
+        
+            Frame label="DD-WRT Presence" {
+                //DD-WRT Switches
+                Text item=DDWRTDeviceCount
+                Switch item=Present
+            }
+
+            Frame {
+                    Switch item=gShannonPresent
+                    
+                    Text item=gShannonPresent label="Shannon's location" icon="world" {
+                        Switch item=ShannonIphonegarage
+                        Switch item=ShannonIphoneBasement
+                    }
+            }
+
+            Frame {
+                Text item=motionLast label="Last Motion Location [%s]" {
+                    Frame label="Detected Locations"{   
+                         Group item=gMS_Motion 
+                    }   
+                    
+
+                }
+
+            }
+
+                    Frame label="presence"{
+                        Switch item=gPresent_ANY
+                        Switch item=gCell_Detected
+                        Switch item=Motion_recent
+                        Switch item=Bluetooth
+                        Switch item=House_interacted
+                    }
+            
+            Frame label="sleeping"{
+                Switch item=sleepingSuspected
+                Switch item=sleeping
+                Switch item=sleepingOverride
+                Switch item=gMotionNoBedrooms
+            }
+
+        }
+    }    
+
+/***************************************************Ventilation ****************************************************/
+
+    Frame{
+        Text item=Venting label="Ventilation [%s]" icon="ventilation"{
+
+
+            Frame label="Venting Status" {
+                Switch item=Venting label="Venting"
+            }       
+            
+            Frame label="Room Humidity Levels" {
+                Text item=gMS_Humidity   label="Average Room Humidity Levels"    icon="humidity"
+                Text item=DENMS_Humidity    label="Den Humidity" icon="humidity"
+                Text item=MRMS_Humidity     label="Mud Room Humidity "  icon="humidity"
+                Text item=LRMS_Humidity     label="Living Room Humidity "   icon="humidity"
+                Text item=MBa_Humidity    label="Master Bathroom Humidity "   icon="humidity"
+                Text item=MBe_Humidity    label="Master Bedroom Humidity "    icon="humidity"
+                Text item=BMTMS_Humidity    label="Basement Humidity "  icon="humidity"
+                Text item=BMTBrMS_Humidity  label="Basement Bedroom Humidity "  icon="humidity"
+                Text item=GBrMS_Humidity    label="Guest Bedroom Humidity " icon="humidity"
+                Text item=BoilMS_Humidity   label="Boiler Room Humidity "   icon="humidity"
+                Text item=GAMS_Humidity     label="Garage Humidity "    icon="humidity"
+
+            }
+                    
+            Frame label="Heating States" {
+                Switch item=Heating label="System Heating" icon="radiator"
+                
+            } 
+           
+            Frame label="CFH indicators" {
+                Switch item=CFH2 label="CFH 2 Radiant" icon=radiator
+                Switch item=CFH1 label="CFH 1 Radiator" icon=radiator
+                Switch item=CFH3 label="CFH 3 Unit Heater" icon=radiator
+            }   
+           
+            Frame label="Fans" {
+                Switch item=RecFan label="Rec Room Fan" icon="fan"
+                //Switch item=MbaFan label="Master Bath Fan" icon="fan"
+                Switch item=BmtBaFan label="Basement Bath Fan" icon="fan"
+                Switch item=GuestBaFan label="Guest Bath Fan" icon="fan"
+                
+            }
+        }
+    }
+          
+
+/***************************************************Boiler Status Sitemap ****************************************************/
+
+    Frame{
+        Text item=Boiler_Status_Code    label="Boiler Status:[MAP(sitemap_strings.map):%s]" icon="heat"{
+
+                Frame label="Date" {
+                    Text item=Current_DateTime
+                }
+                Frame label="Status" {
+                    Group item=gLochinvar_indicators label="Indicators"
+                    Default item=Flame_indicator 
+                    Default item=Boiler_Firing_Rate
+                    Default item=Boiler_Pump_Speed
+                    Default item=Boiler_Status_Code label="[MAP(sitemap_strings.map):%s]"
+                    Default item=Boiler_Lockout_Code label="[MAP(LochinvarLOC.map):%s]"
+                    Default item=Boiler_Blocking
+
+                }
+                Frame label="Temperatures" {
+                    
+                    Default item=System_Inlet_Temp
+                    Default item=System_Outlet_Temp
+                    Default item=Lochinvar_DeltaT
+                    Default item=Boiler_flue_Temp
+                    Default item=DHW_Tank_Temperature
+
+                }
+                Frame label="Setpoints" {
+                    Default item=System__Temp_Setpoint
+                    Default item=System_Outlet_Setpoint
+                    Default item=DHW_Tank_Setpoint
+                }
+                Frame label="Switches" {
+                    Group item=gLochinvar_switches   label="Switches"
+                }
+                Frame label="Alarms" {
+                    Group item=gLochinvar_alarms    label="Alarms"
+                }
+                Frame label="Pumps"  {  
+                    Group item=gLochinvar_pumps label="Pump Statuses"
+                }
+                Frame label="Codes"    { 
+                    Group item=gLochinvar_codes label="Codes"
+                }
+                Frame label="Calls for Heat" {
+                    Default item=gCFH1_indicator    label="High temperature CFH [%s}"
+                    Default item=gCFH2_indicator   label="Radiant temperature CFH [%s}"
+                    Default item=CFH_Hi_COIL  label="Unit Heater temperature CFH [%s}"
+                    Default item=Tank_Thermostat label="DHW CFH [%s}"
+                }
+                Frame label="Hot Water" {
+                    Group item=gDHW label="DHW"
+                }
+                Frame label="Limits" {
+                    Group item=gLochinvar_limits label="Limits"
+                }
+                Frame label="Contacts" {
+                    Group item=gLochinvar_contacts label="Contacts"
+                }
+                Frame label="Rates" {
+                    Group item=gLochinvar_rates label="rates"
+                }
+            }
+        }        
+
+     /***************************************************Lighting ****************************************************/
+   
+    Frame {
+        Text item=gLights label="lighting [%s]" icon="lgt"{
+                Frame label="Scenes" {
+                        Selection item=vSceneLocation label="Scene location" mappings=[     
+                                                                    MF="Upstairs", 
+                                                                    DEN="Den", 
+                                                                    MR="MudRoom", 
+                                                                    MBr="Master Bedroom", 
+                                                                    GA="Garage", LR="LivingRoom", 
+                                                                    REC="Rec Room", Cor="Corridors", 
+                                                                    BMT="Basement", 
+                                                                    BMTBr="BMT BedRoom"
+                                                                ]
+                        Selection item=vSceneNumber label="Scene [MAP(scene.map):%s]" mappings=[ 0="00: OFF",
+                                                                                1="01: ON",
+                                                                                2="02: Morning",                                                                                 
+                                                                                3="03: Day",
+                                                                                4="04: Afternoon", 
+                                                                                5="05: Evening", 
+                                                                                6="06: Night", 
+                                                                                7="07: Dinner", 
+                                                                                8="08: Movie", 
+                                                                                9="09: Fire", 
+                                                                                10="10: Movie"
+                                                                                
+                                                                                
+                                                                            ]
+
+
+                    Switch item=vSceneLoad label="Load saved scene" icon=button
+                    Switch item=vSceneSave label="save current scene"
+            }
+
+                
+            Frame label="Den" {
+                    Slider item=gDEN_Dimmer label="All Den Lights" icon="slider"
+                    Setpoint item=gDEN_Dimmer label="All Den Lights Fine Control [%.1f %%]" icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Slider item=gDENCans label="All Den Can Lights" icon="slider"
+                    Setpoint item=gDENCans label="Den Can Fine Control[%.1f %%]" minValue=0 maxValue=100 step=0.5 
+                    
+                    Default item=DenAccDim label="Den Accent Lighting"  icon="slider" 
+                    Setpoint item=DenAccDim label="Den Accent Fine control [%.1f %%]"   icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Default  item=DenFPDim  label="Den Fireplace Lighting"  icon="slider"
+                    Setpoint    item=DenFPDim   label="Den Fireplace Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    Group item=gDENCans label="Den Can light Individual control"
+                    Slider item=DenCanColors label="All Den Colors" icon="colorwheel"
+
+                    Default item=Den_Lamp_1 label="Den Lamp 1"
+                    Setpoint    item=Den_Lamp_1   label="Den Lamp 1 Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+
+                    
+                    Slider item=KitDimmer   
+                    Setpoint    item=KitDimmer   label="Kitchen Overhead Lighting Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                       
+                       Text label="Counters" icon="rgb"{
+                    Switch item=Kit_Counter
+                    Slider item=Kit_Counter
+                    Colorpicker item=Kit_Counter
+                    }
+                    
+                    Switch item=KitchenStoveLight
+                    Slider item=KitchenStoveLight
+
+
+
+                    
+
+
+            }
+            Frame label="Living Room" {
+                    Slider item=gLR_Lighting label="All Living Room Lighting Brightness" icon="slider"
+                    Slider item=LR_FPDimmer label= "Living room fireplace lighting"
+                    Setpoint item=LR_FPDimmer label="Living Room Fireplace Lights Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                    Default item=LR_Lamp1Dim label="Living Room Lamp 1"
+                    Setpoint  item=LR_Lamp1Dim   label="Living Room Lamp 1 Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                    Default item=FoyerLight1Dim label="Foyer Light 1"
+                    Default item=FoyerLight2Dim label="Foyer Light 2"
+                    Setpoint item=FoyerLight1Dim   label="Foyer Light 1 Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                    Setpoint item=FoyerLight1Dim   label="Foyer Light 2 Fine Control [%.1f %%]"    icon="slider" minValue=0 maxValue=100 step=0.5
+                    
+                    Default item=FoyerLamp      label="Foyer Lamp"
+                    //Setpoint item=FoyerLamp     label="Foyer Lamp Fine Control [.1f %%]"
+
+                  
+            }
+            Frame label="Dining Room" {
+                    Slider item=DiningAccentDimmer label="Dining lights" icon="slider"
+                    Default item=DiningChandelier label="Dining Room Chandelier" icon="slider"
+            }
+            Frame label="Basement Bedroom" {
+                    Slider item=gBMTBr_Lighting label="All Basement Bedroom Lights" icon="slider"
+                    Slider item=BMTBrDimmer label="Basement Bedroom Overhead Light" icon="slider"
+                    Slider item=BMTBrLampLeft label="Basement Bedroom Lamp Left" icon="slider"
+                    Slider item=BMTBrLampRight label="Basement Bedroom Lamp Right" icon="slider"
+            }
+
+            Frame label="Rec Room" {
+                    Slider item=gREC_Lighting label="All Rec Lights" icon="slider"
+                    Slider item=gRecCans label="All Rec Can Lights" icon="slider"
+                    Colorpicker item=RecCanColors label="All Rec Colors" icon="colorwheel"
+                    Default item=RecSconceDim label="Rec Accent Ligthing"   icon="slider"
+                    Default item=RecCanColors label="LED Light Color" icon="colorwheel"
+                    Default item=RecCanLgts label="Rec Can Lights" icon="dimmer"
+                    Default item=BarCanSw   label="Bar Light" icon="switch"
+                    Group item=gRecCans label="Rec Can light Individual control"
+                    
+                
+                }
+            Frame label="Master BedRoom"{
+                    Slider item=gMBe_Lighting label="Master Can lights" icon="slider"
+
+            }
+                Frame label="Outdoors" {
+                    Switch item=gODSWs  label="ALL Outdoor Lights" icon="switch"
+                    Default item=DWSW   label="DriveWay Lighting"   icon="switch"
+                    Default item=BYSW   label="BackYard Lighting"   icon="switch"
+                    Default item=BPSW   label="Back Porch Switch"   icon="switch"
+                    Default item=Porch_String_Lights_Switch  label="Back Porch String Lights" icon="switch"
+                    Default item=ChristmasLights label="Christmas Lights" icon="switch"
+                    
+            }   
+            Frame label="Corridors" {
+                    Switch item=BmtHallSW label="Basement Hall Lights"
+                    Slider item=StairDim label="Stair Lights"
+                    Slider item=gEntry_Lighting label="Foyer Lights"
+                    Switch item=FoyerLamp label="Foyer Lamp"
+            }       
+            Frame label="Garage"{
+                    Slider item=GADim label="Garage Dimmer" icon="slider"
+                    Switch item=GA_Lights_Switch label="Garage Lights Switch"
+                    Switch item=GAWorkbench_light label="garage Workbench Light"
+            }   
+    
+
+
+        
+        }   
+    }
+
+
+    /***************************************************Heating Control Panel ****************************************************/
+
+    Frame{
+        Text item=Heating_Mode label="Heating Control [%s]" icon="heating" {
+           
+           Frame label="Avg. temps" {
+            Image refresh=60000 url="http://10.0.0.122:3000/render/d-solo/TLBE6fzRk/pikas-place-room-temps?orgId=1&from=now-48h&to=now&panelId=2&tz=America%2FDenver"
+            }
+            Frame {
+                Text item=Weather_Forcast_Tomorrow_TempMinMax label="Weather Quick Look (Low/High), [%s]"{
+                Frame label="Outdoor Sensors" {
+                        Text item=Weather_Current_Condition label="Current Conditions [%s]" icon="weather"
+                        Text item=Weather_Forcast_Today_Condition label="Forcasted Conditions [%s]" icon="weather"
+
+                        Text item=Outdoor_Temperature   label="Outdoor Temperature [%1$.1f°F]"  icon="temperature"
+                        Text item=Weather_Current_Temperature   label="Current reported Outdoor Temperature [%1$.1f°F]" icon="temperature"
+                        Text item=gOutdoor_Sensors_AVG  label="Calculated average Outdoor Temperature [%1$.1f°F]"   icon="temperature"
+                        Text item=Weather_Forcast_Today_TempMax     label="Forcasted High Temperature Today [%1$.1f°F]" icon="temperature"
+                        Text item=Weather_Forcast_Today_TempMin     label="Forcasted Low Temperature Today [%1$.1f°F]"  icon="temperature"
+
+                    }
+                    
+                    Frame label="Forcast Tomorrow" {
+                        Text item=Weather_Forcast_Tomorrow_TempMax  label="Forcasted High Temperature Tomorrow [%1$.1f°F]"  icon="temperature"
+                        Text item=Weather_Forcast_Tomorrow_TempMin  label="Forcasted Low Temperature Tomorrow [%1$.1f°F]"   icon="temperature"
+                        Text item=Weather_Forcast_Tomorrow_Condition label="Forecasted Conditions Tomorrow[%s]" icon="weather"
+                    //Image refresh=60000 url="http://10.0.0.122:3000/render/d-solo/vRXKZvgRz/weather?panelId=2&orgId=1&from=1572152521606&to=1572514278849&width=1000&height=500&tz=America%2FDenver"
+                    Group item=gWeather label="full weather report"
+                        //Webview url="http://10.0.0.122:8080/weather?locationId=PikasPlace&layout=example&iconset=colorful" height=7
+
+
+                        
+                    }  
+                }    
+            }
+            Frame label="Room Temperatures" {
+                Text item=gMS_Temps_AVG     label="Average Room Temperatures[%1$.1f°F]" icon="temperature"
+                Text item=gHeating_Setpoint_AVG     label="Average Heating Setpoint [%1$.1f°F]" icon="temperature"
+                Text item=DENMS_Temp    label="Den Temperature [%1f °F]" icon="temperature"
+                Text item=MRMS_Temp     label="Mud Room Temperature [%1$.1f°F]" icon="temperature"
+                Text item=LRMS_Temp     label="Living Room Temperature [%1$.1f°F]"  icon="temperature"
+                Text item=MBaMS_Temp    label="Master Bathroom Temperature [%1$.1f°F]"  icon="temperature"
+                Text item=MBeMS_Temp    label="Master Bedroom Temperature [%1$.1f°F]"   icon="temperature"
+                Text item=BMTMS_Temp    label="Basement Temperature [%1$.1f°F]" icon="temperature"
+                Text item=BMTBrMS_Temp  label="Basement Bedroom Temperature [%1$.1f°F]" icon="temperature"
+                Text item=GBrMS_Temp    label="Guest Bedroom Temperature [%1$.1f°F]"    icon="temperature"
+                Text item=BoilMS_Temp   label="Boiler Room Temperature [%1$.1f°F]"  icon="temperature"
+                Text item=GAMS_Temp     label="Garage Temperature [%1$.1f°F]"   icon="temperature"
+                Text item=Outdoor_Temperature label="Outdoor Temperature" icon="temperature"
+            
+            
+            }
+            Frame{
+                Text label="ALL Heating Presets"{
+                    Frame label="Hysteresis Values (turn off@ sp+high, turn on @ sp-low" {
+                    Setpoint item=ZV_HysteresisHigh minValue=0  maxValue=10 step=0.1
+                    Setpoint item=ZV_HysteresisLow minValue=0   maxValue=10 step=0.1
+                    Setpoint item=RH_HysteresisHigh minValue=0  maxValue=10 step=0.1
+                    Setpoint item=RH_HysteresisLow minValue=0   maxValue=10 step=0.1
+                    Setpoint item=GA_HysteresisHigh minValue=0 maxValue=10 step=0.5
+                    Setpoint item=GA_HysteresisLow minValue=0 maxValue=10 step=0.5
+                }
+                    Frame label="Normal Setpoints" {
+                    Setpoint item=MR_Heating_PresetTempNormal minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempNormal  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempNormal label="GAMS_Temp" minValue=50 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="Home Setpoints" {
+                    Setpoint item=MR_Heating_PresetTempHome minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempHome  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempHome label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="Away Setpoints" {
+                    Setpoint item=MR_Heating_PresetTempAway minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempAway  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempAway label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="Pika Home Setpoints" {
+                    Setpoint item=MR_Heating_PresetTempPika minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempPika  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempPika label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="Company" {
+                    Setpoint item=MR_Heating_PresetTempCompany minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempCompany  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempCompany label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="Bedtime" {
+                    Setpoint item=MR_Heating_PresetTempBedtime minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempBedtime  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempBedtime label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+                }   
+                    Frame label="OFF Summer" {
+                    Setpoint item=MR_Heating_PresetTempSummer minValue=50 maxValue=80 step=1
+                    Setpoint item=DEN_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                    Setpoint item=KIT_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                    Setpoint item=LR_Heating_PresetTempSummer  minValue=60 maxValue=80 step=1
+                    Setpoint item=MBa_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                    Setpoint item=MBe_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                    Setpoint item=BMT_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                    Setpoint item=GA_Heating_PresetTempSummer label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Setpoint item=GBr_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+                }   
+                }
+            }
+            
+             Frame label="Heating Mode Quick Setpoint Selection"{
+            Selection item=Heating_Mode label="Heating Mode []" mappings=[
+                NORMAL="Normal",
+                Home="Home",
+                Away="Away",
+                Pika="Pika's Home",
+                Company="Company visiting overnight",
+                Bedtime="Bedtime",
+                OFF_SUMMER="Off (Summer standby)"
+                ]
+
+            Switch item=Heating_PresetSwitch label="Setpoint mode" mappings=[OFF="Direct Mode", ON="Preset Edit Mode"]
+            }
+            Frame label="Heating Presets" visibility=[Heating_PresetSwitch=="ON"]{
+                Setpoint item=MR_Heating_PresetTempNormal label="Mud Room Normal Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=DEN_Heating_PresetTempNormal label="Den Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=KIT_Heating_PresetTempNormal label="Kitchen Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=LR_Heating_PresetTempNormal  label="Living Room Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=MBa_Heating_PresetTempNormal label="Master Bath Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=MBe_Heating_PresetTempNormal label="Master Bedroom Normal Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=BMT_Heating_PresetTempNormal label="Basement Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=GA_Heating_PresetTempNormal label="Garage Normal Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+                Setpoint item=GBr_Heating_PresetTempNormal label="Guest Bedroom Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+           
+               Setpoint item=MR_Heating_PresetTempHome label="Mud Room Home Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_PresetSwitch=="ON"]
+                Setpoint item=DEN_Heating_PresetTempHome label="Den Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=KIT_Heating_PresetTempHome label="Kitchen Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=LR_Heating_PresetTempHome  label="Living Room Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=MBa_Heating_PresetTempHome label="Master Bath Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=MBe_Heating_PresetTempHome label="Master Bedroom Home Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=BMT_Heating_PresetTempHome label="Basement Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=GA_Heating_PresetTempHome label="Garage Home Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+                Setpoint item=GBr_Heating_PresetTempHome label="Guest Bedroom Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+           
+                Setpoint item=MR_Heating_PresetTempAway label="Mud Room Away Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=DEN_Heating_PresetTempAway label="Den Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=KIT_Heating_PresetTempAway label="Kitchen Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=LR_Heating_PresetTempAway  label="Living Room Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=MBa_Heating_PresetTempAway label="Master Bath Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=MBe_Heating_PresetTempAway label="Master Bedroom Away Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=BMT_Heating_PresetTempAway label="Basement Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=GA_Heating_PresetTempAway label="Garage Away Heating Preset" minValue=50 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+                Setpoint item=GBr_Heating_PresetTempAway label="Guest Bedroom Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+           
+               Setpoint item=MR_Heating_PresetTempPika label="Mud Room Pika Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=DEN_Heating_PresetTempPika label="Den Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=KIT_Heating_PresetTempPika label="Kitchen Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=LR_Heating_PresetTempPika  label="Living Room Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=MBa_Heating_PresetTempPika label="Master Bath Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=MBe_Heating_PresetTempPika label="Master Bedroom Pika Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=BMT_Heating_PresetTempPika label="Basement Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=GA_Heating_PresetTempPika label="Garage Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+                Setpoint item=GBr_Heating_PresetTempPika label="Guest Bedroom Pika Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+           
+                Setpoint item=MR_Heating_PresetTempCompany label="Mud Room Company Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=DEN_Heating_PresetTempCompany label="Den Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=KIT_Heating_PresetTempCompany label="Kitchen Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=LR_Heating_PresetTempCompany  label="Living Room Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=MBa_Heating_PresetTempCompany label="Master Bath Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=MBe_Heating_PresetTempCompany label="Master Bedroom Company Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=BMT_Heating_PresetTempCompany label="Basement Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=GA_Heating_PresetTempCompany label="Garage Company Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+                Setpoint item=GBr_Heating_PresetTempCompany label="Guest Bedroom Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+
+               Setpoint item=MR_Heating_PresetTempBedtime label="Mud Room Bedtime Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=DEN_Heating_PresetTempBedtime label="Den Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=KIT_Heating_PresetTempBedtime label="Kitchen Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=LR_Heating_PresetTempBedtime  label="Living Room Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=MBa_Heating_PresetTempBedtime label="Master Bath Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=MBe_Heating_PresetTempBedtime label="Master Bedroom Bedtime Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=BMT_Heating_PresetTempBedtime label="Basement Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=GA_Heating_PresetTempBedtime label="Garage Bedtime Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+                Setpoint item=GBr_Heating_PresetTempNormal label="Guest Bedroom Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+          
+               Setpoint item=MR_Heating_PresetTempSummer label="Mud Room Summer Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=DEN_Heating_PresetTempSummer label="Den Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=KIT_Heating_PresetTempSummer label="Kitchen Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=LR_Heating_PresetTempSummer  label="Living Room Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=MBa_Heating_PresetTempSummer label="Master Bath Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=MBe_Heating_PresetTempSummer label="Master Bedroom Summer Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=BMT_Heating_PresetTempSummer label="Basement Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=GA_Heating_PresetTempSummer label="Garage Summer Heating Preset" minValue=40 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+                Setpoint item=GBr_Heating_PresetTempSummer label="Guest Bedroom Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+            }           
+            
+                Frame label="Setpoints" visibility=[Heating_PresetSwitch=="OFF"]   {
+                     Setpoint item=MR_Heating_TargetTemp minValue=50 maxValue=80 step=1
+                Setpoint item=DEN_Heating_TargetTemp minValue=60 maxValue=80 step=1
+                Setpoint item=KIT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+                Setpoint item=LR_Heating_TargetTemp  minValue=60 maxValue=80 step=1
+                Setpoint item=MBa_Heating_TargetTemp minValue=60 maxValue=80 step=1
+                Setpoint item=MBe_Heating_TargetTemp minValue=60 maxValue=80 step=1
+                Setpoint item=BMT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+                Setpoint item=GA_Heating_TargetTemp label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                Setpoint item=GBr_Heating_TargetTemp minValue=60 maxValue=80 step=1
+            }       
+                 Frame label="preset updates" visibility=[Heating_PresetSwitch==OFF] {
+                        Switch item=Heating_UpdatePresets label="update preset temps to current settings"
+            }   
+                Frame{
+                Text item=Boiler_Status_Code label="Boiler Quick Look [MAP(sitemap_strings.map):%s]" icon="boiler"  {     
+                Frame label="Radiator Zone Valves" {
+                        Switch item=GAZV    label="Garage Zone Valve"   icon="radiator"
+                        Switch item=MRZV    label="Mud Room Zone Valve" icon="radiator"
+                        Switch item=LRZV    label="Living Room Zone Valve"  icon="radiator"
+                        Switch item=GBrZV   label="Guest Bedroom Zone Valve"icon="radiator"
+                        Switch item=BMTZV   label="Basement Zone Valve" icon="radiator"
+                    } 
+                
+                Frame label="Radiant Heating Zone Valves" {
+                        Switch item=DENRH   label="Den Radiant Zone Valve"  icon="radiator"
+                        Switch item=KITRH   label="Kitchen Radiant Zone Valve"  icon="radiator"
+                        Switch item=MBeRH   label="Master Bed Room Radiant Zone Valve"  icon="radiator"
+                        Switch item=MBaRH   label="Master Bathroom Radiant Zone Valve"  icon="radiator"
+                    } 
+                    
+                    Frame label="CFH indicators" {
+                        Switch item=CFH2 label="CFH 2 Radiant" icon=radiator
+                        Switch item=CFH1 label="CFH 1 Radiator" icon=radiator
+                        Switch item=CFH3 label="CFH 3 Unit Heater" icon=radiator
+                    }   
+                    Frame label="status indicators" {
+                        Text item=Boiler_Status_Code
+                        Text item=Boiler_Blocking
+                        Text item=Boiler_Lockout_Code
+                        Text item=Boiler_Firing_Rate
+                    }   
+                
+                    Frame label="Pumps" {
+                        Switch item=RHP     label="Radiant Heat Pump"   icon="PUMP"
+                        Switch item=System_Pump_indicator   label="System Pump" icon="PUMP"
+                        }
+                    Frame {     
+                        Switch item=CH_Pump     label="Boiler Pump" icon="PUMP"
+                        Switch item=DHW_Pump_indicator  label="DHW Pump"    icon="PUMP"  
+                        }
+                    Frame {
+                        Text item=DHW_Recirc_Temp label="DHW Recirculation Temperature" 
+                        Switch item=DHW_Recirc_Pump_indicator   label="DHW Recirc Pump" icon="PUMP"
+                        }
+                    }
+                } 
+                Frame label="Thermostat Overrides " {
+                    Switch item=vGA_Heating_OFF_Override label="Garage Thermostat Enable" icon=radiator
+                }  
+                Frame label="Garage Valve actuation" visibility=[vGA_Heating_OFF_Override==ON] {
+                    Setpoint item=GA_Heating_TargetTemp label="GAMS_Temp" minValue=40 maxValue=80 step=1
+                    Switch item=GAZV label="Garage Zone Valve" icon="VALVE"
+                }  
+            }
+}
+
+
+/***************************************************Admin control ****************************************************/
+
+     Frame{
+        Text label="Admin" icon="admin" {
+            Text label="Lighting" icon="chart" {
+                Group item=gLightGroups
+                Group item=gLightLocations 
+               
+                }
+            Text label="Astro" icon="chart" {
+                Group item=gAstro
+                }
+            Text label="Equipment" icon="chart" {
+                Group item=gEquipment
+                }    
+            Text label="Media" icon="chart" {
+                Group item=gMedia
+                }
+            Text label="MultiSensors" icon="chart" {
+                Group item=gMS_Batteries    
+                Group item=gMS_Motion 
+                Group item=gMS_Tampers
+                Group item=gMS_Humidity
+                Group item=gMS_Temps
+                Group item=gMS_Luminances   
+                Group item=gMS_UV_LVL       
+        
+                }
+            Text label="HVAC" icon="chart" {
+                    Text label="Boiler" icon="chart" {
+                        Group item=gLochinvar
+                           
+        
+                        }
+                Text label="Heat/cool/vent" icon="chart" { 
+                        Group item=Heating
+                        Group item=Cooling
+                        Group item=Ventilation
+
+                    }
+                }        
+            }   
+     }
+    }    
+ 
+
+
+       
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+            Frame label="Steuerung" {
+                Switch item=KU_Senseo_OnOff label="Ein-/Ausschalten"
+                Switch item=KU_Senseo_Brew label="Kaffee Kochen" mappings=[1cup="☕", 2cup="☕☕"]
+            }
+        }
+
+        Text item=Sonos_Summary label="Sonos" icon="sonos" {
+            Frame {
+                Default item=KU_Sonos_Control label="Steuerung" icon="controls_round"
+            }
+            Frame label="Aktuell" {
+                Text item=KU_Sonos_CurrentArtist label="Künstler [%s]" icon="singer_round"
+                Text item=KU_Sonos_CurrentTitle label="Titel [%s]" icon="musicnotes_round"
+                Text item=KU_Sonos_CurrentAlbum label="Album [%s]" icon="compactdisc" visibility=[KU_Sonos_CurrentAlbum != ""]
+            }
+            Frame label="Lautstärke" {
+                Slider item=WZ_Sonos_Volume label="Wohnzimmer" icon="volume_round_red"
+                Slider item=KU_Sonos_Volume label="Küche" icon="volume_round_red"
+                Slider item=SZ_Sonos_Volume label="Schlafzimmer" icon="volume_round_red"
+                Slider item=BD_Sonos_Volume label="Bad" icon="volume_round_red"
+                Slider item=Sonos_Volumes label="Wohnung (Mittelwert)" icon="volume_round_reddim"
+            }
+        }
+
+        Text item=Kodi_Summary label="Kodi [%s]" icon="kodi" {
+            Frame label="Status" {
+                Text item=Kodi_System_State label="Kodi [MAP(active.map):%s]"
+                Text item=Kodi_Player_State label="Player [%s]"
+                Text item=Kodi_Title_Show label="Serientitel [%s]" visibility=[Kodi_Title_Show != ""]
+                Text item=Kodi_Title label="Episodentitel [%s]" visibility=[Kodi_Title_Show != ""]
+                Text item=Kodi_Title label="Titel [%s]" visibility=[Kodi_Title_Show == ""]
+            }
+            Frame label="Steuerung" visibility=[Kodi_Player_State != "Stop"] {
+                Switch item=Kodi_PlayPause mappings=[ON="Play/Pause"]
+                Switch item=Kodi_Stop label="Stop" mappings=[ON="Stop"]
+            }
+            Frame label="Einblendung" visibility=[Kodi_Player_State != "Stop"]{
+                Selection item=Kodi_NotificationId icon="" label="Nachricht einblenden..."
+                    mappings=[0="Klick mich!", 1="Hello! :)", 2="Stop being lazy!", 3="Go to bed! :P",
+                        4="I love this show!!!", 5="Meh.", 6="Garbage! :O"]
+            }
+        }
+
+        Text item=SpeedtestSummary {
+            Frame label="Ergebnisse" {
+                Text item=SpeedtestResultDown
+                Text item=SpeedtestResultUp
+                Text item=SpeedtestResultPing
+            }
+            // Globale Steuerung für Betriebszustände (An-/Abwesenheit-bedingte Steuerungen)
+            Frame label="Steuerung" {
+                Text item=SpeedtestResultDate
+                Text item=SpeedtestRunning label="Speedtest [%s]" visibility=[SpeedtestRunning != "-"]
+                Switch item=SpeedtestRerun mappings=[ON="Start"]
+            }
+            Frame label="Statistik" { //TODO dokumentieren: icon wird nicht angezeigt
+                Text label="" icon="speedtest_analytics8"
+                //Image label="Speedtest" refresh=60000
+                //    url="http://192.168.11.230:3000/render/dashboard-solo/db/w66a?panelId=5&width=700&height=350&from=now-48h&to=now"
+            }
+        }
+
+        Text item=WZ_SoundSystem_OpState label="zMote Wi-Fi Universal Remote [N/A ✘]" icon="error2" visibility=[WZ_zMote_reachable != ON]  valuecolor=["maroon"]
+        Text item=WZ_SoundSystem_OpState label="Logitech Sound System [MAP(operation.map):%s]" visibility=[WZ_zMote_reachable == ON] {
+            Text item=WZ_SoundSystem_OpState label="Logitech Sound System [MAP(operation.map):%s]"
+            Switch item=WZ_zMote_sendkey label="Ein/Ausschalten []" mappings=["KEY_POWER"="Power"]
+            Switch item=WZ_zMote_sendkey label="Lautstärke []" mappings=["KEY_VOLUMEDOWN"="Vol-", "KEY_VOLUMEUP"="Vol+"]
+            Switch item=WZ_zMote_sendcode label="Input []" mappings=[
+                //"38000,2,69,343,171,21,22,21,65BBBBBBBBBBBCBCBBBCBBBBCCCBCCCC21,1672,343,86,21,3730"="Wechseln ⤓",
+                "38000,2,69,343,171,21,22,21,65BBBBBBBBBBBCBCBBCBBBBBCCBCCCCC21,1672,343,86,21,3730"="PC",
+                "38000,2,69,343,171,21,22,21,65BBBBBBBBBBBCBCBCBBBBBCCBCCCCCB21,1672,343,86,21,3730"="Sonos"
+            ]
+        }
+
+    }
+
+    Frame  item=Lights label="Beleuchtung [Aktiv: %d]" {
+        Switch item=Whg_Light_Preset icon="light" label="[]" mappings=["OFF"="Aus", "NORMAL"="Normal", "RELAX"="Relax", "FULL"="Voll"]
+        //Text item=Lights
+        //
+        Switch item=BK_Balkonmagic visibility=[BK_Balkonmagic_Unreach == OFF]
+        Text   item=BK_Balkonmagic visibility=[BK_Balkonmagic_Unreach != OFF] icon="error2" label="Balkonmagic [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=WZ_Goldfruchtpalme visibility=[WZ_Goldfruchtpalme_Unreach == OFF]
+        Text   item=WZ_Goldfruchtpalme visibility=[WZ_Goldfruchtpalme_Unreach != OFF] icon="error2" label="Goldfruchtpalme [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=WZ_Origami visibility=[WZ_Origami_Unreach == OFF]
+        Text   item=WZ_Origami visibility=[WZ_Origami_Unreach != OFF] icon="error2" label="Origami [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=WZ_Expedit visibility=[WZ_Expedit_Unreach == OFF]
+        Text   item=WZ_Expedit visibility=[WZ_Expedit_Unreach != OFF] icon="error2" label="Expedit [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=WZ_Lacks_LEDs visibility=[WZ_Lacks_Unreach == OFF]
+        Text   item=WZ_Lacks_LEDs visibility=[WZ_Lacks_Unreach != OFF] icon="error2" label="Lacksleuchter LEDs [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=WZ_Lacks_Lampe visibility=[WZ_Lacks_Unreach == OFF]
+        Text   item=WZ_Lacks_Lampe visibility=[WZ_Lacks_Unreach != OFF] icon="error2" label="Lacksleuchter Lampe [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=SZ_Orakel visibility=[SZ_Orakel_Unreach == OFF]
+        Text   item=SZ_Orakel visibility=[SZ_Orakel_Unreach != OFF] icon="error2" label="Orakel [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=KU_Arbeit visibility=[KU_Arbeit_Unreach == OFF]
+        Text   item=KU_Arbeit visibility=[KU_Arbeit_Unreach != OFF] icon="error2" label="Arbeitsbeleuchtung [N/A ✘]" valuecolor=["maroon"]
+        //
+        Slider item=KU_Edison_Dimmer_Level visibility=[KU_Edison_Dimmer_Unreach == OFF]
+        Text   item=KU_Edison_Dimmer_Level visibility=[KU_Edison_Dimmer_Unreach != OFF] icon="error2" label="Edison [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=Kueche_Deckenlicht visibility=[Kueche_Deckenlicht_Unreach == OFF] icon="lamp_globe_light"
+        Text   item=Kueche_Deckenlicht visibility=[Kueche_Deckenlicht_Unreach != OFF] icon="error2" label="Küche Deckenlicht [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=Flur_Deckenlicht visibility=[Flur_Deckenlicht_Unreach == OFF] icon="lamp_globe_light"
+        Text   item=Flur_Deckenlicht visibility=[Flur_Deckenlicht_Unreach != OFF] icon="error2" label="Flur Deckenlicht [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=SZ_Deckenlicht visibility=[SZ_Deckenlicht_Unreach == OFF] icon="lamp_globe_light"
+        Text   item=SZ_Deckenlicht visibility=[SZ_Deckenlicht_Unreach != OFF] icon="error2" label="Schlafzimmer Deckenlicht [N/A ✘]" valuecolor=["maroon"]
+        //
+        Switch item=BD_Deckenlicht visibility=[BD_Deckenlicht_Unreach == OFF] icon="lamp_globe_light"
+        Text   item=BD_Deckenlicht visibility=[BD_Deckenlicht_Unreach != OFF] icon="error2" label="Bad Deckenlicht [N/A ✘]" valuecolor=["maroon"]
+        //
+        Text item=Wohnungstuer_TimerDuration visibility=[Wohnungstuer_TimerActive == ON]
+        Text item=BD_Deckenlicht_TimerDuration visibility=[BD_Deckenlicht_TimerActive == ON]
+    }
+
+    Frame label="Temperaturen und Heizung" {
+        //
+        Selection item=Whg_Heating_Mode label="Heizmodus (Wohnung) []" mappings=[NORMAL="Normal",
+            PARTY="Party",
+            SICKDAY="Krankheitstag",
+            WEEKEND_TRIP="Wochenendtrip",
+            AWAY="Unterwegs",
+            OFF_SUMMER="Aus (Sommer-Standby)"
+        ]
+        
+        //
+        Text item=BK_Balkonmagic_Aussentemp label="Außentemperatur (Balkon)" visibility=[BK_Balkonmagic_Unreach == OFF]
+        Text label="Außentemperaturfühler (Balkon) [N/A ✘]" icon="error2" visibility=[BK_Balkonmagic_Unreach != OFF]
+        
+        //
+        //Text item=WZ_Heizung_Battery label="Wohnzimmer [%.1f V]" visibility=[WZ_Heizung_Battery < 2.2] valuecolor=[<2.2="maroon"] //TODO MAP for 0..100
+        Text label="Wohnzimmer Heizstellglied [N/A ✘]" icon="error2" visibility=[WZ_Heizung_Unreach != OFF] valuecolor=["maroon"]
+        Text item=WZ_Heizung_Fault label="Wohnzimmer [MAP(HM-CC-RT-DN.map):%s]" visibility=[WZ_Heizung_Fault != NO_FAULT] valuecolor=["maroon"]
+        Text item=WZ_Heizung_Summary label="Wohnzimmer [%s]" visibility=[WZ_Heizung_Unreach == OFF] {
+            Frame label="Temperatur" {
+                Text item=WZ_Heizung_ActTemp label="Aktuelle Temperatur [%.1f °C]"
+            }
+            Frame label="Heizung" {
+                Setpoint item=WZ_Heizung_SetTemp label="Stellwert (±1) [%.1f °C]" minValue=4.5 maxValue=30.5 step=1.0 visibility=[WZ_Heizung_SetTemp > 4.5]
+                Setpoint item=WZ_Heizung_SetTemp label="Stellwert (±½) [%.1f °C]" minValue=4.5 maxValue=30.5 step=0.5 visibility=[WZ_Heizung_SetTemp > 4.5]
+                Switch item=WZ_Heizung_SetTemp label="Stellglied [OFF]" mappings=[5.0=Einschalten] visibility=[WZ_Heizung_SetTemp == 4.5]
+                Switch item=WZ_Heizung_Preset label="Schnellwahl" mappings=[0="Abgesenkt", 1="Komfort", 2="Warm"]
+                Switch item=WZ_Heizung_BoostMode label="Boost (5min)" mappings=[ON="Starten"]
+                Text item=WZ_Heizung_BoostTime label="Boost-Restzeit [%d min]" visibility=[WZ_Heizung_BoostTime > 0]
+                Text item=WZ_Heizung_Valve label="Ventilstellung [%d %%]"
+            }
+        }
+
+        //
+        //Text item=KU_Heizung_Battery label="Flur/Küche [%.1f V]" visibility=[KU_Heizung_Battery < 2.2] valuecolor=[<2.2="maroon"]
+        Text label="Flur/Küche Heizstellglied [N/A ✘]" icon="error2" visibility=[KU_Heizung_Unreach != OFF] valuecolor=["maroon"]
+        Text item=KU_Heizung_Fault label="Flur/Küche [MAP(HM-CC-RT-DN.map):%s]" visibility=[KU_Heizung_Fault != NO_FAULT] valuecolor=["maroon"]
+        Text item=KU_Heizung_Summary label="Flur/Küche [%s]" visibility=[KU_Heizung_Unreach == OFF] {
+            Frame label="Temperatur" {
+                Text item=KU_Heizung_ActTemp label="Aktuelle Temperatur [%.1f °C]"
+            }
+            Frame label="Heizung" {
+                Setpoint item=KU_Heizung_SetTemp label="Stellwert (±1) [%.1f °C]" minValue=4.5 maxValue=30.5 step=1.0 visibility=[KU_Heizung_SetTemp > 4.5]
+                Setpoint item=KU_Heizung_SetTemp label="Stellwert (±½) [%.1f °C]" minValue=4.5 maxValue=30.5 step=0.5 visibility=[KU_Heizung_SetTemp > 4.5]
+                Switch item=KU_Heizung_SetTemp label="Stellglied [OFF]" mappings=[5.0=Einschalten] visibility=[KU_Heizung_SetTemp == 4.5]
+                Switch item=KU_Heizung_Preset label="Schnellwahl" mappings=[0="Abgesenkt", 1="Komfort", 2="Warm"]
+                Switch item=KU_Heizung_BoostMode label="Boost (5min)" mappings=[ON="Starten"]
+                Text item=KU_Heizung_BoostTime label="Boost-Restzeit [%d min]" visibility=[KU_Heizung_BoostTime > 0]
+                Text item=KU_Heizung_Valve label="Ventilstellung [%d %%]"
+            }
+            Frame label="Fenster/Türen" {
+                Text item=KU_Fenster_State label="Fenster [MAP(window.map):%s]"
+                Text item=Wohnungstuer_State label="Wohnungstür [MAP(window.map):%s]"
+            }
+        }
+
+        //
+        //Text item=SZ_Heizung_Battery label="Schlafzimmer [%.1f V]" visibility=[SZ_Heizung_Battery < 2.2] valuecolor=[<2.2="maroon"]
+        Text label="Schlafzimmer Heizstellglied [N/A ✘]" icon="error2" visibility=[SZ_Heizung_Unreach != OFF] valuecolor=["maroon"]
+        Text item=SZ_Heizung_Fault label="Schlafzimmer [MAP(HM-CC-RT-DN.map):%s]" visibility=[SZ_Heizung_Fault != NO_FAULT] valuecolor=["maroon"]
+        Text item=SZ_Heizung_Summary label="Schlafzimmer [%s]" visibility=[SZ_Heizung_Unreach == OFF] {
+            Frame label="Temperatur" {
+                Text item=SZ_Heizung_ActTemp label="Aktuelle Temperatur [%.1f °C]"
+            }
+            Frame label="Heizung" {
+                Setpoint item=SZ_Heizung_SetTemp label="Stellwert (±1) [%.1f °C]" minValue=4.5 maxValue=30.5 step=1.0 visibility=[SZ_Heizung_SetTemp > 4.5]
+                Setpoint item=SZ_Heizung_SetTemp label="Stellwert (±½) [%.1f °C]" minValue=4.5 maxValue=30.5 step=0.5 visibility=[SZ_Heizung_SetTemp > 4.5]
+                Switch item=SZ_Heizung_SetTemp label="Stellglied [OFF]" mappings=[5.0=Einschalten] visibility=[SZ_Heizung_SetTemp == 4.5]
+                Switch item=SZ_Heizung_Preset label="Schnellwahl" mappings=[0="Abgesenkt", 1="Komfort", 2="Warm"]
+                Switch item=SZ_Heizung_BoostMode label="Boost (5min)" mappings=[ON="Starten"]
+                Text item=SZ_Heizung_BoostTime label="Boost-Restzeit [%d min]" visibility=[SZ_Heizung_BoostTime > 0]
+                Text item=SZ_Heizung_Valve label="Ventilstellung [%d %%]"
+            }
+        }
+
+        //
+        //Text item=BD_Heizung_Battery label="Bad [%.1f V]" visibility=[BD_Heizung_Battery < 2.2] valuecolor=[<2.2="maroon"]
+        Text label="Bad Heizstellglied [N/A ✘]" icon="error2" visibility=[BD_Heizung_Unreach != OFF] valuecolor=["maroon"]
+        Text item=BD_Heizung_Fault label="Bad [MAP(HM-CC-RT-DN.map):%s]" visibility=[BD_Heizung_Fault != NO_FAULT] valuecolor=["maroon"]
+        Text item=BD_Heizung_Summary label="Bad [%s]" visibility=[BD_Heizung_Unreach == OFF] {
+            Frame label="Temperatur" {
+                Text item=BD_Heizung_ActTemp label="Aktuelle Temperatur [%.1f °C]"
+            }
+            Frame label="Heizung" {
+                Setpoint item=BD_Heizung_SetTemp label="Stellwert (±1) [%.1f °C]" minValue=4.5 maxValue=30.5 step=1.0 visibility=[BD_Heizung_SetTemp > 4.5]
+                Setpoint item=BD_Heizung_SetTemp label="Stellwert (±½) [%.1f °C]" minValue=4.5 maxValue=30.5 step=0.5 visibility=[BD_Heizung_SetTemp > 4.5]
+                Switch item=BD_Heizung_SetTemp label="Stellglied [OFF]" mappings=[5.0=Einschalten] visibility=[BD_Heizung_SetTemp == 4.5]
+                Switch item=BD_Heizung_Preset label="Schnellwahl" mappings=[0="Abgesenkt", 1="Komfort", 2="Warm"]
+                Switch item=BD_Heizung_BoostMode label="Boost (5min)" mappings=[ON="Starten"]
+                Text item=BD_Heizung_BoostTime label="Boost-Restzeit [%d min]" visibility=[BD_Heizung_BoostTime > 0]
+                Text item=BD_Heizung_Valve label="Ventilstellung [%d %%]"
+            }
+        }
+
+        //
+        Text label="Wohnzimmer Wandthermostat [N/A ✘]" icon="error2" visibility=[WZ_Wandtherm_Unreach != OFF] valuecolor=["maroon"]
+        Text item=WZ_Wandtherm_ActHumidity label="Wohnzimmer Luftfeuchte [%d %%]" visibility=[WZ_Wandtherm_Unreach == OFF]
+
+        //
+        Text item=KU_KuehlschrankTemp_Summary label="Kühlschrank [%s]" icon="catfridge" visibility=[KU_KuehlschrankTemp_Unreach == OFF]
+        Text label="Kühlschrank Temperatur-Sonoff [N/A ✘]" icon="error2" visibility=[KU_KuehlschrankTemp_Unreach != OFF] valuecolor=["maroon"]
+        
+        //
+        //Image label="Temperaturen"
+        //    url="http://192.168.11.230:3000/render/dashboard-solo/db/w66a?panelId=4&width=700&height=350&from=now-48h&to=now"
+    }
+
+    Frame label="Verbraucher" {
+        Text item=KU_Spuelmaschine_OpState label="Spülmaschine [MAP(operation.map):%s]" valuecolor=[1="olive", 2="green", 3="maroon"] visibility=[KU_Spuelmaschine_Unreach == OFF]
+        Text label="Spülmaschine Strommessmodul [N/A ✘]" icon="error2" visibility=[KU_Spuelmaschine_Unreach != OFF] valuecolor=["maroon"]
+
+        Text item=BD_Waschmaschine_OpState label="Waschmaschine [MAP(operation.map):%s]" valuecolor=[1="olive", 2="green", 3="maroon"] visibility=[BD_Waschmaschine_Unreach == OFF]
+        Text label="Waschmaschine Strommessmodul [N/A ✘]" icon="error2" visibility=[BD_Waschmaschine_Unreach != OFF] valuecolor=["maroon"]
+
+        Text label="Kühlschrank Strommessmodul [N/A ✘]" icon="error2" visibility=[KU_Kuehlschrank_Unreach != OFF] valuecolor=["maroon"]
+
+        //Image label="Verbraucher"
+        //    url="http://192.168.11.230:3000/render/dashboard-solo/db/w66a?panelId=3&width=700&height=350&from=now-48h&to=now"
+        //Image label="Beleuchtung"
+        //    url="http://192.168.11.230:3000/render/dashboard-solo/db/w66a?panelId=2&width=700&height=350&from=now-48h&to=now"
+    }
+
+    Frame label="Admin" {
+        Text label="Optionen" icon="settings" {
+            Switch item=Rule_WhgDoor_Notification
+            Switch item=Rule_BD_Door_Light
+        }
+        Text label="Status" icon="chart" {
+            Group item=RSSI_Group
+            Group item=Wattages
+            Group item=Heating_Group
+            Group item=Temperatures
+            Group item=Heating_ValveSettings valuecolor=[0="green"]
+            Group item=Windows valuecolor=[0="green"]
+            Group item=Bat_Binary valuecolor=[0="green"]
+            Group item=Bat_Volts valuecolor=[0="green"]
+            Group item=Bat_Percent valuecolor=[0="green"]
+            Group item=Lights
+            Group item=Unreach_Group
+            Group item=Pending_Group
+            Group item=Error_Group
+            Switch item=Sonoff_Action mappings=[restart="Restart", queryFW="Query FW", upgradeFW="Upgrade FW"]
+            Switch item=Whg_Wartung_Trigger label="Wartungsroutinen" icon="pantry" mappings=[ON="Starten"]
+        }
+        Text label="Räume" icon="corridor" {
+            Group item=FL label="Flur"
+            Group item=BD label="Bad"
+            Group item=KU label="Küche"
+            Group item=SZ label="Schlafzimmer"
+            Group item=WZ label="Wohnzimmer"
+            Group item=BK label="Balkon"
+        }
+        Group item=Whg label="Alle Elemente" icon="house"
+    }
+    Frame label="BasicUI-Mod" {
+        Webview url="/static/BasicUI-Mod.html"
+    }*/
+
+
+
+
+
+
+
+            

@@ -1,0 +1,88 @@
+//groups
+Group:Switch:OR(ON,OFF) gPresent_ANY "Presence Detection by any trigger" (gPresence)
+
+
+Group:Switch:OR(ON, OFF) gCell_Detected "Cell Phone Detected" <present> (gPresent_ANY)
+
+Group:Switch:AND(ON,OFF) gMamaPapaPresent  "Shannon and Anthony Home together group" (gPresence)
+Group:Switch:OR(ON, OFF) gShannonPresent "Shannon is Present" (gMamaPapaPresent, gCell_Detected, gPresence)
+Group:Switch:OR(ON,OFF) gAnthonyPresent "Anthony is Present" (gMamaPapaPresent, gCell_Detected, gPresence) 
+Group:Switch:OR(ON,OFF) gBlanePresent "Dad Present"  (gPresence)
+Group:Switch:OR(ON,OFF) gElizabethPresent "ET Present"  (gPresence)
+
+//main presence
+Switch Present "Someone is Present" <present> (gPresence)// turns off 5 minutes after everyone leaves
+Switch PresenceOverride "Presence Overide" <present> (gPresence) {expire="8h,command=OFF"}
+
+//Rule based switches
+Switch Motion_recent "Motion Detected Recently" <present> (gPresent_ANY, gPresence) {expire="30m,command=OFF"}
+Switch House_interacted "Light Switch Activated" <present> (gPresent_ANY, gPresence) {expire="5m,command=OFF"}
+Switch DoorOpened "Door has been opened" <present> (gPresent_ANY, gPresence) {expire="5m,command=OFF"}
+Switch Bluetooth	"Bluetooth detected" <present> (gPresent_ANY, gPresence) {expire="5m,command=OFF"}
+Switch UnknownPresence "someone has been detected but it isn't Shannon or Anthony" <present> (gPresence) {expire="24h,command=OFF"}
+//logical strings
+String ShannonLocation "[%s]" (gShannonPresent)
+String AJLocation "[%s]" (gAnthonyPresent)
+String Switchlocation "[%s]" (gPresence)
+String triggeringDetector "Last detector Triggered [%s]" (gPresence)
+
+//DD-WRT Presence
+String DDWRTDeviceCount "DD-WRT Devices Connected [%s]" (gPresence)//Total Number of Monitored Devices Connected 
+
+//Switch ShannonIphoneBasement (gShannonPresent) {http="<[http://10.0.0.4:20000:JS(Shannonbasementdetection.js)]"} 
+//Switch AJPixelBasement  (gAnthonyPresent) {http="<[http://10.0.0.4:20000:JS(AJbasementdetection.js)]"}
+Switch AJPixelgarage "AJ PIXEL GARAGE" (gAnthonyPresent) //script runs on router
+Switch ShannonIphonegarage "Shannon Iphone Garage" (gShannonPresent) //script runs on router
+
+Switch     AnthonysPixelUnifiOnline       "Anthony's Unifi Online"                             (gUnifi, gAnthonyPresent, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:online"}
+String     AnthonysPixelUnifiSite         "Anthony's Unifi Site name"                          (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:site"}
+String     AnthonysPixelUnifiMacAddress   "Anthony's Unifi Mac address"                        (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:macAddress"}
+String     AnthonysPixelUnifiIpAddress    "Anthony's Unifi Ip address"                         (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:ipAddress"}
+Number     AnthonysPixelUnifiUptime       "Anthony's Unifi Uptime"                             (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:uptime"}
+DateTime   AnthonysPixelUnifiLastSeen     "Anthony's Unifi Last seen"                          (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:lastSeen"}
+String     AnthonysPixelUnifiAp           "Anthony's Unifi Access point"                       (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:ap"}
+String     AnthonysPixelUnifiEssid        "Anthony's Unifi Wireless network"                   (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:essid"}
+Number     AnthonysPixelUnifiRssi         "Anthony's Unifi RSSI"                               (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:AnthonysPixel:rssi"}
+
+
+
+Switch     ShannonsIphoneUnifiOnline       "Shannon's Unifi Online"                             (gUnifi, gPresence, gShannonPresent)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:online"}
+String     ShannonsIphoneUnifiSite         "Shannon's Unifi Site name"                          (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:site"}
+String     ShannonsIphoneUnifiMacAddress   "Shannon's Unifi Mac address"                        (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:macAddress"}
+String     ShannonsIphoneUnifiIpAddress    "Shannon's Unifi Ip address"                         (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:ipAddress"}
+Number     ShannonsIphoneUnifiUptime       "Shannon's Unifi Uptime"                             (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:uptime"}
+DateTime   ShannonsIphoneUnifiLastSeen     "Shannon's Unifi Last seen"                          (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:lastSeen"}
+String     ShannonsIphoneUnifiAp           "Shannon's Unifi Access point"                       (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:ap"}
+String     ShannonsIphoneUnifiEssid        "Shannon's Unifi Wireless network"                   (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:essid"}
+Number     ShannonsIphoneUnifiRssi         "Shannon's Unifi RSSI"                               (gUnifi, gPresence)  {channel="unifi:wirelessClient:PikasPlace:ShannonsIPhone:rssi"}
+
+//
+
+
+
+//Sleeping Detection
+Group gSleeping "Sleeping Detection Items" (gPresence)
+    Switch sleeping "Sleeping" (gSleeping)
+    Switch sleepingSuspected "Sleeping Suspected"
+    Switch sleepingOverride "Sleeping Override"
+    Group:Switch:OR(ON,OFF) gMotionNoBedrooms "Motion detected in area other than bedroom" {autoupdate="false"}
+
+Switch MotionDimming "motion Dimming"(gV_Switches)
+Switch arrival "arrival" (gPresence, gV_Switches)
+Switch ShannonArrival "shannon arrival" (gShannonPresent)
+Switch AnthonyArrival "Anthony arrival" (gAnthonyPresent)
+String AJPixelCallState "Anthony Call state" (gAnthonyPresent)
+Number AJPixelAlarmClock "Anthony's Alarm Clock" (gAnthonyPresent)
+
+//Homekit Presence Detection
+Switch vFirstarrival "First Arrival" (gPresence)        {homekit="Switchable"}
+Switch vLastdeparture "Last Departure" (gPresence)      {homekit="Switchable"}
+Switch vShannonArrival "Shannon arrival" (gPresence)    {homekit="Switchable"}
+Switch vShannonDeparture "Shannon Departure" (gPresence){homekit="Switchable"}
+Switch vAnthonyArrival "Anthony Arrival" (gPresence)    {homekit="Switchable"}
+Switch vAnthonyDeparture "Anthony Departure" (gPresence){homekit="Switchable"}
+
+//Switch DadIphone
+//Switch EtIphone 
+//Switch DenTV
+

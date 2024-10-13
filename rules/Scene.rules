@@ -1,0 +1,164 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+import org.joda.datetime.parse.timestamp
+val String filename = "Scene Rules" 
+rule "auto Lighting"
+		// update scene according to time of day.
+
+	when 	
+		Item vTimeOfDay changed or
+		Time cron "0 0 0/1 1/1 * ? *" 
+	then	
+		
+		switch(vTimeOfDay.state){
+						case "MORNING" : {
+							sceneNumber.sendCommand(2)
+						}
+						case "DAY" : {
+							sceneNumber.sendCommand(3)
+						}
+						case "AFTERNOON" : {
+							sceneNumber.sendCommand(4)
+						}
+						case "EVENING" : {
+							sceneNumber.sendCommand(5)
+						}
+						case "NIGHT" : {
+							sceneNumber.sendCommand(6)
+						}
+						case "BED" : {
+							sceneNumber.sendCommand(10)
+						}	
+
+					}
+			/*if (Present.state != OFF && sleeping.state != ON){
+			
+			vSceneLoad.sendCommand(ON)
+		
+
+
+		}
+*/
+
+
+end
+
+/*
+rule "Sitemap Scene Load"
+when
+	Item vSceneLoad received command ON
+then
+val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + vSceneNumber.state)
+//logDebug("RULE.sitemapsceneload", "timestamp =" + timestamp.state)
+
+val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g" + sceneLocation.state + "_Lighting")as GroupItem
+logInfo("RULE.sitemapsceneload", "recalling the " + sceneGroup.name + " light states as they were on " + timestamp.state)
+
+val jodaTimestamp = new DateTime(timestamp.state.toString)
+//logDebug("RULE.sitemapsceneload", "jodaTimestamp =" + jodaTimestamp)
+	//(sceneLocation).members.forEach[hsb | { hsb.sendCommand(hsb.historicState(parse(timestamp),"influxdb").state.toString) } ]
+    sceneGroup.members.forEach[i | { 
+		if (i.state !=i.historicState(jodaTimestamp,"influxdb")){
+			i.sendCommand(i.historicState(jodaTimestamp,"influxdb").state.toString) 
+		} 
+			else{
+				logInfo("rule.sitemapsceneload", "state of lights = saved state. no changes made")
+			}
+	} ]
+    //(sceneLocation).members.forEach[item | { item.sendCommand(item.historicState(parse(timestamp),"influxdb").state as OnOffType) } ]
+end
+*/
+rule "Sitemap Scene Load"
+when
+	Item vSceneLoad received command ON
+then
+val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + vSceneNumber.state)
+logDebug("RULE.sitemapsceneload", "timestamp =" + timestamp.state)
+
+val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g" + sceneLocation.state + "_Lighting")as GroupItem
+logInfo("RULE.sitemapsceneload", "recalling the " + sceneGroup.name + " light states as they were on " + timestamp.state)
+
+val jodaTimestamp = new DateTime(timestamp.state.toString)
+logDebug("RULE.sitemapsceneload", "jodaTimestamp =" + jodaTimestamp)
+	
+	//list the null items which cause errors & remove those items from the group
+	sceneGroup.getMembers.forEach[i | { 
+		logDebug("rule.sitemap.sceneload", i.name +" = " + i.state)
+		//if JS Object is NULL or UNDEFINED, remove from members group
+		if (i.state == NULL || i.state == UNDEF) {
+			logDebug("rule.sitemap.sceneload", i.name + " is " + i.state + ".  Removing from sceneGroup before scene load")
+			sceneGroup.removeMember(i)
+		}
+		// if item is null, remove from members group.
+		else if (i.state === null){
+			logDebug("rule.sitemap.sceneload", i.name + " is null, removing from sceneGroup before scene load.")
+			sceneGroup.removeMember(i)
+		}
+	}]
+
+   	//now that the nulls are ignored, load the lights as they were on the scene date/time
+    sceneGroup.members.forEach[i | {
+ 		logDebug("rule.sitemap.sceneload", i.name + " , Historic state = " + i.historicState(jodaTimestamp,"influxdb").state.toString)
+		if (i.state !=i.historicState(jodaTimestamp,"influxdb")){
+					i.sendCommand(i.historicState(jodaTimestamp,"influxdb").state.toString) 
+		} 
+		else{
+			logInfo("rule.sitemapsceneload", "state of lights = saved state. no changes made")
+		}
+
+	}]
+    //(sceneLocation).members.forEach[item | { item.sendCommand(item.historicState(parse(timestamp),"influxdb").state as OnOffType) } ]
+end
+
+rule "load button reset"
+when
+	Item vSceneLoad received command ON
+then
+	vSceneLoad.sendCommand(OFF)
+end 
+
+rule "save button reset"
+when
+	Item vSceneSave received command ON
+then
+	vSceneSave.sendCommand(OFF)
+end
+
+
+//scene switch rules
+
+rule "Scene Switches"
+when
+	Member of gScene_Switches received command ON
+	
+then
+	
+	triggeringItem.sendCommand(OFF)
+	//logDebug("rule.sceneswitches", "turned off " + sNumber +" switch")
+val baseName = triggeringItem.name.split("_").get(0)
+val vsceneNumber = triggeringItem.name.split("_").get(2)
+val baseName1 = baseName.split("v").get(1)
+	
+val vartimestamp = baseName + "_Scene_" + vsceneNumber
+val varsceneGroup = "g" + baseName1 + "_Lighting"
+	//logDebug("rule.sceneswitches", " timestamp is " + vartimestamp + ". sceneGroup is " + varsceneGroup + ". Basename1 is " + baseName1)
+	
+
+
+val timestamp = ScriptServiceUtil.getItemRegistry.getItem(vartimestamp)
+//logDebug("RULE.sitemapsceneload", "timestamp =" + timestamp.state)
+
+val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem(varsceneGroup)as GroupItem
+logInfo("RULE.sceneswitches", "recalling the " + sceneGroup.name + " light states as they were on " + timestamp.state)
+
+val jodaTimestamp = new DateTime(timestamp.state.toString)
+//logDebug("RULE.sitemapsceneload", "jodaTimestamp =" + jodaTimestamp)
+	//(sceneLocation).members.forEach[hsb | { hsb.sendCommand(hsb.historicState(parse(timestamp),"influxdb").state.toString) } ]
+    sceneGroup.members.forEach[i | { 
+		if (i.state !=i.historicState(jodaTimestamp,"influxdb")){
+			i.sendCommand(i.historicState(jodaTimestamp,"influxdb").state.toString) 
+		} 
+			else{
+				logInfo("rule.sceneswitches", "state of lights = saved state. no changes made")
+			}
+	} ]
+end

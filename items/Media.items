@@ -1,0 +1,247 @@
+//Pika's Place Audio Control
+Group gMedia "Media Devices" (gEquipment)
+Group gGoogle "Google Devices" (gMedia)
+	Group gGoogle_Home_Mini "Google home mini"(gGoogle)
+	Group gGoogle_Home "google Home" (gGoogle)
+	Group gGoogle_Displays "google Displays" (gGoogle)
+
+//Playback Controls
+Group gVolume "volumes"(gMedia)
+Group gplaybackControl "Playback Controls" (gMedia)
+
+
+
+//Media By Location
+
+//volumes
+//Dimmer BmtVolume
+//Dimmer MBr Volume 
+//Dimmer Kitchen Volume
+
+
+Group gDen_Google "Den Google" (gGoogle_Displays, gDen)
+
+Player        Den_Google_Display_Control         "Den Google Display Media control" (gDen_Google, gplaybackControl)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:control"}
+Dimmer        Den_Google_Display_Volume          "Den Google Display Volume"        (gDen_Google, gVolume)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:volume"}
+Switch        Den_Google_Display_Mute            "Den Google Display Mute"          (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:mute"}
+String        Den_Google_Display_Playuri         "Den Google Display Play uri"      (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:playuri"}
+String        Den_Google_Display_AppName         "Den Google Display App"           (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:appName"}
+String        Den_Google_Display_AppId           "Den Google Display App"           (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:appId"}
+Switch        Den_Google_Display_Idling          "Den Google Display Idling"        (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:idling"}
+String        Den_Google_Display_Statustext      "Den Google Display App status"    (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:statustext"}
+Number:Time   Den_Google_Display_CurrentTime     "Den Google Display Current time"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:currentTime"}
+Number:Time   Den_Google_Display_Duration        "Den Google Display Duration"      (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:duration"}
+String        Den_Google_Display_MetadataType    "Den Google Display Media type"    (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:metadataType"}
+String        Den_Google_Display_AlbumArtist     "Den Google Display Album artist"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:albumArtist"}
+String        Den_Google_Display_AlbumName       "Den Google Display Album name"    (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:albumName"}
+String        Den_Google_Display_Artist          "Den Google Display Media artist"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:artist"}
+DateTime      Den_Google_Display_BroadcastDate   "Den Google Display Broadcast date"(gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:broadcastDate"}
+String        Den_Google_Display_Composer        "Den Google Display Composer"      (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:composer"}
+DateTime      Den_Google_Display_CreationDate    "Den Google Display Creation date" (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:creationDate"}
+Number        Den_Google_Display_DiscNumber      "Den Google Display Disc number"   (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:discNumber"}
+Number        Den_Google_Display_EpisodeNumber   "Den Google Display Episode number"(gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:episodeNumber"}
+Image         Den_Google_Display_Image           "Den Google Display Image"         (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:image"}
+String        Den_Google_Display_ImageSrc        "Den Google Display Image url"     (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:imageSrc"}
+String        Den_Google_Display_LocationName    "Den Google Display Location name" (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:locationName"}
+Location      Den_Google_Display_Location        "Den Google Display Location"      (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:location"}
+DateTime      Den_Google_Display_ReleaseDate     "Den Google Display Release date"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:releaseDate"}
+Number        Den_Google_Display_SeasonNumber    "Den Google Display Season number" (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:seasonNumber"}
+String        Den_Google_Display_SeriesTitle     "Den Google Display Series title"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:seriesTitle"}
+String        Den_Google_Display_Studio          "Den Google Display Studio"        (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:studio"}
+String        Den_Google_Display_Subtitle        "Den Google Display Subtitle"      (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:subtitle"}
+String        Den_Google_Display_Title           "Den Google Display Media title"   (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:title"}
+Number        Den_Google_Display_TrackNumber     "Den Google Display Track number"  (gDen_Google)   {channel="chromecast:chromecast:16b64830824bef2bb6221c5fb40c6bad:trackNumber"}
+
+
+
+
+Group gLR_Google "Living Room Google" (gGoogle_Home, gLR)
+	Player        LR_Google_Home_Control         "Media control"    (gLR_Google, gplaybackControl) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:control"}
+	Dimmer        LR_Google_Home_Volume          "Volume"           (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:volume"}
+	Switch        LR_Google_Home_Mute            "Mute"             (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:mute"}
+	String        LR_Google_Home_Playuri         "Play uri"         (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:playuri"}
+	String        LR_Google_Home_AppName         "App"              (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:appName"}
+	String        LR_Google_Home_AppId           "App"              (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:appId"}
+	Switch        LR_Google_Home_Idling          "Idling"           (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:idling"}
+	String        LR_Google_Home_Statustext      "App status"       (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:statustext"}
+	Number:Time   LR_Google_Home_CurrentTime     "Current time"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:currentTime"}
+	Number:Time   LR_Google_Home_Duration        "Duration"         (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:duration"}
+	String        LR_Google_Home_MetadataType    "Media type"       (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:metadataType"}
+	String        LR_Google_Home_AlbumArtist     "Album artist"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:albumArtist"}
+	String        LR_Google_Home_AlbumName       "Album name"       (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:albumName"}
+	String        LR_Google_Home_Artist          "Media artist"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:artist"}
+	DateTime      LR_Google_Home_BroadcastDate   "Broadcast date"   (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:broadcastDate"}
+	String        LR_Google_Home_Composer        "Composer"         (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:composer"}
+	DateTime      LR_Google_Home_CreationDate    "Creation date"    (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:creationDate"}
+	Number        LR_Google_Home_DiscNumber      "Disc number"      (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:discNumber"}
+	Number        LR_Google_Home_EpisodeNumber   "Episode number"   (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:episodeNumber"}
+	Image         LR_Google_Home_Image           "Image"            (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:image"}
+	String        LR_Google_Home_ImageSrc        "Image url"        (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:imageSrc"}
+	String        LR_Google_Home_LocationName    "Location name"    (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:locationName"}
+	Location      LR_Google_Home_Location        "Location"         (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:location"}
+	DateTime      LR_Google_Home_ReleaseDate     "Release date"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:releaseDate"}
+	Number        LR_Google_Home_SeasonNumber    "Season number"    (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:seasonNumber"}
+	String        LR_Google_Home_SeriesTitle     "Series title"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:seriesTitle"}
+	String        LR_Google_Home_Studio          "Studio"           (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:studio"}
+	String        LR_Google_Home_Subtitle        "Subtitle"         (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:subtitle"}
+	String        LR_Google_Home_Title           "Media title"      (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:title"}
+	Number        LR_Google_Home_TrackNumber     "Track number"     (gLR_Google) 	{channel="chromecast:chromecast:0fdb378d82e25aab35ceb3994d9cc17e:trackNumber"}
+
+Group gBMTBr_Google "Basement Bedroom Google" (gGoogle_Home_Mini, gBMTBr)
+	Player        BMTBr_Google_Mini_Control         "Media control"    (gBMTBr_Google, gplaybackControl) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:control"}
+	Dimmer        BMTBr_Google_Mini_Volume          "Volume"           (gVolume, gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:volume"}
+	Switch        BMTBr_Google_Mini_Mute            "Mute"             (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:mute"}
+	String        BMTBr_Google_Mini_Playuri         "Play uri"         (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:playuri"}
+	String        BMTBr_Google_Mini_AppName         "App"              (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:appName"}
+	String        BMTBr_Google_Mini_AppId           "App"              (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:appId"}
+	Switch        BMTBr_Google_Mini_Idling          "Idling"           (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:idling"}
+	String        BMTBr_Google_Mini_Statustext      "App status"       (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:statustext"}
+	Number:Time   BMTBr_Google_Mini_CurrentTime     "Current time"     (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:currentTime"}
+	Number:Time   BMTBr_Google_Mini_Duration        "Duration"         (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:duration"}
+	String        BMTBr_Google_Mini_MetadataType    "Media type"       (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:metadataType"}
+	String        BMTBr_Google_Mini_AlbumArtist     "Album artist"     (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:albumArtist"}
+	String        BMTBr_Google_Mini_AlbumName       "Album name"       (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:albumName"}
+	String        BMTBr_Google_Mini_Artist          "Media artist"     (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:artist"}
+	DateTime      BMTBr_Google_Mini_BroadcastDate   "Broadcast date"   (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:broadcastDate"}
+	String        BMTBr_Google_Mini_Composer        "Composer"         (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:composer"}
+	DateTime      BMTBr_Google_Mini_CreationDate    "Creation date"    (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:creationDate"}
+	Number        BMTBr_Google_Mini_DiscNumber      "Disc number"      (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:discNumber"}
+	Number        BMTBr_Google_Mini_EpisodeNumber   "Episode number"   (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:episodeNumber"}
+	Image         BMTBr_Google_Mini_Image           "Image"            (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:image"}
+	String        BMTBr_Google_Mini_ImageSrc        "Image url"        (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:imageSrc"}
+	String        BMTBr_Google_Mini_LocationName    "Location name"    (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:locationName"}
+	Location      BMTBr_Google_Mini_Location        "Location"         (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:location"}
+	DateTime      BMTBr_Google_Mini_ReleaseDate     "Release date"     (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:releaseDate"}
+	Number        BMTBr_Google_Mini_SeasonNumber    "Season number"    (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:seasonNumber"}
+	String        BMTBr_Google_Mini_SeriesTitle     "Series title"     (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:seriesTitle"}
+	String        BMTBr_Google_Mini_Studio          "Studio"           (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:studio"}
+	String        BMTBr_Google_Mini_Subtitle        "Subtitle"         (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:subtitle"}
+	String        BMTBr_Google_Mini_Title           "Media title"      (gBMTBr_Google) {channel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:title"}
+	Number        BMTBr_Google_Mini_TrackNumber     "Track number"     (gBMTBr_Google) {channvolel="chromecast:chromecast:18c893c0e92eadb1cedbc1a0a2c0caec:trackNumber"}
+
+
+Group gGa_Google "Garage Googles" (gMedia, gGa)
+	Group gGa_Google_Chromecast "Garage Google Chromecast" (gGa_Google) 
+	
+	Group gGa_Google_Mini "Garage Google Home Mini" (gGa_Google)
+		Player        Ga_Google_Mini_Control         "Media control"    (gGa_Google_Mini, gplaybackControl) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:control"}
+		Dimmer        Ga_Google_Mini_Volume          "Volume"           (gGa_Google_Mini, gVolume) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:volume"}
+		Switch        Ga_Google_Mini_Mute            "Mute"             (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:mute"}
+		String        Ga_Google_Mini_Playuri         "Play uri"         (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:playuri"}
+		String        Ga_Google_Mini_AppName         "App"              (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:appName"}
+		String        Ga_Google_Mini_AppId           "App"              (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:appId"}
+		Switch        Ga_Google_Mini_Idling          "Idling"           (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:idling"}
+		String        Ga_Google_Mini_Statustext      "App status"       (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:statustext"}
+		Number:Time   Ga_Google_Mini_CurrentTime     "Current time"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:currentTime"}
+		Number:Time   Ga_Google_Mini_Duration        "Duration"         (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:duration"}
+		String        Ga_Google_Mini_MetadataType    "Media type"       (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:metadataType"}
+		String        Ga_Google_Mini_AlbumArtist     "Album artist"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:albumArtist"}
+		String        Ga_Google_Mini_AlbumName       "Album name"       (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:albumName"}
+		String        Ga_Google_Mini_Artist          "Media artist"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:artist"}
+		DateTime      Ga_Google_Mini_BroadcastDate   "Broadcast date"   (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:broadcastDate"}
+		String        Ga_Google_Mini_Composer        "Composer"         (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:composer"}
+		DateTime      Ga_Google_Mini_CreationDate    "Creation date"    (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:creationDate"}
+		Number        Ga_Google_Mini_DiscNumber      "Disc number"      (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:discNumber"}
+		Number        Ga_Google_Mini_EpisodeNumber   "Episode number"   (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:episodeNumber"}
+		Image         Ga_Google_Mini_Image           "Image"            (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:image"}
+		String        Ga_Google_Mini_ImageSrc        "Image url"        (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:imageSrc"}
+		String        Ga_Google_Mini_LocationName    "Location name"    (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:locationName"}
+		Location      Ga_Google_Mini_Location        "Location"         (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:location"}
+		DateTime      Ga_Google_Mini_ReleaseDate     "Release date"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:releaseDate"}
+		Number        Ga_Google_Mini_SeasonNumber    "Season number"    (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:seasonNumber"}
+		String        Ga_Google_Mini_SeriesTitle     "Series title"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:seriesTitle"}
+		String        Ga_Google_Mini_Studio          "Studio"           (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:studio"}
+		String        Ga_Google_Mini_Subtitle        "Subtitle"         (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:subtitle"}
+		String        Ga_Google_Mini_Title           "Media title"      (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:title"}
+		Number        Ga_Google_Mini_TrackNumber     "Track number"     (gGa_Google_Mini) {channel="chromecast:chromecast:dcd3a22cea22056f012c50548129929b:trackNumber"}
+
+
+//Den Speaker control (CHROMECAST AVR-200)
+	Group gDenSpeakers "Den Speaker Chromecast Control"	(gDen, gMedia)
+		Player        DenSpeakersControl         "Media control"    (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:control"}
+		Dimmer        DenSpeakersVolume          "Volume"           (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:volume"}
+		Switch        DenSpeakersMute            "Mute"             (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:mute"}
+		String        DenSpeakersPlayuri         "Play uri"         (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:playuri"}
+		String        DenSpeakersAppName         "App"              (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:appName"}
+		String        DenSpeakersAppId           "App"              (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:appId"}
+		Switch        DenSpeakersIdling          "Idling"           (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:idling"}
+		String        DenSpeakersStatustext      "App status"       (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:statustext"}
+		Number:Time   DenSpeakersCurrentTime     "Current time"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:currentTime"}
+		Number:Time   DenSpeakersDuration        "Duration"         (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:duration"}
+		String        DenSpeakersMetadataType    "Media type"       (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:metadataType"}
+		String        DenSpeakersAlbumArtist     "Album artist"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:albumArtist"}
+		String        DenSpeakersAlbumName       "Album name"       (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:albumName"}
+		String        DenSpeakersArtist          "Media artist"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:artist"}
+		DateTime      DenSpeakersBroadcastDate   "Broadcast date"   (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:broadcastDate"}
+		String        DenSpeakersComposer        "Composer"         (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:composer"}
+		DateTime      DenSpeakersCreationDate    "Creation date"    (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:creationDate"}
+		Number        DenSpeakersDiscNumber      "Disc number"      (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:discNumber"}
+		Number        DenSpeakersEpisodeNumber   "Episode number"   (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:episodeNumber"}
+		Image         DenSpeakersImage           "Image"            (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:image"}
+		String        DenSpeakersImageSrc        "Image url"        (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:imageSrc"}
+		String        DenSpeakersLocationName    "Location name"    (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:locationName"}
+		Location      DenSpeakersLocation        "Location"         (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:location"}
+		DateTime      DenSpeakersReleaseDate     "Release date"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:releaseDate"}
+		Number        DenSpeakersSeasonNumber    "Season number"    (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:seasonNumber"}
+		String        DenSpeakersSeriesTitle     "Series title"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:seriesTitle"}
+		String        DenSpeakersStudio          "Studio"           (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:studio"}
+		String        DenSpeakersSubtitle        "Subtitle"         (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:subtitle"}
+		String        DenSpeakersTitle           "Media title"      (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:title"}
+		Number        DenSpeakersTrackNumber     "Track number"     (gDenSpeakers) {channel="chromecast:audio:0058ea4a2fd95315190613d3be9ea233:trackNumber"}
+//Denon AVR_2000
+	Group 	gAVR_2000 "AVR_2000" (gMedia, gDen)
+	//Group 	gDen_AMP "Den Amplifier" (gMedia, gDen) {ga="Speaker" [roomHint="Den"]}
+	
+
+		Switch   AVR2000GeneralPower             "Power"                   (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#power"}
+		String   AVR2000GeneralSurroundProgram   "Surround program"        (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#surroundProgram"}
+		String   AVR2000GeneralArtist            "Now playing (artist)"    (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#artist"}
+		String   AVR2000GeneralAlbum             "Now playing (album)"     (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#album"}
+		String   AVR2000GeneralTrack             "Now playing (track)"     (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#track"}
+		String   AVR2000GeneralCommand           "Send a custom command"   (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:general#command"}
+		Switch   AVR2000MainZonePower            "Power"            		(gDen_AMP) {channel="denonmarantz:avr:0005cd3a1aec:mainZone#power", ga="Switch"}
+		Dimmer   AVR2000MainZoneVolume           "Den Amp Volume"           (gDen_AMP) {channel="denonmarantz:avr:0005cd3a1aec:mainZone#volume", ga="Speaker" [volumeMaxLevel = 100, volumeCanMuteAndUnmute = false, commandOnlyVolume = false, levelStepSize = 6, volumeDefaultPercentage = 30] }
+		Number   AVR2000MainZoneVolumeDB         "Volume (d b)"            (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:mainZone#volumeDB"}
+		Switch   AVR2000MainZoneMute             "Mute"                    (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:mainZone#mute"}
+		String   AVR2000MainZoneInput            "Input source"            (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:mainZone#input"}
+		Switch   AVR2000Zone2Power               "Power (zone)"            (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:zone2#power"}
+		Dimmer   AVR2000Zone2Volume              "Volume"                  (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:zone2#volume"}
+		Number   AVR2000Zone2VolumeDB            "Volume (d b)"            (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:zone2#volumeDB"}
+		Switch   AVR2000Zone2Mute                "Mute"                    (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:zone2#mute"}
+		String   AVR2000Zone2Input               "Input source"            (gAVR_2000) {channel="denonmarantz:avr:0005cd3a1aec:zone2#input"}
+		//rule based Switches
+		Switch	AVR2000InputToggle			"apple/google toggle"			(gAVR_2000) 
+
+/*
+control	Player	Player control; currently only supports play/pause and does not correctly update, if the state changes on the device itself
+stop	Switch	Send ON to this channel: Stops the Chromecast. If this channel is ON, the Chromecast is stopped, otherwise it is in another state (see control channel)
+volume	Dimmer	Control the volume, this is also updated if the volume is changed by another app
+mute	Switch	Mute the audio
+playuri	String	Can be used to tell the Chromecast to play media from a given url
+appName	String	Name of currently running application
+appId	String	ID of currently running application
+idling	Switch	Read-only indication on weather Chromecast is on idle screen
+statustext	String	
+currentTime	Number:Time	Current time of currently playing media
+duration	Number:Time	Duration of current track (null if between tracks)
+metadataType	String	Type of metadata, this indicates what metadata may be available. One of: GenericMediaMetadata, MovieMediaMetadata, TvShowMediaMetadata, MusicTrackMediaMetadata, PhotoMediaMetadata.
+subtitle	String	(GenericMediaMetadata) Descriptive subtitle of the content
+title	String	(GenericMediaMetadata) Descriptive title of the content
+image	Image	(GenericMediaMetadata) Image for current media
+imageSrc	String	(GenericMediaMetadata) URL of image for current media
+releaseDate	DateTime	(GenericMediaMetadata) ISO 8601 date and time this content was released
+albumArtist	String	(MusicTrackMediaMetadata) Name of the artist associated with the album featuring this track
+albumName	String	(MusicTrackMediaMetadata) Album or collection from which this track is drawn
+artist	String	(MusicTrackMediaMetadata) Name of the artist associated with the media track
+composer	String	(MusicTrackMediaMetadata) Name of the composer associated with the media track
+discNumber	Number	(MusicTrackMediaMetadata) Number of the volume (for example, a disc) of the album
+trackNumber	Number	(MusicTrackMediaMetadata) Number of the track on the album
+creationDate	DateTime	(PhotoMediaMetadata) ISO 8601 date and time this photograph was taken
+locationName	String	(PhotoMediaMetadata) Verbal location where the photograph was taken; for example, "Madrid, Spain."
+location	Location	(PhotoMediaMetadata) Geographical location of where the photograph was taken
+broadcastDate	DateTime	(TvShowMediaMetadata) ISO 8601 date and time this episode was released
+episodeNumber	Number	(TvShowMediaMetadata) Episode number (in the season) of the t.v. show
+seasonNumber	Number	(TvShowMediaMetadata) Season number of the t.v. show
+seriesTitle	String	(TvShowMediaMetadata) Descriptive title of the t.v. series
+studio	String	(TvShowMediaMetadata) Studio which released the content
+*/

@@ -1,0 +1,4 @@
+Group gMotion_Outside "Outdoor motion detection"
+Switch  Front_Door_Camera_Motion   "Front Door Motion Detected"  {expire="5m,command=OFF"}
+Switch Doorbell "doorbell pressed" ["Switchable"] {expire="5m,command=OFF"}
+Switch Doorbell_motion "Doorbell motion"

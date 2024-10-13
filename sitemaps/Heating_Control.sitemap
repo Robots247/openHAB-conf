@@ -1,0 +1,191 @@
+sitemap Heating_Control label="Heating Control" {
+  
+
+ 
+   Frame label="Outdoor Sensors" {
+    	Text item=Weather_Current_Condition label="Current Conditions [%s]" icon="weather"
+    	Text item=Weather_Forcast_Today_Condition label="Forcasted Conditions [%s]" icon="weather"
+
+    	Text item=Outdoor_Temperature 	label="Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=Weather_Current_Temperature 	label="Current reported Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=gOutdoor_Sensors_AVG 	label="Calculated average Outdoor Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=Weather_Forcast_Today_TempMax 	label="Forcasted High Temperature Today [%1$.1f°F]"	icon="temperature"
+    	Text item=Weather_Forcast_Today_TempMin 	label="Forcasted Low Temperature Today [%1$.1f°F]"	icon="temperature"
+
+  	}
+  	
+  	Frame label="Forcast Tomorrow" {
+    	Text item=Weather_Forcast_Tomorrow_TempMax 	label="Forcasted High Temperature Tomorrow [%1$.1f°F]"	icon="temperature"
+    	Text item=Weather_Forcast_Tomorrow_TempMin 	label="Forcasted Low Temperature Tomorrow [%1$.1f°F]"	icon="temperature"
+		Text item=Weather_Forcast_Tomorrow_Condition label="Forecasted Conditions Tomorrow[%s]" icon="weather"
+    //Image refresh=60000 url="http://10.0.0.122:3000/render/d-solo/vRXKZvgRz/weather?panelId=2&orgId=1&from=1572152521606&to=1572514278849&width=1000&height=500&tz=America%2FDenver"
+    Group item=gWeather label="full weather report"
+		//Webview url="http://10.0.0.122:8080/weather?locationId=PikasPlace&layout=example&iconset=colorful" height=7
+
+
+    	
+    }
+   Frame label="Avg. temps" {
+    Image refresh=60000 url="http://10.0.0.122:3000/render/d-solo/TLBE6fzRk/pikas-place-room-temps?orgId=1&from=now-48h&to=now&panelId=2&tz=America%2FDenver"
+   	}
+   	
+   	Frame label="Room Temperatures" {
+    	Text item=gMS_Temps_AVG 	label="Average Room Temperatures[%1$.1f°F]"	icon="temperature"
+    	Text item=gHeating_Setpoint_AVG 	label="Average Heating Setpoint [%1$.1f°F]"	icon="temperature"
+    	Text item=DENMS_Temp 	label="Den Temperature [%1f °F]" icon="temperature"
+    	Text item=MRMS_Temp 	label="Mud Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=LRMS_Temp 	label="Living Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=MBaMS_Temp 	label="Master Bathroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=MBeMS_Temp 	label="Master Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BMTMS_Temp 	label="Basement Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BMTBrMS_Temp	label="Basement Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=GBrMS_Temp 	label="Guest Bedroom Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=BoilMS_Temp 	label="Boiler Room Temperature [%1$.1f°F]"	icon="temperature"
+    	Text item=GAMS_Temp 	label="Garage Temperature [%1$.1f°F]"	icon="temperature"
+	
+	
+	}
+	
+	 Frame label="Heating Mode Quick Setpoint Selection"{
+	Selection item=Heating_Mode label="Heating Mode []" mappings=[
+		NORMAL="Normal",
+	    Home="Home",
+	    Away="Away",
+	    Pika="Pika's Home",
+	    Company="Company visiting overnight",
+	    Bedtime="Bedtime",
+	    OFF_SUMMER="Off (Summer standby)"
+		]
+	Switch item=Heating_PresetSwitch label="Setpoint mode" mappings=[OFF="Direct Mode", ON="Preset Edit Mode"]
+	}
+	Frame label="Heating Presets" visibility=[Heating_PresetSwitch=="ON"]{
+        Setpoint item=MR_Heating_PresetTempNormal label="Mud Room Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   		Setpoint item=DEN_Heating_PresetTempNormal label="Den Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+        Setpoint item=KIT_Heating_PresetTempNormal label="Kitchen Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   		Setpoint item=LR_Heating_PresetTempNormal  label="Living Room Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+        Setpoint item=MBa_Heating_PresetTempNormal label="Master Bath Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   		Setpoint item=MBe_Heating_PresetTempNormal label="Master Bedroom Normal Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+        Setpoint item=BMT_Heating_PresetTempNormal label="Basement Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   		Setpoint item=GA_Heating_PresetTempNormal label="Garage Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   		Setpoint item=GBr_Heating_PresetTempNormal label="Guest Bedroom Normal Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="NORMAL"]
+   
+       Setpoint item=MR_Heating_PresetTempHome label="Mud Room Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_PresetSwitch=="ON"]
+   		Setpoint item=DEN_Heating_PresetTempHome label="Den Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+        Setpoint item=KIT_Heating_PresetTempHome label="Kitchen Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+   		Setpoint item=LR_Heating_PresetTempHome  label="Living Room Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+        Setpoint item=MBa_Heating_PresetTempHome label="Master Bath Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+   		Setpoint item=MBe_Heating_PresetTempHome label="Master Bedroom Home Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+        Setpoint item=BMT_Heating_PresetTempHome label="Basement Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+   		Setpoint item=GA_Heating_PresetTempHome label="Garage Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+   		Setpoint item=GBr_Heating_PresetTempHome label="Guest Bedroom Home Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Home"]
+   
+        Setpoint item=MR_Heating_PresetTempAway label="Mud Room Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   		Setpoint item=DEN_Heating_PresetTempAway label="Den Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+        Setpoint item=KIT_Heating_PresetTempAway label="Kitchen Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   		Setpoint item=LR_Heating_PresetTempAway  label="Living Room Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+        Setpoint item=MBa_Heating_PresetTempAway label="Master Bath Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   		Setpoint item=MBe_Heating_PresetTempAway label="Master Bedroom Away Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+        Setpoint item=BMT_Heating_PresetTempAway label="Basement Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   		Setpoint item=GA_Heating_PresetTempAway label="Garage Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   		Setpoint item=GBr_Heating_PresetTempAway label="Guest Bedroom Away Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Away"]
+   
+       Setpoint item=MR_Heating_PresetTempPika label="Mud Room Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   		Setpoint item=DEN_Heating_PresetTempPika label="Den Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+        Setpoint item=KIT_Heating_PresetTempPika label="Kitchen Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   		Setpoint item=LR_Heating_PresetTempPika  label="Living Room Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+        Setpoint item=MBa_Heating_PresetTempPika label="Master Bath Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   		Setpoint item=MBe_Heating_PresetTempPika label="Master Bedroom Pika Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+        Setpoint item=BMT_Heating_PresetTempPika label="Basement Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   		Setpoint item=GA_Heating_PresetTempPika label="Garage Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   		Setpoint item=GBr_Heating_PresetTempPika label="Guest Bedroom Pika Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Pika"]
+   
+        Setpoint item=MR_Heating_PresetTempCompany label="Mud Room Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+   		Setpoint item=DEN_Heating_PresetTempCompany label="Den Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+        Setpoint item=KIT_Heating_PresetTempCompany label="Kitchen Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+   		Setpoint item=LR_Heating_PresetTempCompany  label="Living Room Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+        Setpoint item=MBa_Heating_PresetTempCompany label="Master Bath Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+   		Setpoint item=MBe_Heating_PresetTempCompany label="Master Bedroom Company Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+        Setpoint item=BMT_Heating_PresetTempCompany label="Basement Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+   		Setpoint item=GA_Heating_PresetTempCompany label="Garage Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+   		Setpoint item=GBr_Heating_PresetTempCompany label="Guest Bedroom Company Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Company"]
+
+       Setpoint item=MR_Heating_PresetTempBedtime label="Mud Room Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+   		Setpoint item=DEN_Heating_PresetTempBedtime label="Den Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+        Setpoint item=KIT_Heating_PresetTempBedtime label="Kitchen Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+   		Setpoint item=LR_Heating_PresetTempBedtime  label="Living Room Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+        Setpoint item=MBa_Heating_PresetTempBedtime label="Master Bath Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+   		Setpoint item=MBe_Heating_PresetTempBedtime label="Master Bedroom Bedtime Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+        Setpoint item=BMT_Heating_PresetTempBedtime label="Basement Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+   		Setpoint item=GA_Heating_PresetTempBedtime label="Garage Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+   		Setpoint item=GBr_Heating_PresetTempNormal label="Guest Bedroom Bedtime Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Bedtime"]
+  
+       Setpoint item=MR_Heating_PresetTempSummer label="Mud Room Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+   		Setpoint item=DEN_Heating_PresetTempSummer label="Den Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+        Setpoint item=KIT_Heating_PresetTempSummer label="Kitchen Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+   		Setpoint item=LR_Heating_PresetTempSummer  label="Living Room Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+        Setpoint item=MBa_Heating_PresetTempSummer label="Master Bath Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+   		Setpoint item=MBe_Heating_PresetTempSummer label="Master Bedroom Summer Heating Preset"minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+        Setpoint item=BMT_Heating_PresetTempSummer label="Basement Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+   		Setpoint item=GA_Heating_PresetTempSummer label="Garage Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+   		Setpoint item=GBr_Heating_PresetTempSummer label="Guest Bedroom Summer Heating Preset" minValue=60 maxValue=80 step=1 visibility=[Heating_Mode=="Summer"]
+    }		 	
+    
+		Frame label="Setpoints" visibility=[Heating_PresetSwitch=="OFF"]   {
+			 Setpoint item=MR_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_TargetTemp minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_TargetTemp  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_TargetTemp minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_TargetTemp minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_TargetTemp label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_TargetTemp minValue=60 maxValue=80 step=1
+    }		
+	     Frame label="preset updates" visibility=[Heating_PresetSwitch==OFF] {
+	     		Switch item=Heating_UpdatePresets label="update preset temps to current settings"
+	}	
+	     	
+	      	
+	     	
+   Frame label="Radiator Zone Valves" {
+    	Switch item=GAZV 	label="Garage Zone Valve"	icon="radiator"
+   		Switch item=MRZV 	label="Mud Room Zone Valve"	icon="radiator"
+    	Switch item=LRZV 	label="Living Room Zone Valve"	icon="radiator"
+    	Switch item=GBrZV 	label="Guest Bedroom Zone Valve"icon="radiator"
+    	Switch item=BMTZV 	label="Basement Zone Valve"	icon="radiator"
+  	} 
+   
+   Frame label="Radiant Heating Zone Valves" {
+    	Switch item=DENRH 	label="Den Radiant Zone Valve"	icon="radiator"
+    	Switch item=KITRH 	label="Kitchen Radiant Zone Valve"	icon="radiator"
+    	Switch item=MBeRH 	label="Master Bed Room Radiant Zone Valve"	icon="radiator"
+    	Switch item=MBaRH 	label="Master Bathroom Radiant Zone Valve"	icon="radiator"
+  	} 
+  	
+	Frame label="CFH indicators" {
+		Switch item=CFH2 label="CFH 2 low Temp" icon=radiator
+		Switch item=CFH1 label="CFH 1 High Temp" icon=radiator
+	}	
+	Frame label="status indicators" {
+		Text item=Boiler_Status_Code
+		Text item=Boiler_Blocking
+		Text item=Boiler_Lockout_Code
+		Text item=Boiler_Firing_Rate
+	}	
+   
+	Frame label="Pumps" {
+    	Switch item=RHP 	label="Radiant Heat Pump"	icon="PUMP"
+    	Switch item=System_Pump_indicator 	label="System Pump"	icon="PUMP"
+    	}
+    Frame {  	
+    	Switch item=CH_Pump 	label="Boiler Pump"	icon="PUMP"
+    	Switch item=DHW_Pump_indicator 	label="DHW Pump"	icon="PUMP"  
+    	}
+    Frame {
+    	Text item=DHW_Recirc__Temp label="DHW Recirculation Temperature" 
+    	Switch item=DHW_Recirc_Pump_indicator 	label="DHW Recirc Pump"	icon="PUMP"
+    	}
+  		
+  
+  	 
+}

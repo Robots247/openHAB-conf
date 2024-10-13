@@ -1,0 +1,43 @@
+2 = Heat Demand blocked due to high absolute outlet temperature
+    
+3 = Heat Demand blocked due to high absolute flue temperature
+    
+4 = Heat Demand blocked due to high absolute Delta T (Outlet - Inlet)
+    
+8 = Heat Demand blocked due to low 24VAC Voltage
+    
+9 = Outdoor Shutdown
+    
+10 = Block due do to switch on boiler set to 'OFF'
+    
+12 = Block due to no communication with Cascade
+    
+16 = Service Function
+    
+19 = DHW Function Storage Tank
+    
+21 = SH heat demand function from Room Thermostat
+    
+22 = SH function Heat demand from Room Thermostat
+    
+23 = SH function heat demand from cascade
+      
+30 = Heat Demand activated by freeze protection
+    
+32 = DHW Pump Delay
+    
+33 = SH Heat Pump Delay
+    
+34 = No Heat Function (After Pump Delay)
+    
+40 = Lockout
+    
+32764 = Busy with updating status
+    
+32765 = DHW blocked due to no present tank sensor
+    
+32766 = Burner control(s) manually shut down
+    
+32767 = Code not present
+  
+= initializing 	

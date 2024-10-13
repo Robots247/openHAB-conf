@@ -1,0 +1,10 @@
+sitemap Astro label="Astronomical" {
+    Frame label="Astro Binding" {
+        Group item=gAstro
+    }
+    Frame label="Time of Day" {
+    	Default item=vTimeOfDay
+    	Group item=TimeOfDay_StartTimes
+	}
+
+} 

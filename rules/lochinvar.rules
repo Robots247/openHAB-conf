@@ -1,0 +1,14 @@
+var Number DeltaT=null
+
+rule "Lochinvar Delta T"
+when
+    Item System_Outlet_Temp changed or
+    Item System_Inlet_Temp changed
+then
+    val OutletTemp = (System_Outlet_Temp.state as QuantityType<Temperature>).intValue
+    val InletTemp = (System_Inlet_Temp.state as QuantityType<Temperature>).intValue
+    DeltaT = OutletTemp - InletTemp
+
+    Lochinvar_DeltaT.sendCommand(DeltaT)
+end
+

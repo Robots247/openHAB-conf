@@ -1,0 +1,275 @@
+Group gLochinvar "Lochinvar Group"(gBoil, gHeating)
+Group gLochinvar_inputs "Lochinvar Inputs"(gLochinvar)
+Group gLochinvar_indicators "Lochinvar Indicators"(gLochinvar)
+Group gLochinvar_temperatures "Lochinvar Temperatures" (gLochinvar)
+Group gLochinvar_setpoints "Lochinvar Setpoints"(gLochinvar, gHeating)
+Group gLochinvar_switches "Lochinvar Switches" (Indicators, gLochinvar)
+Group gLochinvar_alarms "Lochinvar Alarms" (Indicators, gLochinvar)
+Group gLochinvar_pumps "Lochinvar Pumps" (gLochinvar)
+Group gLochinvar_codes "Lochinvar Codes" (gLochinvar)
+//Group gCFH (gLochinvar, Heating)
+Group gDHW "Lochinvar Domestic Hot Water" (gLochinvar)
+Group gLochinvar_limits "Lochinvar Limits" (gLochinvar)
+Group gLochinvar_contacts "Lochinvar Contacts" (gLochinvar)
+Group gLochinvar_rates "Lochinvar Rates" (gLochinvar)
+Group gLochinvar_config "Lochinvar Config" (gLochinvar)
+
+ 
+
+/*****************************************************************************************************************************     
+     
+  Coils /Coils (read/write) (do not control Boiler, refer to holding registers)
+
+*****************************************************************************************************************************/
+
+
+	Switch CFH_Hi_COIL  "Call for heat High Temp" (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Boiler_Coils:roomThermostat1:switch" }
+	Switch CFH_Med_COIL  "Call for heat Mid Temp" (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Boiler_Coils:roomThermostat2:switch" }
+	Switch CFH_Low_COIL  "Call for heat Low Temp" (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Boiler_Coils:roomThermostat3:switch" }
+	Switch Tank_Thermostat  "Hot Water Heater call for heat"{ channel="modbus:data:lochinvar:Lochinvar_Boiler_Coils:tankThermostat:switch" }
+
+
+
+
+/*****************************************************************************************************************************     
+     
+     INPUT REGISTERS (Read Only)
+
+*****************************************************************************************************************************/
+//Discrete Inputs (values non-editable on/off only)
+	//Poller Lochinvar_Discrete_Inputs_1
+
+	Contact Flow_Switch	"Boiler Flow Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:flowSwitch:contact" }
+	Contact Gas_Pressure_Switch	"Gas Pressure Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:gasPressureSwitch:contact" }
+	Contact Louver_Proving_Switch	"Louver Proving Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:louverProvingSwitch:contact" }
+	Contact Air_Pressure_Switch	"Air Pressure Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:airPressureSwitch:contact" }
+	Contact Blocked_Drain_Switch	"Blocked Drain Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:blockedDrainSwitch:contact" }
+	Contact Auto_Reset_High_Limit	"Auto Reset High Limit" (gLochinvar_limits,Switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:autoResetHighLimit:contact" }
+	Contact Flame_indicator "Flame Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:flame:switch" }
+	Contact CFH1_indicator	"Call for heat Temp 1 indicator" (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:roomThermostat1DI:contact" }
+	Contact CFH_DHW_indicator	"Call for heat H20 Tank indicator " (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs:tankThermostat1DI:contact" }
+
+	
+	//Poller Lochinvar_Discrete_Inputs_2
+
+	Contact CFH2_indicator	"Call For heat 2 indicator" (gCFH) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_2:roomThermostat2DI:contact" }
+	
+	//Poller Lochinvar_Discrete_Inputs_3
+
+	Contact R_T_contacts "Boiler Runtime gLochinvar_contacts" (gLochinvar_contacts){ channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:runTimeContacts:contact" }
+	Contact Alarm_contacts "Boiler Alarm Indicator" (gLochinvar_alarms){ channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:alarmCcontacts:contact" }
+	Contact CH_Pump	"CH Pump" (gLochinvar_pumps){ channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:chPump:contact" }
+	Contact DHW_Pump_indicator "DHW Pump Status" (gLochinvar_pumps) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:dhwPump:contact" }
+	Contact Gas_Valve_Switch	"Gas_Valve_Switch" (gLochinvar_switches) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:gasValve:contact" }
+	Contact System_Pump_indicator "System Pump Status" (gLochinvar_pumps) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_3:systemPump:contact" }
+	
+	//Poller Lochinvar_Discrete_Inputs_4
+	Contact DHW_Recirc_Pump_indicator "gDHW Pump Status"	(gLochinvar_pumps,gDHW) { channel="modbus:data:lochinvar:Lochinvar_Discrete_Inputs_4:dhwRecircPump:contact" }
+
+
+
+
+/*****************************************************************************************************************************     
+     
+     INPUT REGISTERS (Read Only)
+
+*****************************************************************************************************************************/
+	//(add. 30001-30016)
+
+	//Discrete Inputs
+		String Discrete_inputs_1_16	"Discrete inputs 1-16" (gLochinvar_inputs) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarDiscreteInputs0116:number" }
+		String Discrete_inputs_17_32	"Discrete_inputs_17-32" (gLochinvar_inputs) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarDiscreteInputs1732:number" }
+		String Discrete_inputs_32_48	"Discrete_inputs_32-48" (gLochinvar_inputs)	{ channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarDiscreteInputs3348:number" }
+	//Input Temps (if running cascade, this is the cascade setpoint)
+	
+		Number System_Temp_Setpoint	"Boiler System Setpoint [%.1f °F]" (gLochinvar_setpoints) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarSystemSetPoint:number" }
+	//Cascade items not included in Lochinvar Setup
+	// Cascade Total Power
+	// Cascade Current Power	
+		// System temps
+		Number:Temperature System_Outlet_Setpoint	"System Outlet Setpoint [%.1f °F]" (gLochinvar_setpoints) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletSetPoint:number" }
+		Number:Temperature System_Outlet_Temp	"System Outlet Temperature [%.1f °F]  " (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletTemperature:number" }
+//OLD 		Number System_Inlet_Temp	"System Inlet Temperature [%.1f °F]" (Temperatures) {modbus="<[Sys_Temps:2:transformation=JS(MBtoF.js)]"}
+		Number:Temperature System_Inlet_Temp	"System Inlet Temperature [%.1f °F]" (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarInletTemperature:number" }
+
+
+		Number:Temperature Boiler_flue_Temp	"Boiler Flue Temperature [%.1f °F]" (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarFlueTemperature:number" }
+	
+	
+	//Input System gLochinvar_rates
+		Number System_Pump_Speed "System Pump Speed [%d %%]" (gLochinvar_pumps) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarSystemPumpSpeed:number" }
+		//cascades commented out due to not used in this system
+		//Number Cascade_Total_Power "Cascade Total Power [%d %%]" (gLochinvar_inputs) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarCascadeTotalPower:number" }
+		//Number Cascade_Current_Power "Cascade Current Power [%d %%]" (gLochinvar_inputs) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarCascadeCurrentPower:number" }
+		
+		
+	//Input Boiler gLochinvar_rates	
+		Number Boiler_Firing_Rate "Boiler Firing Rate [%d %%]" (gLochinvar_rates) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarFiringRate:number" }
+		Number Boiler_Pump_Speed "Boiler Pump Speed [%d %%]" (gLochinvar_pumps) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerPumpSpeed:number" }
+	
+	
+	
+	
+	
+	
+	//Input Boiler Status gLochinvar_codes
+		Number Boiler_Status_Code	"Boiler Status:[MAP(LochinvarBoilerStatus.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerStatusCode:number" }
+		/******************************************************************************************************************************
+
+BOILER STATSUS CODES:
+   		     
+Status gLochinvar_codes (Input Register 30014)
+2 = Heat Demand blocked due to high absolute outlet
+temperature
+3 = Heat Demand blocked due to high absolute flue
+temperature
+4 = Heat Demand blocked due to high absolute Delta T
+(Outlet - Inlet)
+8 = Heat Demand blocked due to Low 24 VAC
+9 = Outdoor shutdown
+10 = Block due to switch OFF boiler (ON/OFF of Display)
+12 = Block due to no correct communication Cascade
+16 = Service function
+19 = gDHW function Storage Tank
+21 = SH function Heat demand from Room Thermostat
+22 = SH function Heat demand from Boiler Management
+System
+23 = SH function Heat demand from Cascade
+30 = Heat demand activated by Freeze Protection
+32 = gDHW Pump Delay
+33 = SH Pump Delay
+34 = No heat function (after pump delay)
+40 = Lockout
+32764 = Busy with updating status
+32765 = gDHW blocked due to no present tank sensor
+32766 = Burner control(s) manually shut down
+32767 = Code not present
+
+
+
+******************************************************************************************************************************/
+	
+	
+	//Input Boiler_Blocking_gLochinvar_codes
+		Number Boiler_Blocking "Blocking Code: [MAP(LochinvarErrorCodes.map):%s]" (gLochinvar_codes){ channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerBlockingCode:number" }
+
+
+
+/******************************************************************************************************************************
+BOILER BLOCKING CODES:
+   		     
+Blocking gLochinvar_codes (Input Register 30015)
+0 = No blocking _> is divided into sub blockings
+1 = SH blocking
+2 = Blocking Due to Low 24 VAC Supply
+3 = Blocking due to General block
+4 = Blocking MRHL is open
+5 = Blocking due to Switched OFF boiler (Display ENTER
+switch)
+6 = Blocking due to wrong communication of Cascade
+7 = Blocking due to High Delta
+8 = Blocking due to High Flue Temperature
+9 = Blocking due to High Outlet Temperature
+10 = Service blocking
+12 = gDHW blocking high outlet temperature (gDHW configured
+as storage tank)
+13 = Blocking anti-cycling time
+14 = Storage Tank demand Blocked due to Fan problems
+15 = No system sensor connected and leader control present
+16 = Limit fan speed due to high outlet temperature
+17 = Fan min decreased due to low flame current
+18 = Limit max fan speed due to high Delta T
+19 = Limit max fan speed due to high flue temp
+32767 = Code not present
+
+******************************************************************************************************************************/	
+	
+	
+	
+	
+	//Input Boiler Lockout gLochinvar_codes
+		Number Boiler_Lockout_Code "Lockout code: [MAP(LochinvarLOC.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerLockoutCode:number" }
+
+	
+
+/******************************************************************************************************************************
+BOILER LOCKOUT CODES
+ 		     
+161 = EEPROM code Parameters not Re-Programmed by Lochinvar
+164 = EEPROM code No Reset Allowed (> 15 minutes)
+166 = EEPROM code Auto Reset High Limit
+167 = EEPROM code Blocked Drain
+168 = EEPROM code Louver Proving
+169 = EEPROM code Gas Pressure Sw
+170 = EEPROM code Flow Switch
+177 = Sensor 3 short (Flue Sensor)
+178 = Sensor 3 open (Flue Sensor)
+179 = Sensor 2 short (Inlet Sensor)
+180 = Sensor 2 open (Inlet Sensor)
+192 = Sensor 1 short (Outlet Sensor)
+193 = Sensor 1 open (Outlet Sensor)
+204 = CRC EEPROM failed
+205 = EEPROM programmed (display shows “PP”)
+206 = EEPROM error in programming
+207 = Write error EEPROM
+229 = EEPROM code Watch Dog
+230 = EEPROM code fan low (should be high)
+231 = EEPROM code fan high (should be low)
+232 = EEPROM code no flame when running
+233 = EEPROM code no flame after ignition
+234 = EEPROM code simultaneous output APS and Fan
+235 = EEPROM code APS active not Closed
+236 = EEPROM code APS active not Open
+237 = EEPROM code flame out of sequence
+239 = EEPROM code when gas valve relay test fails
+240 = EEPROM code MRHL
+
+******************************************************************************************************************************/
+
+
+
+/*****************************************************************************************************************************     
+     
+     Holding Registers (see Things file for info on controlling boiler
+
+*****************************************************************************************************************************/
+	
+		//Config Bits 
+		Switch	lochinvarConf_boilerEnable "Lochinvar Config Boiler enable" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_boiler_enable:switch" }
+		Switch	lochinvarConf_tankThermostat "Lochinvar Config Tank Thermostat"(glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Tank_Thermostat:switch" }
+		Switch 	lochinvarConf_Rate_Command "Lochinvar Config Rate Command" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarBoilerBlockingCode:switch" }
+		Switch 	lochinvarConf_Tank_Setpoint "Lochinvar Config Tank Setpoint" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Tank_Setpoint:switch" }
+		Switch	lochinvarConf_System_Supply_Temp "Lochinvar Config System Supply Temp" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_System_Supply_Temp:switch" }
+		Switch 	lochinvarConf_Outdoor_Temp "Lochinvar Config Outdoor Temp" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Outdoor_Temp:switch" }
+		Switch 	lochinvarConf_Tank_Temp "Lochinvar Config Tank Temp" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Tank_Temp:switch" }
+		Switch 	lochinvarConf_Return_Temp "Lochinvar Config Return Temp" (glochinvar_Config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Return_Temp:switch" }
+		
+		//Coils (controls boiler gCFH)
+
+		Number Write_Boiler_Coils	"Write_Boiler Coils" (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_Coils:number" }
+		//0-10V Input/ Rate Command /Setpoint Command %
+
+		Number input_RateCommand_SetpointCommand "Input 0-10V, Rate Command, & Setpoint Command [%d %%]" (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_RateCommand:number" }
+
+		//Temps
+		Number:Temperature DHW_Tank_Setpoint "DHW Tank Temperature Setpoint [%.1f °F]" (gDHW,gLochinvar_setpoints,gLochinvar_inputs){ channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_TankSetpoint:number" }
+		Number:Temperature DHW_Tank_Temperature "DHW Tank Temperature [%.1f °F]" (gLochinvar_temperatures, gDHW, gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_TankTemperature:number" }
+		Number:Temperature Outdoor_Temperature "Outdoor Temperature [%.1f °F]"(gLochinvar_temperatures, gOutdoor_Sensors_AVG,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_OutdoorTemperature:number" }
+		Number:Temperature System_Supply_Temp "System Supply Temperature [%.1f °F]" (gLochinvar_temperatures,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_SystemSupplyTemperatureHR:number" }
+		Number:Temperature DHW_Recirc_Temp "DHW Recirculation Temperature [%.1f °F] " (gLochinvar_temperatures,gDHW,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_SystemReturnTemp:number" }
+	
+
+
+		
+//calculated values
+Number:Temperature Lochinvar_DeltaT "Lochinvar boiler deltaT (outlet-input) [%.1f °F]" (gLochinvar_temperatures)
+Number Lochinvar_cycles "Lochinvar Cycle Count today" 
+Number Lochinvar_cyclesHour "Lochinvar Cycle Count this hour"
+
+
+
+
+
+
+
+

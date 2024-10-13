@@ -1,0 +1,86 @@
+sitemap Heating_Presets label="Heating_Presets" {
+
+	Frame label="Hysteresis Values" {
+		Setpoint item=ZV_HysteresisHigh minValue=0	maxValue=10	step=0.1
+		Setpoint item=ZV_HysteresisLow minValue=0	maxValue=10	step=0.1
+		Setpoint item=RH_HysteresisHigh minValue=0	maxValue=10	step=0.1
+		Setpoint item=RH_HysteresisLow minValue=0	maxValue=10	step=0.1
+	}
+		Frame label="Normal Setpoints" {
+        Setpoint item=MR_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempNormal  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempNormal label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempNormal minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="Home Setpoints" {
+        Setpoint item=MR_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempHome  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempHome label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempHome minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="Away Setpoints" {
+        Setpoint item=MR_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempAway  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempAway label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempAway minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="Pika Home Setpoints" {
+        Setpoint item=MR_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempPika  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempPika label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempPika minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="Company" {
+        Setpoint item=MR_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempCompany  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempCompany label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempCompany minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="Bedtime" {
+        Setpoint item=MR_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempBedtime  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempBedtime label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempBedtime minValue=60 maxValue=80 step=1
+    }	
+    	Frame label="OFF Summer" {
+        Setpoint item=MR_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+   		Setpoint item=DEN_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+        Setpoint item=KIT_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+   		Setpoint item=LR_Heating_PresetTempSummer  minValue=60 maxValue=80 step=1
+        Setpoint item=MBa_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+   		Setpoint item=MBe_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+        Setpoint item=BMT_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+   		Setpoint item=GA_Heating_PresetTempSummer label="GAMS_Temp" minValue=60 maxValue=80 step=1
+   		Setpoint item=GBr_Heating_PresetTempSummer minValue=60 maxValue=80 step=1
+    }	
+}

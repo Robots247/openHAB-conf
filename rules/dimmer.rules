@@ -1,0 +1,834 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
+//Virtual dimmer rules for Homeseer switches that control Phillips Hue Lighting
+//All lighting and dimming functions are calculated in the housebrain and the dimmer switches are not connected to the load.
+var Timer timer = null // global variable
+var Timer LEDTimer = null
+
+        rule "Den Dimmer Scenes"
+        when
+            Item DENCanDimmerSceneNumber received update
+        then
+        {
+            //Homeseer Switch states
+            /*[Paddle Direction] . [Action]
+
+        [Paddle Direction]
+        1.n = Top
+        2.n = Bottom
+
+        [Action]
+        n.0 = 1 Click
+        n.1 = Release
+        n.2 = Hold
+        n.3 = 2 Clicks
+        n.4 = 3 Clicks
+        n.5 = 4 Clicks
+        n.6 = 5 Clicks
+
+        e.g.
+        1.3 = Top, 2 Clicks
+        2.0 = Bottom, 1 Click
+            */
+
+            
+            switch(DENCanDimmerSceneNumber.state) {
+                /*ON*/
+                case 1.0 : {							/* Single Tap ON */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Single Tap: ON")
+                    vSceneNumber.sendCommand(11)
+                    sceneLocation.sendCommand("DEN")
+                    vSceneLoad.sendCommand(ON)
+                    }
+                case 1.1 : {							/* Released */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Dimmer up has been released")
+                    //see dimmer.rules
+                    }
+                case 1.2 : {							/* Hold */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Dimmer Up Held down")
+                    //see dimmer.rules
+                    }		
+                case 1.3 : {							/* Double Tap ON */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Double Tap: ON, setting Dencans to 100%")
+                    gDEN_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Can")){
+                            i.sendCommand(100)
+                        }
+                    ]	
+                    }
+
+
+                
+                
+                    case 1.4 : {							/* Triple Tap ON */
+                    
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Tripple Tap: ON")
+                    sceneLocation.sendCommand("DEN")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("LR")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("BMT")
+                    vSceneLoad.sendCommand(ON)
+                }
+                case 1.5 : {							/* Quadruple Tap ON */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Quad Tap: ON")
+                    sceneLocation.sendCommand("DEN")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("LR")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("BMT")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("REC")
+                    vSceneLoad.sendCommand(ON)
+                    }
+
+                    case 1.6 : {							/* Pentuple Tap ON */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Pentuple Tap: ON")
+                    gLights.sendCommand(ON)
+                }
+                
+                /*OFF*/
+                case 2.0 : {							/* Single Tap OFF */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Single Tap: OFF")
+                        vDEN_Scene_11.sendCommand(new DateTimeType(now.toString()))
+                        gDENCans.sendCommand(OFF)
+
+                }
+                case 2.1 : {							/* Released */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Dimmer Down has been released")
+                    
+                    }
+                case 2.2 : {							/* Hold */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Dimmer Down Held Down")
+                    
+                    }		
+                case 2.3 : {							/* Double Tap OFF */
+                    logInfo("RULE.Den.Dimmer.Scenes", "Den Double Tap: OFF")
+                    gDEN_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Den")){
+                            i.sendCommand(OFF)
+                        }
+                    ]	
+                    
+                    
+                    }
+                case 2.4 : { 							/* Tripple Tap OFF */
+                logInfo("RULE.Den.Dimmer.Scenes", "Den Tripple Tap: OFF")
+                    gMF_Lighting.sendCommand(0)
+                }
+                case 2.5 : { 							/* Tripple Tap OFF */
+                logInfo("RULE.Den.Dimmer.Scenes", "Den Quad Tap: OFF")
+                sceneLocation.sendCommand("DEN")
+                    sceneNumber.sendCommand(5)
+                    vSceneLoad.sendCommand(ON)
+                    
+                }
+                case 2.6 : { 							/* Tripple Tap OFF */
+                logInfo("RULE.Den.Dimmer.Scenes", "Den Pentuple Tap: OFF")
+                gLights.sendCommand(OFF)
+                    
+                }
+            }
+        }
+        end
+        /*
+        rule "Den Can Dimmer Forward"
+        when
+            Item DenCanDimmer changed
+        then
+            logDebug("Rule.Dencandimmerforward", "DenCanDimmer state sent to Dencans")
+            gDENCans.sendCommand(DenCanDimmer.state.toString)	
+        end
+        */
+        //set location and scene via sitemap
+        rule "DEN Scenesave"
+        when
+            Item vSceneSave received command ON
+        then
+        //store the timestamp
+            val sceneItem = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + sceneNumber.state)
+
+            logDebug("RULE.scenesave", "scene Number = " + sceneNumber.state)
+            logDebug("RULE.scenesave", "SceneLocation =" + sceneLocation.state)
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem.state)
+
+
+
+            sceneItem.sendCommand(new DateTimeType(now.toString()))
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem)
+            vSceneSave.postUpdate(OFF)
+
+        end
+
+
+        //Den Dimmer functions
+        rule "set Den dimmer status on light change"
+        when
+            Member of gDENCans received command
+        then    
+            var newState = (gDenCansAvg.state as Number) * 100
+            
+            //if the dimming isn't being controlled from the dimmer
+            if (DENCanDimmerSceneNumber.state != 2.2 || DENCanDimmerSceneNumber.state != 1.2){
+                DenCanDimmer.sendCommand(newState)
+            }
+            
+        end
+        rule "dim Den lights"
+        when
+            Item DENCanDimmerSceneNumber changed
+        then
+            if(DENCanDimmerSceneNumber.state == 2.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                timer = createTimer(now, [ |
+                    var dimmerValue = (gDenCansAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    dimmerValue = dimmerValue - 10
+                    if (dimmerValue < 0) dimmerValue = 0
+                    
+                    /*//actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) DENCanDimmerConfigDecimalParam21.sendCommand(0)
+                    if (LEDValue > 1 && LEDValue < 2) DENCanDimmerConfigDecimalParam22.sendCommand(0)
+                    if (LEDValue > 2 && LEDValue < 3) DENCanDimmerConfigDecimalParam23.sendCommand(0)
+                    if (LEDValue > 3 && LEDValue < 4) DENCanDimmerConfigDecimalParam24.sendCommand(0)
+                    if (LEDValue > 4 && LEDValue < 5) DENCanDimmerConfigDecimalParam25.sendCommand(0)
+                    if (LEDValue > 5 && LEDValue < 6) DENCanDimmerConfigDecimalParam26.sendCommand(0)
+                    if (LEDValue > 6 && LEDValue < 7) DENCanDimmerConfigDecimalParam27.sendCommand(0)
+                    */
+
+                    gDENCans.sendCommand(dimmerValue)
+                    // Update curr status
+                    DenCanDimmer.postUpdate(dimmerValue)
+                    if(dimmerValue > 0) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "brighten Den lights"
+        when
+            Item DENCanDimmerSceneNumber changed
+        then
+            if(DENCanDimmerSceneNumber.state == 1.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                //set leds to custom value
+                //DENCanDimmerConfigDecimalParam13.sendCommand(1)
+                
+                //run timer code immediately
+                timer = createTimer(now, [ |
+                    
+                    var dimmerValue = (gDenCansAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    //increment the dimmer value
+                    dimmerValue = dimmerValue + 10
+                
+                    //set to 100 if over 100
+                    if (dimmerValue > 100) dimmerValue = 100
+                    
+                /* //actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) DENCanDimmerConfigDecimalParam21.sendCommand(7)
+                    if (LEDValue > 1 && LEDValue < 2) DENCanDimmerConfigDecimalParam22.sendCommand(7)
+                    if (LEDValue > 2 && LEDValue < 3) DENCanDimmerConfigDecimalParam23.sendCommand(7)
+                    if (LEDValue > 3 && LEDValue < 4) DENCanDimmerConfigDecimalParam24.sendCommand(7)
+                    if (LEDValue > 4 && LEDValue < 5) DENCanDimmerConfigDecimalParam25.sendCommand(7)
+                    if (LEDValue > 5 && LEDValue < 6) DENCanDimmerConfigDecimalParam26.sendCommand(7)
+                    if (LEDValue > 6 && LEDValue < 7) DENCanDimmerConfigDecimalParam27.sendCommand(7)
+                    */
+                    
+                    
+
+                    gDENCans.sendCommand(dimmerValue)
+                    if(dimmerValue < 100) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "Cancel DENCans"
+        when
+            Item DENCanDimmerSceneNumber changed  
+        then
+            if (DENCanDimmerSceneNumber.state == 2.1 || DENCanDimmerSceneNumber.state == 1.1){// Cancel the timer if there is one, the ? will cause the line to be skipped if timer is null
+            timer?.cancel
+            timer = null
+        
+            logInfo("rule.cancel DENCans", "Den Dimming Cancelled")
+            
+            LEDTimer = createTimer(now.plusSeconds(10)) [ |
+                //DENCanDimmerConfigDecimalParam13.sendCommand(0)
+                // Update curr status
+                DenCanDimmer.postUpdate(gDENCans.state)
+            
+            /* gDenCanDimmerLEDColors.members.forEach[ i | 
+                if (i.state == 7)i.sendCommand(3)
+                ]*/
+            ]
+
+            }
+        end
+
+//REC ROOM LIGHTING FUNCTIONS
+    //REC Dimmer Scenes
+
+       rule "REC Dimmer Scenes"
+        when
+            Item RECCanDimmerSceneNumber received update
+        then
+        {
+            //Homeseer Switch states
+            /*[Paddle Direction] . [Action]
+
+        [Paddle Direction]
+        1.n = Top
+        2.n = Bottom
+
+        [Action]
+        n.0 = 1 Click
+        n.1 = Release
+        n.2 = Hold
+        n.3 = 2 Clicks
+        n.4 = 3 Clicks
+        n.5 = 4 Clicks
+        n.6 = 5 Clicks
+
+        e.g.
+        1.3 = Top, 2 Clicks
+        2.0 = Bottom, 1 Click
+            */
+
+            
+            switch(RECCanDimmerSceneNumber.state) {
+                /*ON*/
+                case 1.0 : {							/* Single Tap ON */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Single Tap: ON")
+                    vSceneNumber.sendCommand(11)
+                    sceneLocation.sendCommand("REC")
+                    vSceneLoad.sendCommand(ON)
+                    }
+                case 1.1 : {							/* Released */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Dimmer up has been released")
+                    //see dimmer.rules
+                    }
+                case 1.2 : {							/* Hold */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Dimmer Up Held down")
+                    //see dimmer.rules
+                    }		
+                case 1.3 : {							/* Double Tap ON */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Double Tap: ON, setting RECcans to 100%")
+                    gREC_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Can")){
+                            i.sendCommand(100)
+                        }
+                    ]	
+                    }
+
+
+                
+                
+                    case 1.4 : {							/* Triple Tap ON */
+                    
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Tripple Tap: ON")
+                    BmtHallSW.sendCommand(ON)
+                }
+                case 1.5 : {							/* Quadruple Tap ON */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Quad Tap: ON")
+                    sceneLocation.sendCommand("REC")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("LR")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("BMT")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("DEN")
+                    vSceneLoad.sendCommand(ON)
+                    }
+
+                    case 1.6 : {							/* Pentuple Tap ON */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Pentuple Tap: ON")
+                    gLights.sendCommand(ON)
+                }
+                
+                /*OFF*/
+                case 2.0 : {							/* Single Tap OFF */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Single Tap: OFF")
+                        vRec_Scene_11.sendCommand(new DateTimeType(now.toString()))
+                        gRecCans.sendCommand(OFF)
+
+                }
+                case 2.1 : {							/* Released */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Dimmer Down has been released")
+                    
+                    }
+                case 2.2 : {							/* Hold */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Dimmer Down Held Down")
+                    
+                    }		
+                case 2.3 : {							/* Double Tap OFF */
+                    logInfo("RULE.REC.Dimmer.Scenes", "REC Double Tap: OFF")
+                    gREC_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Rec")){
+                            i.sendCommand(0)
+                        }
+                    ]	
+                    
+                    
+                    }
+                case 2.4 : { 							/* Tripple Tap OFF */
+                logInfo("RULE.REC.Dimmer.Scenes", "REC Tripple Tap: OFF")
+                    BmtHallSW.sendCommand(OFF)
+                }
+                case 2.5 : { 							/* Quadruple Tap OFF */
+                logInfo("RULE.REC.Dimmer.Scenes", "REC Quad Tap: OFF")
+               gMF_Lighting.sendCommand(0)
+                    
+                }
+                case 2.6 : { 							/* Pentuple Tap OFF */
+                logInfo("RULE.REC.Dimmer.Scenes", "REC Pentuple Tap: OFF")
+                gLights.sendCommand(OFF)
+                    
+                }
+            }
+        }
+        end
+        /*
+        rule "REC Can Dimmer Forward"
+        when
+            Item RECCanDimmer changed
+        then
+            logDebug("Rule.RECcandimmerforward", "RECCanDimmer state sent to RECcans")
+            gRECCans.sendCommand(RECCanDimmer.state.toString)	
+        end
+        */
+        //set location and scene via sitemap
+        rule "REC Scenesave"
+        when
+            Item vSceneSave received command ON
+        then
+        //store the timestamp
+            val sceneItem = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + sceneNumber.state)
+
+            logDebug("RULE.scenesave", "scene Number = " + sceneNumber.state)
+            logDebug("RULE.scenesave", "SceneLocation =" + sceneLocation.state)
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem.state)
+
+
+
+            sceneItem.sendCommand(new DateTimeType(now.toString()))
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem)
+            vSceneSave.postUpdate(OFF)
+
+        end
+    //Rec Room Dimmer Functions
+        rule "set Rec dimmer status on light change"
+        when
+            Member of gRecCans changed
+        then    
+            var newStaterec = (gRECCansAvg.state as Number) * 100
+            
+            //if the dimming isn't being controlled from the dimmer
+            if (RECCanDimmerSceneNumber.state != 2.2 || RECCanDimmerSceneNumber.state != 1.2){
+                RECCanDimmer.sendCommand(newStaterec)
+                logDebug("rec dimmer status rule", "dimmer status updated to " + newState)
+            }
+            
+        end
+        rule "dim REC lights"
+        when
+            Item RECCanDimmerSceneNumber changed
+        then
+            if(RECCanDimmerSceneNumber.state == 2.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                timer = createTimer(now, [ |
+                    var dimmerValue = (gRECCansAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    dimmerValue = dimmerValue - 10
+                    if (dimmerValue < 0) dimmerValue = 0
+                    
+                    /*//actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) RECCanDimmerConfigDecimalParam21.sendCommand(0)
+                    if (LEDValue > 1 && LEDValue < 2) RECCanDimmerConfigDecimalParam22.sendCommand(0)
+                    if (LEDValue > 2 && LEDValue < 3) RECCanDimmerConfigDecimalParam23.sendCommand(0)
+                    if (LEDValue > 3 && LEDValue < 4) RECCanDimmerConfigDecimalParam24.sendCommand(0)
+                    if (LEDValue > 4 && LEDValue < 5) RECCanDimmerConfigDecimalParam25.sendCommand(0)
+                    if (LEDValue > 5 && LEDValue < 6) RECCanDimmerConfigDecimalParam26.sendCommand(0)
+                    if (LEDValue > 6 && LEDValue < 7) RECCanDimmerConfigDecimalParam27.sendCommand(0)
+                    */
+
+                    gRecCans.sendCommand(dimmerValue)
+                    // Update curr status
+                    RECCanDimmer.postUpdate(dimmerValue)
+                    if(dimmerValue > 0) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "brighten REC lights"
+        when
+            Item RECCanDimmerSceneNumber changed
+        then
+            if(RECCanDimmerSceneNumber.state == 1.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                //set leds to custom value
+                //RECCanDimmerConfigDecimalParam13.sendCommand(1)
+                
+                //run timer code immediately
+                timer = createTimer(now, [ |
+                    
+                    var dimmerValue = (gRECCansAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    //increment the dimmer value
+                    dimmerValue = dimmerValue + 10
+                
+                    //set to 100 if over 100
+                    if (dimmerValue > 100) dimmerValue = 100
+                    
+                /* //actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) RECCanDimmerConfigDecimalParam21.sendCommand(7)
+                    if (LEDValue > 1 && LEDValue < 2) RECCanDimmerConfigDecimalParam22.sendCommand(7)
+                    if (LEDValue > 2 && LEDValue < 3) RECCanDimmerConfigDecimalParam23.sendCommand(7)
+                    if (LEDValue > 3 && LEDValue < 4) RECCanDimmerConfigDecimalParam24.sendCommand(7)
+                    if (LEDValue > 4 && LEDValue < 5) RECCanDimmerConfigDecimalParam25.sendCommand(7)
+                    if (LEDValue > 5 && LEDValue < 6) RECCanDimmerConfigDecimalParam26.sendCommand(7)
+                    if (LEDValue > 6 && LEDValue < 7) RECCanDimmerConfigDecimalParam27.sendCommand(7)
+                    */
+                    
+                    
+
+                    gRecCans.sendCommand(dimmerValue)
+                    if(dimmerValue < 100) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "Cancel RECCans"
+        when
+            Item RECCanDimmerSceneNumber changed  
+        then
+            if (RECCanDimmerSceneNumber.state == 2.1 || RECCanDimmerSceneNumber.state == 1.1){// Cancel the timer if there is one, the ? will cause the line to be skipped if timer is null
+            timer?.cancel
+            timer = null
+        
+            logInfo("rule.cancel RECCans", "REC Dimming Cancelled")
+            
+            LEDTimer = createTimer(now.plusSeconds(10)) [ |
+                //RECCanDimmerConfigDecimalParam13.sendCommand(0)
+                // Update curr status
+                RECCanDimmer.postUpdate(gRecCans.state)
+            
+            /* gRECCanDimmerLEDColors.members.forEach[ i | 
+                if (i.state == 7)i.sendCommand(3)
+                ]*/
+            ]
+
+            }
+        end
+
+
+//Kitchen Dimmer Functions
+/*KITCHEN DIMMER LOGIC
+
+single tap on = scene recall for Time of day
+Double tap on = Stove light on only
+Triple tap on = counters on
+Quad tap on = all kitchen on
+pent tap on = all upstairs lights to Time of day scene
+
+single tap OFF = Kit Main Light off
+Double tap OFF = Stove light OFF only
+Triple tap OFF = counters OFF
+Quad tap OFF = all kitchen OFF
+pent tap OFF = all upstairs lights OFF
+
+TODO: Set Mode toggle to dim all kitchen lights with dimmer
+
+
+*/
+    //Kit Dimmer Scenes
+
+       rule "Kitchen Dimmer Scenes"
+        when
+            Item KitDimmerSceneNumber received update
+        then
+        {
+            //Homeseer Switch states
+            /*[Paddle Direction] . [Action]
+
+        [Paddle Direction]
+        1.n = Top
+        2.n = Bottom
+
+        [Action]
+        n.0 = 1 Click
+        n.1 = Release
+        n.2 = Hold
+        n.3 = 2 Clicks
+        n.4 = 3 Clicks
+        n.5 = 4 Clicks
+        n.6 = 5 Clicks
+
+        e.g.
+        1.3 = Top, 2 Clicks
+        2.0 = Bottom, 1 Click
+            */
+
+            
+            switch(KitDimmerSceneNumber.state) {
+                /*ON*/
+                case 1.0 : {							/* Single Tap ON */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Single Tap: ON, Den Dinner Scene Activated")
+                    vSceneNumber.sendCommand(11)
+                    sceneLocation.sendCommand("Kit")
+                    vSceneLoad.sendCommand(ON)
+                    }
+                case 1.1 : {							/* Released */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Dimmer up has been released")
+                    //see dimmer.rules
+                    }
+                case 1.2 : {							/* Hold */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Dimmer Up Held down")
+                    //see dimmer.rules
+                    }		
+                case 1.3 : {							/* Double Tap ON */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Double Tap: ON, setting Kitchen Lights to 100%")
+                    gKit_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Light")){
+                            i.sendCommand(100)
+                        }
+                    ]	
+                    }
+
+
+                
+                
+                    case 1.4 : {							/* Triple Tap ON */
+                    
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Tripple Tap: ON")
+                    Kit_Counter.sendCommand(ON)
+                }
+                case 1.5 : {							/* Quadruple Tap ON */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Quad Tap: ON")
+                    sceneLocation.sendCommand("Kit")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("LR")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("BMT")
+                    vSceneLoad.sendCommand(ON)
+                    sceneLocation.sendCommand("DEN")
+                    vSceneLoad.sendCommand(ON)
+                    }
+
+                    case 1.6 : {							/* Pentuple Tap ON */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Pentuple Tap: ON")
+                    gLights.sendCommand(ON)
+                }
+                
+                /*OFF*/
+                case 2.0 : {							/* Single Tap OFF */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Single Tap: OFF")
+                       // vRec_Scene_11.sendCommand(new DateTimeType(now.toString()))
+                        //gRecCans.sendCommand(OFF)
+
+                }
+                case 2.1 : {							/* Released */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Dimmer Down has been released")
+                    
+                    }
+                case 2.2 : {							/* Hold */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Dimmer Down Held Down")
+                    
+                    }		
+                case 2.3 : {							/* Double Tap OFF */
+                    logInfo("RULE.Kit.Dimmer.Scenes", "Kit Double Tap: OFF")
+                    gKit_Lighting.members.forEach[i | 
+                        if(i.name.contains ("Light")){
+                            i.sendCommand(0)
+                        }
+                    ]	
+                    
+                    
+                    }
+                case 2.4 : { 							/* Tripple Tap OFF */
+                logInfo("RULE.Kit.Dimmer.Scenes", "Kit Tripple Tap: OFF")
+                    Kit_Counter.sendCommand(OFF)
+                }
+                case 2.5 : { 							/* Quadruple Tap OFF */
+                logInfo("RULE.Kit.Dimmer.Scenes", "Kit Quad Tap: OFF")
+               gKit_Lighting.sendCommand(0)
+                    
+                }
+                case 2.6 : { 							/* Pentuple Tap OFF */
+                logInfo("RULE.Kit.Dimmer.Scenes", "Kit Pentuple Tap: OFF")
+                gLights.sendCommand(OFF)
+                    
+                }
+            }
+        }
+        end
+        /*
+        rule "Kit Can Dimmer Forward"
+        when
+            Item KitCanDimmer changed
+        then
+            logDebug("Rule.Kitcandimmerforward", "KitCanDimmer state sent to Kitcans")
+            gKitCans.sendCommand(KitCanDimmer.state.toString)	
+        end
+        
+        //set location and scene via sitemap
+        rule "Kit Scenesave"
+        when
+            Item vSceneSave received command ON
+        then
+        //store the timestamp
+            val sceneItem = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + sceneNumber.state)
+
+            logDebug("RULE.scenesave", "scene Number = " + sceneNumber.state)
+            logDebug("RULE.scenesave", "SceneLocation =" + sceneLocation.state)
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem.state)
+
+
+
+            sceneItem.sendCommand(new DateTimeType(now.toString()))
+            logDebug("RULE.scenesave", "scene Item =" + sceneItem)
+            vSceneSave.postUpdate(OFF)
+
+        end
+    //Kitchen Dimmer Functions
+        rule "set Kitchen dimmer status on light change"
+        when
+            Member of gRecCans changed
+        then    
+            var newStaterec = (gKitCansAvg.state as Number) * 100
+            
+            //if the dimming isn't being controlled from the dimmer
+            if (KitCanDimmerSceneNumber.state != 2.2 || KitCanDimmerSceneNumber.state != 1.2){
+                KitCanDimmer.sendCommand(newStaterec)
+                logDebug("rec dimmer status rule", "dimmer status updated to " + newState)
+            }
+            
+        end
+
+      
+        rule "dim Kit lights"
+        when
+            Item KitCanDimmerSceneNumber changed
+        then
+            if(KitDimmerSceneNumber.state == 2.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                timer = createTimer(now, [ |
+                    var dimmerValue = (gKitAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    dimmerValue = dimmerValue - 10
+                    if (dimmerValue < 0) dimmerValue = 0
+                    
+                    actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) KitCanDimmerConfigDecimalParam21.sendCommand(0)
+                    if (LEDValue > 1 && LEDValue < 2) KitCanDimmerConfigDecimalParam22.sendCommand(0)
+                    if (LEDValue > 2 && LEDValue < 3) KitCanDimmerConfigDecimalParam23.sendCommand(0)
+                    if (LEDValue > 3 && LEDValue < 4) KitCanDimmerConfigDecimalParam24.sendCommand(0)
+                    if (LEDValue > 4 && LEDValue < 5) KitCanDimmerConfigDecimalParam25.sendCommand(0)
+                    if (LEDValue > 5 && LEDValue < 6) KitCanDimmerConfigDecimalParam26.sendCommand(0)
+                    if (LEDValue > 6 && LEDValue < 7) KitCanDimmerConfigDecimalParam27.sendCommand(0)
+                    
+
+                    gKit_Lights.sendCommand(dimmerValue)
+                    // Update curr status
+                    //KitCanDimmer.postUpdate(dimmerValue)
+                    if(dimmerValue > 0) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "brighten Kit lights"
+        when
+            Item KitDimmerSceneNumber changed
+        then
+            if(KitDimmerSceneNumber.state == 1.2){
+                //cancel LED timers if running
+                LEDTimer?.cancel
+                LEDTimer = null
+                
+                //set leds to custom value
+                //KitCanDimmerConfigDecimalParam13.sendCommand(1)
+                
+                //run timer code immediately
+                timer = createTimer(now, [ |
+                    
+                    var dimmerValue = (gKitAvg.state) as Number
+                    dimmerValue = dimmerValue * 100
+                    logInfo("rule.dimlights.TESTING", dimmerValue.toString)
+                    //increment the dimmer value
+                    dimmerValue = dimmerValue + 10
+                
+                    //set to 100 if over 100
+                    if (dimmerValue > 100) dimmerValue = 100
+                    
+                //actively display LED Status
+                    var LEDValue = (dimmerValue * 7) / 100
+                    if (LEDValue > 0 && LEDValue < 1) KitCanDimmerConfigDecimalParam21.sendCommand(7)
+                    if (LEDValue > 1 && LEDValue < 2) KitCanDimmerConfigDecimalParam22.sendCommand(7)
+                    if (LEDValue > 2 && LEDValue < 3) KitCanDimmerConfigDecimalParam23.sendCommand(7)
+                    if (LEDValue > 3 && LEDValue < 4) KitCanDimmerConfigDecimalParam24.sendCommand(7)
+                    if (LEDValue > 4 && LEDValue < 5) KitCanDimmerConfigDecimalParam25.sendCommand(7)
+                    if (LEDValue > 5 && LEDValue < 6) KitCanDimmerConfigDecimalParam26.sendCommand(7)
+                    if (LEDValue > 6 && LEDValue < 7) KitCanDimmerConfigDecimalParam27.sendCommand(7)
+                    
+                    
+                    
+
+                    gKit_Lights.sendCommand(dimmerValue)
+                    if(dimmerValue < 100) timer.reschedule(now.plusSeconds(1))
+                    else timer = null
+                ])
+            }
+        end
+
+        rule "Cancel KitCans"
+        when
+            Item KitDimmerSceneNumber changed  
+        then
+            if (KitDimmerSceneNumber.state == 2.1 || KitDimmerSceneNumber.state == 1.1){// Cancel the timer if there is one, the ? will cause the line to be skipped if timer is null
+            timer?.cancel
+            timer = null
+        
+            logInfo("rule.cancel Kit", "Kit Dimming Cancelled")
+            
+            LEDTimer = createTimer(now.plusSeconds(10)) [ |
+                //KitCanDimmerConfigDecimalParam13.sendCommand(0)
+                // Update curr status
+               // KitCanDimmer.postUpdate(gRecCans.state)
+            
+             gKitCanDimmerLEDColors.members.forEach[ i | 
+                if (i.state == 7)i.sendCommand(3)
+                ]
+            ]
+
+            }
+        end
+        */
+

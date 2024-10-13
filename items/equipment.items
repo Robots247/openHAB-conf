@@ -1,0 +1,13 @@
+Group gComputers "computers" (gEquipment)
+	Group gQQVivePC "QQVIVEPC GROUP" (gComputers)
+		Switch QQVivePC_WakeOnLan "QQvivePC Wake On Lan" (gQQVivePC)
+
+
+
+
+
+
+
+	Group gQQLaptop "QQLAPTOP GROUP"(gComputers)
+		Switch QQLaptop_WakeOnLan "Garage PC Wake on lan" (gQQLaptop)
+

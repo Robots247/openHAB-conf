@@ -1,0 +1,14 @@
+sitemap Cameras label="Cameras" {
+   
+   Frame label="Outdoor Cameras" {
+    	 Frame label="Front Door" {
+                Frame {
+                        Video icon="video" url="http://10.0.0.105:8081" encoding="mjpeg"
+                }
+
+  	}
+  }
+  	Frame label="Motion Detected" {
+  		Switch item=Front_Door_Camera_Motion label="Front Door Motion Detected" icon="alarm" 
+}
+}
