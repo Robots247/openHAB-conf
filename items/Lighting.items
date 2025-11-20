@@ -78,7 +78,7 @@ Group gLightLocations "Lighting By Location" (gLighting)
 		
 			//Physical Homeseer Dimmer
 			Group gDenCanDimmer "Den Can Dimmer Items" <light> (gDen) 									
-				Dimmer DenCanDimmer "Den Can Dimmer [%.1f %%]" <light> (gZwaveNoLoad, gDenCanDimmer)  {channel="zwave:device:c603a394:node11:switch_dimmer", autoupdate="false"}
+				Dimmer DenCanDimmer "Den Can Dimmer [%.1f %%]" <light> (gZwaveNoLoad, gDenCanDimmer)  {channel="zwave:device:c603a394:node40:switch_dimmer", autoupdate="false"}
 				Number   DENCanDimmerSceneNumber            "DenCanDimmer Scene number"                              (gDenCanDimmer){channel="zwave:device:c603a394:node40:scene_number"}
 				Number   DENCanDimmerConfigDecimalParam13   "DenCanDimmer Mode of operation"                         (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param13"}
 				Number   DENCanDimmerConfigDecimalParam14   "DenCanDimmer Normal mode led colour"                    (gDenCanDimmer){channel="zwave:device:c603a394:node40:config_decimal_param14"}

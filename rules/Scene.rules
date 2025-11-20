@@ -1,5 +1,4 @@
 import org.eclipse.smarthome.model.script.ScriptServiceUtil
-import org.joda.datetime.parse.timestamp
 val String filename = "Scene Rules" 
 rule "auto Lighting"
 		// update scene according to time of day.
@@ -42,36 +41,12 @@ rule "auto Lighting"
 
 end
 
-/*
 rule "Sitemap Scene Load"
 when
 	Item vSceneLoad received command ON
 then
-val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + vSceneNumber.state)
-//logDebug("RULE.sitemapsceneload", "timestamp =" + timestamp.state)
-
-val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g" + sceneLocation.state + "_Lighting")as GroupItem
-logInfo("RULE.sitemapsceneload", "recalling the " + sceneGroup.name + " light states as they were on " + timestamp.state)
-
-val jodaTimestamp = new DateTime(timestamp.state.toString)
-//logDebug("RULE.sitemapsceneload", "jodaTimestamp =" + jodaTimestamp)
-	//(sceneLocation).members.forEach[hsb | { hsb.sendCommand(hsb.historicState(parse(timestamp),"influxdb").state.toString) } ]
-    sceneGroup.members.forEach[i | { 
-		if (i.state !=i.historicState(jodaTimestamp,"influxdb")){
-			i.sendCommand(i.historicState(jodaTimestamp,"influxdb").state.toString) 
-		} 
-			else{
-				logInfo("rule.sitemapsceneload", "state of lights = saved state. no changes made")
-			}
-	} ]
-    //(sceneLocation).members.forEach[item | { item.sendCommand(item.historicState(parse(timestamp),"influxdb").state as OnOffType) } ]
-end
-*/
-rule "Sitemap Scene Load"
-when
-	Item vSceneLoad received command ON
-then
-val timestamp = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + vSceneNumber.state)
+val timestampItem = ScriptServiceUtil.getItemRegistry.getItem("v" + sceneLocation.state + "_Scene_" + vSceneNumber.state)
+val timestamp = if (timestampItem != null) timestampItem.state else null
 logDebug("RULE.sitemapsceneload", "timestamp =" + timestamp.state)
 
 val sceneGroup = ScriptServiceUtil.getItemRegistry.getItem("g" + sceneLocation.state + "_Lighting")as GroupItem

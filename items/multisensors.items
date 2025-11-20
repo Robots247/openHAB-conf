@@ -195,6 +195,7 @@ Group gMultisensors (gEquipment)
 	Switch SensorInactive_alarm "Sensor inactive [aInfo]" (gAlarms)
 	Group gMS_Updates "sensor updates" 
 
+DateTime Date <calendar> (gAlarms) {channel="ntp:ntp:local:dateTime"}
 
 
 

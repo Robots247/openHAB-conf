@@ -1,40 +1,28 @@
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter; // Add this import statement
+
 val logName = "Time Of Day"
 val test = "test"
-
 val String filename = "astro.rules"
 
 rule "OpenHAB system started - astro"
 when 
   System started
 then
-  val sunrise = ZonedDateTime.parse(Sunrise_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  val sunset = ZonedDateTime.parse(Sunset_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  val now = now.zonedDateTime.toInstant.toEpochMilli
-  val nightState = if (now.isAfter(sunset.toInstant.toEpochMilli) || now.isBefore(sunrise.toInstant.toEpochMilli)) {
-    OFF
-  } else {
-    ON
-  }
-  Night_State.postUpdate(nightState)
+  createTimer(now.plusSeconds(180)) [|
+    logInfo(filename, "--> astro init")
+    val sunrise = ZonedDateTime.parse(Sunrise_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    val sunset = ZonedDateTime.parse(Sunset_Time.state.toString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    val currentTime = ZonedDateTime.now().toInstant()
+    val nightState = if (currentTime.isAfter(sunset.toInstant) || currentTime.isBefore(sunrise.toInstant)) {
+      OFF
+    } else {
+      ON
+    }
+    Night_State.postUpdate(nightState)
+  ]
 end
 
-/*
-rule "OpenHAB system started - astro OLD"
-when
-    System started
-then
-    createTimer(now.plusSeconds(180)) [|
-        logInfo(filename, "--> astro init")
-        if (now.isAfter((Sunset_Time.state as DateTimeType).zonedDateTime.toInstant.toEpochMilli ) ||
-            now.isBefore((Sunrise_Time.state as DateTimeType).zonedDateTime.toInstant.toEpochMilli )
-        ) {
-            Night_State.postUpdate(ON)
-        } else {
-            Night_State.postUpdate(OFF)
-        }
-    ]
-end
-*/
 rule "Update Night_State"
 when
     Item Sun_Elevation changed
@@ -55,27 +43,6 @@ then
           }
     } 
 end
-/*
-rule "Update Night_State old"
-when
-    Item Sun_Elevation changed
-then
-    if (Sun_Elevation.state > 0 | "°" ) {
-        if (Night_State.state != OFF){
-
-           Night_State.sendCommand(OFF)
-           logDebug("rule.Update Night_State", "Sun Elevation is > 0 night state OFF")
-        }
-        
-    } else {
-        if (Night_State.state != ON){ 
-          Night_State.sendCommand(ON)
-          logDebug("rule.Update Night_State", "Sun Elevation is < 0 night state ON")
-
-          }
-    } 
-end
-*/
 
 
 
@@ -97,7 +64,7 @@ when
 then
 
 
- 
+  logDebug("rule.Calculate time of day state", "Triggered by system start or astro event")
   logInfo(logName, "Calculating time of day...")
 
   // Calculate the times for the static tods and populate the associated Items
@@ -111,27 +78,25 @@ then
     logDebug(test, "morning time" + vMorning_Time)
 
   val night_start = now.withTimeAtStartOfDay.minusHours(3) 
-  	    logDebug(test, "Night Start time" + night_start) 
+        logDebug(test, "Night Start time" + night_start) 
 
   vNight_Time.postUpdate(night_start.toString)
-  	    logDebug(test, "Night Start time variable updated to " + vNight_Time.state.toString)
+        logDebug(test, "Night Start time variable updated to " + vNight_Time.state.toString)
   
   val vmidnight = now.withTimeAtStartOfDay
-
-  val vmidnighttomorrow = now.withTimeAtStartOfDay.plusDays(1)  
 
   val vlatenight = now.withTimeAtStartOfDay.plusHours(2)
 
   val bed_start = now.withTimeAtStartOfDay.plusHours(23)
-    	logDebug(test, "Bedtime Start time" + bed_start)
+      logDebug(test, "Bedtime Start time" + bed_start)
 
   vBed_Time.postUpdate(bed_start.toString)
-  		   logDebug(test, "Bedtime Start time variable updated to " + vBed_Time.state.toString)
+         logDebug(test, "Bedtime Start time variable updated to " + vBed_Time.state.toString)
 
 
   // Convert the Astro Items to Joda DateTime
   val day_start = new DateTime(Sunrise_Time.state.toString) 
-    	    logDebug(test, "sunrise updated and parsed to "+ day_start)
+          logDebug(test, "sunrise updated and parsed to "+ day_start)
 
   val evening_start = new DateTime(Sunset_Time.state.toString)
     logDebug(test, "evening_start updated and parsed to " + evening_start)
@@ -152,15 +117,15 @@ logDebug(test, "vlatenight "+ vlatenight)
 
   var curr = "UNKNOWN"
   switch now {
-  	case now.isAfter(morning_start)   && now.isBefore(day_start):       curr = "MORNING"
-  	case now.isAfter(day_start)       && now.isBefore(afternoon_start): curr = "DAY"
-  	case now.isAfter(afternoon_start) && now.isBefore(evening_start):   curr = "AFTERNOON"
-  	case now.isAfter(evening_start)   && now.isBefore(night_start):     curr = "EVENING"
-  	case now.isAfter(night_start)     && now.isBefore(vmidnight):       curr = "NIGHT"
+    case now.isAfter(morning_start)   && now.isBefore(day_start):       curr = "MORNING"
+    case now.isAfter(day_start)       && now.isBefore(afternoon_start): curr = "DAY"
+    case now.isAfter(afternoon_start) && now.isBefore(evening_start):   curr = "AFTERNOON"
+    case now.isAfter(evening_start)   && now.isBefore(night_start):     curr = "EVENING"
+    case now.isAfter(night_start)     && now.isBefore(vmidnight):       curr = "NIGHT"
     
    
     //next day 
-  	case now.isAfter(vmidnight)       && now.isBefore(vlatenight):   curr = "BED"
+    case now.isAfter(vmidnight)       && now.isBefore(vlatenight):   curr = "BED"
     case now.isAfter(vlatenight)      && now.isBefore(morning_start): curr = "LateNight"
     
   }
@@ -190,3 +155,5 @@ then
   // do stuff to do when it isn't BED time
 end 
 */
+
+

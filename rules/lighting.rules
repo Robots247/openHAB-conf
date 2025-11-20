@@ -91,7 +91,7 @@ when
 	
 then 
 	
-	GaDimValue = receivedCommand //as Number
+	GaDimValue = receivedCommand as Number
 	if (receivedCommand >= 1 || receivedCommand == ON){
 		logDebug("rule.garagelighting", "Storing Dim value as " + GaDimValue)
 		if (GA_Lights_Switch.state != ON){
