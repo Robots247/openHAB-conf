@@ -1,0 +1,99 @@
+// Constants
+// High Temp (Radiators) - Fixed high temp usually needed for recovery
+var Number HIGH_TEMP_TARGET = 180 
+
+// Radiant Curve Settings (Adjust these to tune your system)
+// At 0°F outside -> Target 130°F water
+// At 60°F outside -> Target 90°F water
+var Number DESIGN_OUTDOOR = 0
+var Number DESIGN_WATER = 130
+var Number MILD_OUTDOOR = 60
+var Number MILD_WATER = 90
+
+// Modbus Configuration Value for Control Mode 2 (Enable + Setpoint)
+// 5 = Binary 0101 (Bit 0: Enable=ON, Bit 1: Tank=OFF, Bit 2: Setpoint=ON)
+//13 = Binary 1101 (Bit 0: Enable=ON, Bit 1: Tank=ON, Bit 2: Setpoint=ON)
+var Number CONFIG_MODE_2 = 13 
+
+rule "Initialize Lochinvar Modbus Config"
+when
+    System started
+then
+    // Ensure boiler is listening to Modbus
+    // Added NULL check to prevent startup errors common in OH2
+    if (Lochinvar_Control_Mode_Config.state == NULL || Lochinvar_Control_Mode_Config.state != CONFIG_MODE_2) {
+        Lochinvar_Control_Mode_Config.sendCommand(CONFIG_MODE_2)
+    }
+end
+
+rule "Master Heating Logic (Modbus + Pumps)"
+when
+    // Triggers: Run logic whenever a zone valve changes state or outdoor temp changes
+    Item DENRH changed or Item MBeRH changed or Item MBaRH changed or Item KITRH changed or
+    Item LRZV changed or Item GAZV changed or Item GBrZV changed or Item BMTZV changed or Item MRZV changed or
+    Item Outdoor_Temperature changed
+then
+    // 1. Determine Demand State
+    // Consolidate individual zone states into "Radiant Call" vs "High Temp Call"
+    var boolean radiantCall = (DENRH.state == ON || MBeRH.state == ON || MBaRH.state == ON || KITRH.state == ON)
+    var boolean highTempCall = (LRZV.state == ON || GAZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || MRZV.state == ON)
+
+    // 2. Pump Control (Housebrain Relays)
+    // Radiant Pump (Alpha1)
+    if(radiantCall) { 
+        if(RHP.state != ON) RHP.sendCommand(ON) 
+    } else { 
+        if(RHP.state != OFF) RHP.sendCommand(OFF) 
+    }
+    
+    // High Temp Pump (Magna1)
+    if(highTempCall) { 
+        if(Magna1_Pump.state != ON) Magna1_Pump.sendCommand(ON) 
+    } else { 
+        if(Magna1_Pump.state != OFF) Magna1_Pump.sendCommand(OFF) 
+    }
+
+    // 3. Boiler Control & Outdoor Reset Calculation
+    if (highTempCall) {
+        // Priority 1: High Temp
+        // If ANY high temp zone is calling, we MUST supply 180F water.
+        Lochinvar_Setpoint_Command.sendCommand(HIGH_TEMP_TARGET)
+        Lochinvar_Boiler_Enable_Cmd.sendCommand(1)
+        Boiler_Mode.postUpdate("High Temp")
+    }
+    else if (radiantCall) {
+        // Priority 2: Radiant Only
+        // Check if Outdoor Sensor is valid before calculating
+        if (Outdoor_Temperature.state != NULL && Outdoor_Temperature.state != UNDEF) {
+            
+            // Radiant Optimization: Calculate Outdoor Reset Target
+            var Number outdoorT = (Outdoor_Temperature.state as Number).doubleValue
+            
+            // Linear Interpolation Formula: y = mx + b
+            var Number slope = (MILD_WATER - DESIGN_WATER) / (MILD_OUTDOOR - DESIGN_OUTDOOR)
+            var Number target = DESIGN_WATER + (slope * (outdoorT - DESIGN_OUTDOOR))
+            
+            // Safety Clamps
+            if (target > 140) target = 140 // Protect floors
+            if (target < 85) target = 85   // Minimum boiler temp
+            
+            // Send integer command
+            Lochinvar_Setpoint_Command.sendCommand(target.intValue)
+            Lochinvar_Boiler_Enable_Cmd.sendCommand(1)
+            
+            // Safe string update for OH2
+            Boiler_Mode.postUpdate("Radiant ODR: " + target.intValue.toString + "°F")
+        }
+        else {
+            // Fallback if outdoor sensor fails
+            Lochinvar_Setpoint_Command.sendCommand(110)
+            Lochinvar_Boiler_Enable_Cmd.sendCommand(1)
+            Boiler_Mode.postUpdate("Radiant (Sensor Fail)")
+        }
+    }
+    else {
+        // Standby: No zones calling
+        Lochinvar_Boiler_Enable_Cmd.sendCommand(0)
+        Boiler_Mode.postUpdate("Standby")
+    }
+end

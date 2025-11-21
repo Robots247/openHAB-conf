@@ -21,6 +21,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Moon_Phase == THIRD_QUARTER,
                         Moon_Phase == WANING_CRESCENT,
                         Moon_Phase == NEW]
+            // Ensure this closing brace matches the opening brace of the corresponding block.
             }
     
                
@@ -664,6 +665,47 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
             }
         }        
 
+    Frame {
+        Text item=Lochinvar_Boiler_Status label="Boiler Control Panel [%s]" icon="boiler" {
+        
+             Frame label="Master Control" {
+        // The new Master Config Item (Should be '5' for Modbus Control)
+        Text item=Lochinvar_Control_Mode_Config label="Control Mode [MAP(lochinvar_config.map):%s]" icon="settings"
+        
+        // Live Status & Commands
+        Text item=Boiler_Mode label="Current Logic Mode" icon="fire"
+        Text item=Lochinvar_Setpoint_Command label="Target Temp Command [%.0f °F]" icon="temperature"
+        Text item=Lochinvar_Boiler_Enable_Cmd label="Boiler Firing Command [MAP(lochinvar_enable.map):%s]" icon="switch"
+    }
+
+    Frame label="System Status" {
+        // Real-time feedback from the boiler
+        Text item=Boiler_Status_Code label="Boiler Status [MAP(LochinvarBoilerStatus.map):%s]" icon="text"
+        Text item=Boiler_Firing_Rate label="Firing Rate [%d %%]" icon="fire"
+        Text item=System_Outlet_Temp label="Outlet Temp [%.1f °F]" icon="temperature"
+        Text item=System_Inlet_Temp label="Inlet Temp [%.1f °F]" icon="temperature"
+        Text item=Lochinvar_DeltaT label="Delta T [%.1f °F]" icon="line-incline"
+    }
+
+    Frame label="Pump Management" {
+        // Monitoring the Boiler's Internal Pump
+        Text item=lochinvarBoilerPumpSpeed label="Boiler Pump Speed (Read Only) [%d %%]" icon="pump"
+        
+        // Manual Overrides for Housebrain Relays
+        Switch item=RHP label="Radiant Pump (Alpha1)" icon="pump"
+        Switch item=Magna1_Pump label="High Temp Pump (Magna1)" icon="pump"
+        Switch item=DHW_Recirc_Pump_indicator label="DHW Recirc Pump" icon="pump"
+    }
+
+    Frame label="Active Zones" {
+        Text item=GAZV label="Garage Zone" visibility=[GAZV==ON]
+        Text item=LRZV label="Living Room Zone" visibility=[LRZV==ON]
+        Text item=DENRH label="Den Radiant Zone" visibility=[DENRH==ON]
+        // Add other zones as needed for visibility
+    }   
+    }
+}    
+
      /***************************************************Lighting ****************************************************/
    
     Frame {
@@ -1089,8 +1131,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         }
                     Frame {
                         Text item=DHW_Recirc_Temp label="DHW Recirculation Temperature" 
-                        Switch item=DHW_Recirc_Pump_indicator   label="DHW Recirc Pump" icon="PUMP"
-                        }
+                        Text item=DHW_Pump_indicator label="DHW Charging Pump Status [MAP(lochinvar_enable.map):%s]" icon="pump"                        }
                     }
                 } 
                 Frame label="Thermostat Overrides " {

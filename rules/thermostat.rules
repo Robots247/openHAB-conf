@@ -1,475 +1,341 @@
 val String filename = "thermostat rules"
-var Timer RHP_timer = null
+// var Timer RHP_timer = null // No longer needed, handled by main logic
 
+// ===================================================================================
+// OBSOLETE LOGIC - HANDLED BY heating_logic.rules (MODBUS MASTER)
+// ===================================================================================
 
-//CFH rules
-	//CFH1 High Temp
-	rule "Call For High Heat"
-	when	
-		Item ZV changed from OFF to ON 
-	then 
-		if (CFH1.state == OFF) {
-		CFH1.sendCommand(ON)
-		logInfo(filename, "High Temperature Call For Heat, Activating CFH1")	 
-		}
-		
-	end
-	rule "CFH OFF"
-	when
-		Item ZV changed from ON to OFF
-		
-	then
-		if(CFH1.state == ON) {
-		CFH1.sendCommand(OFF)
-		logInfo(filename, "CFH Satisfied, Deactivating CFH1")
-		}
-		
-	end
-	//CFH2 Low temp radiant
-	rule "Call For Low Radiant Heat"
-	when	
-		Item RHP changed from OFF to ON
-	then 
-		if (CFH2.state == OFF) {
-		CFH2.sendCommand(ON)
-		logInfo(filename, "Radiant Call For Heat, Activating CFH2")	 
-		}
-	end
-	rule "Call For Low Radiant Heat OFF"
-	when	
-		Item RHP changed from ON to OFF
-	then 
-		if (CFH2.state == ON) {
-		CFH2.sendCommand(OFF)
-		logInfo(filename, "Radiant Call For Heat Ended, Deactivating CFH2")	 
-		}
-	end
+/* // The new 'heating_logic.rules' file now watches the Zone Valve states directly
+// and triggers the pumps/boiler. We don't need these intermediate relays anymore.
 
-	//CFH3 High-Temp Unit Heater
-	//CFH 3 outdoor reset is calculated by boiler and controlled via boiler service settings directly)
-	//unit heater requires high heat to work properly.
-	rule "Call for High Heat Unit Heater ON"
-	when
-		Item GAZV changed from OFF to ON
-	then
-		if (CFH3.state !=ON){
-			CFH3.sendCommand(ON)
-			logInfo("CFH3.rule", "High Temperature Call for heat required by Unit Heaters")
-		}		
-	end
+    //CFH1 High Temp
+    rule "Call For High Heat"
+    when    
+        Item ZV changed from OFF to ON 
+    then 
+        if (CFH1.state == OFF) {
+        CFH1.sendCommand(ON)
+        logInfo(filename, "High Temperature Call For Heat, Activating CFH1")     
+        }
+    end
 
-	rule "Call for High Heat Unit Heater OFF"
-	when 
-		Item GAZV changed from ON to OFF
-	then
-		if (CFH3.state !=OFF){
-			CFH3.sendCommand(OFF)
-			logInfo("CFH3.rule", "High Temperature Call for Heat satisfied, Turning off CFH3")
-		}
-		
-	end
-//Pumping Rules
-	//turn OFF Radiant Pump when radiant CFH=on
-	rule "Radiant Pump OFF"
-	when	
-		Item RHZV changed from ON to OFF
-	then 
-		if(RHP.state == ON) {
-		RHP.sendCommand(OFF)
-		logInfo(filename, "RHP changed from on to off")
-		}
-	end
-	//turn ON Radiant Pump when no CFH
-	rule "Radiant Pump ON"
-	when	
-		Item RHZV changed from OFF to ON
-	then
-		logInfo(filename, "Radiant Heat Activated, Starting 1 minute  pump delay")
-		RHP_timer = (createTimer(now.plusMinutes(1))[
-			logInfo(filename, "Delay over, RHP ON")
-			RHP.sendCommand(ON) ]
-		)
-	end
-	
+    rule "CFH OFF"
+    when
+        Item ZV changed from ON to OFF
+    then
+        if(CFH1.state == ON) {
+        CFH1.sendCommand(OFF)
+        logInfo(filename, "CFH Satisfied, Deactivating CFH1")
+        }
+    end
 
-//Radiant Rules
+    //CFH2 Low temp radiant
+    rule "Call For Low Radiant Heat"
+    when    
+        Item RHP changed from OFF to ON
+    then 
+        if (CFH2.state == OFF) {
+        CFH2.sendCommand(ON)
+        logInfo(filename, "Radiant Call For Heat, Activating CFH2")  
+        }
+    end
+
+    rule "Call For Low Radiant Heat OFF"
+    when    
+        Item RHP changed from ON to OFF
+    then 
+        if (CFH2.state == ON) {
+        CFH2.sendCommand(OFF)
+        logInfo(filename, "Radiant Call For Heat Ended, Deactivating CFH2")  
+        }
+    end
+
+    //Pumping Rules - Now handled by Master Logic
+    rule "Radiant Pump OFF"
+    when    
+        Item RHZV changed from ON to OFF
+    then 
+        if(RHP.state == ON) {
+        RHP.sendCommand(OFF)
+        logInfo(filename, "RHP changed from on to off")
+        }
+    end
+    
+    rule "Radiant Pump ON"
+    when    
+        Item RHZV changed from OFF to ON
+    then
+        logInfo(filename, "Radiant Heat Activated, Starting 1 minute pump delay")
+        RHP_timer = (createTimer(now.plusMinutes(1))[
+            logInfo(filename, "Delay over, RHP ON")
+            RHP.sendCommand(ON) ]
+        )
+    end
+*/
+
+// ===================================================================================
+// ACTIVE ZONE LOGIC
+// These rules determine if a room needs heat and open the Zone Valve.
+// The Master Logic (heating_logic.rules) watches these valves to fire the boiler.
+// ===================================================================================
+
+//RADIANT ZONES
 
 rule "DEN Radiant CFH Thermostat"
     when
-		Item DEN_Heating_TargetTemp changed or
-		Item DENMS_Temp changed 
-	then
-		var temperature = (DENMS_Temp.state as Number).doubleValue
-		var setpoint = (DEN_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
+        Item DEN_Heating_TargetTemp changed or
+        Item DENMS_Temp changed 
+    then
+        var temperature = (DENMS_Temp.state as Number).doubleValue
+        var setpoint = (DEN_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
+        
+        sendCommand(Den_TstatTemp, temperature) // Update virtual tstat
 
-		
-		logDebug(filename, "DEN Temperature is " + temperature)
-		logDebug(filename, "DEN setpoint is " + setpoint)
-		logDebug(filename, "DEN high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "DEN low hysteresis is " + hysteresisLow)
-		//update virtual thermostat state
-		sendCommand(Den_TstatTemp, temperature)
-		
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (DENRH.state != ON) {
+                sendCommand(DENRH, ON)
+                // Kitchen is tied to Den logic for now
+                sendCommand(KITRH,ON) 
+                logInfo(filename, "Executing 'DEN Heating Started'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+                if (DENRH.state != OFF) {
+                    sendCommand(DENRH, OFF) 
+                    sendCommand(KITRH,OFF)
+                    logInfo(filename, "Executing 'DEN Heating Ended'")
+                }   
+        }
+end         
 
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (DENRH.state != ON) {
-				sendCommand(DENRH, ON)
-				//Send command for Kitchen while there is no kitchen thermostat sensor
-					sendCommand(KITRH,ON)
-				logInfo(filename, "Executing 'DEN Heating Started' rule for DEN ")
-			}
-			else
-				logDebug(filename, "DEN Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-				if (DENRH.state != OFF) {
-					sendCommand(DENRH, OFF) 
-					//Send command for Kitchen while there is no kitchen thermostat sensor
-					sendCommand(KITRH,OFF)
-					logInfo(filename, "Executing 'DEN Heating Ended' rule for DEN ")
-				}	
-				
-				else	
-					logDebug(filename, "DEN Zone Valve already deactivated, no action taken")
-		}
-end			
-
-/*		
-rule "Kitchen Radiant Thermostat"
-    when
-		Item KIT_Heating_TargetTemp changed or
-		Item KITMS_Temp changed 
-	then
-		var temperature = (KITMS_Temp.state as Number).doubleValue
-		var setpoint = (KIT_Heating_TargetTemp as Number).doubleValue
-		var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
-
-		logDebug(filename, "Temperature is " + temperature)
-		logDebug(filename, "setpoint is " + setpoint)
-		logDebug(filename, "KIT high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "KIT low hysteresis is " + hysteresisLow)
-		//update virtual thermostat state
-		sendCommand(KIT_TstatTemp, temperature)
-
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (KITRH.state != ON) {
-				sendCommand(KITRH, ON)
-				logInfo(filename, "Executing 'KIT Heating started' rule for KIT")
-			}
-			else
-				logDebug(filename, "KIT Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (KITRH.state != OFF) {
-			sendCommand(KITRH, OFF)
-			logInfo(filename, "Executing 'KIT Heating Ended' rule for KIT ")
-			}	
-			else	
-					logDebug(filename, "KIT Zone Valve already deactivated, no action taken")
-		}
-end		
-*/
 rule "Master Bath Radiant Thermostat"
     when
-		//Item MBa_Heating_TargetTemp changed or
-		//Item GAMS_Temp changed 
-		Item MBe_Heating_TargetTemp changed or
-		Item MBeMS_Temp changed 
-	then
-		var temperature = (MBeMS_Temp.state as Number).doubleValue
-		var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
-		
-		logDebug(filename, "Temperature is " + temperature)
-		logDebug(filename, "setpoint is " + setpoint)
-		logDebug(filename, "Hysteresis high is " + hysteresisHigh)
-		logDebug(filename, "GA low hysteresis is " + hysteresisLow)
-		//update virtual thermostat state
-		sendCommand(MBa_Tstat_Temp, temperature)
+        Item MBe_Heating_TargetTemp changed or
+        Item MBeMS_Temp changed 
+    then
+        var temperature = (MBeMS_Temp.state as Number).doubleValue
+        var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
+        
+        sendCommand(MBa_Tstat_Temp, temperature)
 
-
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (MBaRH.state != ON) {
-				sendCommand(MBaRH, ON)
-				logInfo(filename, "Executing 'KIT Heating started' rule for Kitchen")
-			}
-			else
-				logDebug(filename, "MBa Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (MBaRH.state != OFF) {
-			sendCommand(MBaRH, OFF)
-			logInfo(filename, "Executing 'KIT Heating Ended' rule for Kitchen ")
-			}	
-			else	
-				logDebug(filename, "MBa Zone Valve already deactivated, no action taken")
-		}
-end		
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (MBaRH.state != ON) {
+                sendCommand(MBaRH, ON)
+                logInfo(filename, "Executing 'Master Bath Heating started'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (MBaRH.state != OFF) {
+                sendCommand(MBaRH, OFF)
+                logInfo(filename, "Executing 'Master Bath Heating Ended'")
+            }   
+        }
+end     
 
 rule "Master Bedroom Radiant Thermostat"
     when
-		Item MBe_Heating_TargetTemp changed or
-		Item MBeMS_Temp changed 
-	then
-		var temperature = (MBeMS_Temp.state as Number).doubleValue
-		var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
+        Item MBe_Heating_TargetTemp changed or
+        Item MBeMS_Temp changed 
+    then
+        var temperature = (MBeMS_Temp.state as Number).doubleValue
+        var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
+        
+        sendCommand(MBe_Tstat_Temp, temperature)
 
-		logDebug(filename, "MBeMS Temperature is " + temperature)
-		logDebug(filename, "MBe setpoint is " + setpoint)
-		logDebug(filename, "MBe high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "MBe low hysteresis is " + hysteresisLow)
-		
-		//update virtual thermostat state
-		sendCommand(MBe_Tstat_Temp, temperature)
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (MBeRH.state != ON) {
+                sendCommand(MBeRH, ON)
+                logInfo(filename, "Executing 'Master Bed Heating started'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (MBeRH.state != OFF) {
+                sendCommand(MBeRH, OFF)
+                logInfo(filename, "Executing 'Master Bed Heating Ended'")
+            }   
+        }
+end     
 
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (MBeRH.state != ON) {
-				sendCommand(MBeRH, ON)
-				logInfo(filename, "Executing 'Master Bed Heating started' rule for Master Bed")
-			}
-			else
-				logDebug(filename, "MBr Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (MBeRH.state != OFF) {
-			sendCommand(MBeRH, OFF)
-			logInfo(filename, "Executing 'Master Bed Heating Ended' rule for Master Bed ")
-			}	
-			else	
-				logDebug(filename, "MBr Zone Valve already deactivated, no action taken")
-		}
-end		
-	
-
-	
-
-
-// High Temp Rules
+// HIGH TEMP ZONES
 
 rule "Living Room CFH Thermostat"
     when
-		Item LR_Heating_TargetTemp changed or
-		Item LRMS_Temp changed 
-	then
-		var temperature = (LRMS_Temp.state as Number).doubleValue
-		var setpoint = (LR_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
-		
-		logDebug(filename, "LR Temperature is " + temperature)
-		logDebug(filename, "LR setpoint is " + setpoint)
-		logDebug(filename, "LR high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "LR low hysteresis is " + hysteresisLow)
-		
-		//update virtual thermostat state
-		sendCommand(LR_Tstat_Temp, temperature)
-		
-		
+        Item LR_Heating_TargetTemp changed or
+        Item LRMS_Temp changed 
+    then
+        var temperature = (LRMS_Temp.state as Number).doubleValue
+        var setpoint = (LR_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
+        
+        sendCommand(LR_Tstat_Temp, temperature)
 
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (LRZV.state != ON) {
-				sendCommand(LRZV, ON)
-				logInfo(filename, "Executing 'Living Room Thermostat ON' rule for Living Room ")
-			}
-			else
-				logDebug(filename, "LR Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-				if (LRZV.state != OFF) {
-					sendCommand(LRZV, OFF) 
-					logInfo(filename, "Executing 'Living Room Heating Ended' rule for LivingRoom ")
-				}	
-				
-				else	
-					logDebug(filename, "LR Zone Valve already deactivated, no action taken")
-		}
-end			
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (LRZV.state != ON) {
+                sendCommand(LRZV, ON)
+                logInfo(filename, "Executing 'Living Room Thermostat ON'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (LRZV.state != OFF) {
+                sendCommand(LRZV, OFF) 
+                logInfo(filename, "Executing 'Living Room Heating Ended'")
+            }   
+        }
+end         
 
 rule "Guest BedRoom CFH Thermostat"
     when
-		Item GBr_Heating_TargetTemp changed or
-		Item GBrMS_Temp changed 
-	then
-		var temperature = (GBrMS_Temp.state as Number).doubleValue
-		var setpoint = (GBr_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
+        Item GBr_Heating_TargetTemp changed or
+        Item GBrMS_Temp changed 
+    then
+        var temperature = (GBrMS_Temp.state as Number).doubleValue
+        var setpoint = (GBr_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
 
+        sendCommand(GBr_Tstat_Temp, temperature)
 
-		logDebug(filename, "GBr Temperature is " + temperature)
-		logDebug(filename, "GBr setpoint is " + setpoint)
-		logDebug(filename, "GBr high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "GBr low hysteresis is " + hysteresisLow)
-		
-		//update virtual thermostat state
-		sendCommand(GBr_Tstat_Temp, temperature)
-
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (GBrZV.state != ON) {
-				sendCommand(GBrZV, ON)
-				logInfo(filename, "Executing 'Guest Bedroom Thermostat ON' rule for Living Room ")
-			}
-			else
-				logDebug(filename, "GBr Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (GBrZV.state != OFF) {
-			sendCommand(GBrZV, OFF)
-			logInfo(filename, "Executing 'Guest Bed Heating Ended' rule for Guest Bedroom ")
-			}	
-		else	
-			logDebug(filename, "GBr Zone Valve already deactivated, no action taken")
-			
-		}
-end			 
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (GBrZV.state != ON) {
+                sendCommand(GBrZV, ON)
+                logInfo(filename, "Executing 'Guest Bedroom Thermostat ON'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (GBrZV.state != OFF) {
+                sendCommand(GBrZV, OFF)
+                logInfo(filename, "Executing 'Guest Bed Heating Ended'")
+            }   
+        }
+end          
 
 rule "MudRoom CFH Thermostat"
     when
-		Item MR_Heating_TargetTemp changed or
-		Item MRMS_Temp changed 
-	then
-		var temperature = (MRMS_Temp.state as Number).doubleValue
-		var setpoint = (MR_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
+        Item MR_Heating_TargetTemp changed or
+        Item MRMS_Temp changed 
+    then
+        var temperature = (MRMS_Temp.state as Number).doubleValue
+        var setpoint = (MR_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
 
-		logDebug(filename, "MR Temperature is " + temperature)
-		logDebug(filename, "MR setpoint is " + setpoint)
-		logDebug(filename, "MR high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "MR low hysteresis is " + hysteresisLow)
-		//update virtual thermostat state
-		sendCommand(MR_Tstat_Temp, temperature)
+        sendCommand(MR_Tstat_Temp, temperature)
 
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (MRZV.state != ON) {
-				sendCommand(MRZV, ON)
-				logInfo(filename, "Executing 'Mud Room Thermostat ON' rule for Mud Room ")
-			}
-			else
-				logDebug(filename, "MR Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (MRZV.state != OFF) {
-			sendCommand(MRZV, OFF)
-			logInfo(filename, "Executing 'Mud Room Heating Ended' rule for MUD ROOM ")
-			}	
-		else	
-			logDebug(filename, "MR Zone Valve already deactivated, no action taken")
-		}
-end		
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (MRZV.state != ON) {
+                sendCommand(MRZV, ON)
+                logInfo(filename, "Executing 'Mud Room Thermostat ON'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (MRZV.state != OFF) {
+                sendCommand(MRZV, OFF)
+                logInfo(filename, "Executing 'Mud Room Heating Ended'")
+            }   
+        }
+end     
 
 rule "Basement CFH Thermostat"
     when
-		Item BMT_Heating_TargetTemp changed or
-		Item BMTBrMS_Temp changed 
-	then
-		var temperature = (BMTBrMS_Temp.state as Number).doubleValue
-		var setpoint = (BMT_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
+        Item BMT_Heating_TargetTemp changed or
+        Item BMTBrMS_Temp changed 
+    then
+        var temperature = (BMTBrMS_Temp.state as Number).doubleValue
+        var setpoint = (BMT_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
 
+        sendCommand(BMT_Tstat_Temp, temperature)
 
-		logDebug(filename, "BMTBR Temperature is " + temperature)
-		logDebug(filename, "BMT setpoint is " + setpoint)
-		logDebug(filename, "BMT high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "BMT low hysteresis is " + hysteresisLow)
-		//update virtual thermostat state
-		sendCommand(BMT_Tstat_Temp, temperature)
-
-	
-		if (temperature < (setpoint - hysteresisLow)) {
-			if (BMTZV.state != ON) {
-				sendCommand(BMTZV, ON)
-				logInfo(filename, "Executing 'Basement Thermostat ON' rule for Basement ")
-			}
-			else
-				logDebug(filename, "BMT Zone Valve already activated, no action taken")
-		}	
-		else if (temperature > (setpoint + hysteresisHigh)) {
-			if (BMTZV.state != OFF) {
-			sendCommand(BMTZV, OFF)
-			logInfo(filename, "Executing 'Basement Heating Ended' rule for Basement ")
-			}	
-		
-		else	
-			logDebug(filename, "BMT Zone Valve already deactivated, no action taken")
-		}	
-end			
+        if (temperature < (setpoint - hysteresisLow)) {
+            if (BMTZV.state != ON) {
+                sendCommand(BMTZV, ON)
+                logInfo(filename, "Executing 'Basement Thermostat ON'")
+            }
+        }   
+        else if (temperature > (setpoint + hysteresisHigh)) {
+            if (BMTZV.state != OFF) {
+                sendCommand(BMTZV, OFF)
+                logInfo(filename, "Executing 'Basement Heating Ended'")
+            }   
+        }   
+end         
 
 rule "Garage CFH Thermostat"
     when
-		Item GA_Heating_TargetTemp changed or
-		Item GAMS_Temp changed or
-		Item vGA_Heating_OFF_Override changed from OFF to ON
+        Item GA_Heating_TargetTemp changed or
+        Item GAMS_Temp changed or
+        Item vGA_Heating_OFF_Override changed from OFF to ON
+    then
+        var temperature = (GAMS_Temp.state as Number).doubleValue
+        var setpoint = (GA_Heating_TargetTemp.state as Number).doubleValue
+        var hysteresisHigh = (GA_HysteresisHigh.state as Number).doubleValue
+        var hysteresisLow = (GA_HysteresisLow.state as Number).doubleValue
+        
+        sendCommand(GA_Tstat_Temp, temperature)
 
-	then
-		var temperature = (GAMS_Temp.state as Number).doubleValue
-		var setpoint = (GA_Heating_TargetTemp.state as Number).doubleValue
-		var hysteresisHigh = (GA_HysteresisHigh.state as Number).doubleValue
-		var hysteresisLow = (GA_HysteresisLow.state as Number).doubleValue
-
-
-		logDebug(filename, "Garage Temperature is " + temperature)
-		logDebug(filename, "Garage setpoint is " + setpoint)
-		logDebug(filename, "Garage high hysteresis is " + hysteresisHigh)
-		logDebug(filename, "Garage low hysteresis is " + hysteresisLow)
-		
-		//update virtual thermostat state
-		sendCommand(GA_Tstat_Temp, temperature)
-
-		if (vGA_Heating_OFF_Override.state == ON){
-			//debug logInfo(filename, "GA thermostat rule fired")
-		
-
-			if (temperature < (setpoint - hysteresisLow)) {
-				if (GAZV.state != ON) {
-					sendCommand(GAZV, ON)
-					logInfo(filename, "Executing 'Garage Thermostat ON' rule for Garage ")
-				}
-				else
-					logDebug(filename, "Garage Zone Valve already activated, no action taken")
-			}	
-			else if (temperature > (setpoint + hysteresisHigh)) {
-				if (GAZV.state != OFF) {
-				sendCommand(GAZV, OFF)
-				logInfo(filename, "Executing 'Garage Heating Ended' rule for Garage ")
-				}	
-
-			else	
-				logDebug(filename, "Garage Zone Valve already deactivated, no action taken")
-				return;
-			}	
-			
-		else if (vGA_Heating_OFF_Override == NULL) {
-			sendCommand(vGA_Heating_OFF_Override, OFF)
-			logInfo(filename, "GA OFF RULE FIRED")
-		}
-	}
+        if (vGA_Heating_OFF_Override.state == ON){
+            if (temperature < (setpoint - hysteresisLow)) {
+                if (GAZV.state != ON) {
+                    sendCommand(GAZV, ON)
+                    logInfo(filename, "Executing 'Garage Thermostat ON'")
+                }
+            }   
+            else if (temperature > (setpoint + hysteresisHigh)) {
+                if (GAZV.state != OFF) {
+                    sendCommand(GAZV, OFF)
+                    logInfo(filename, "Executing 'Garage Heating Ended'")
+                }   
+            }   
+        }
+        else if (vGA_Heating_OFF_Override.state == OFF) {
+             if (GAZV.state == ON) {
+                 sendCommand(GAZV, OFF)
+                 logInfo(filename, "Garage Override OFF - Forced Valve Close")
+             }
+        }
 end
+
 rule "Garage Overide OFF turns Off Garage Zone Valve "
     when
-		Item vGA_Heating_OFF_Override changed from ON to OFF
+        Item vGA_Heating_OFF_Override changed from ON to OFF
+    then
+        logInfo(filename, "Garage Overide turned off Garage zone valve")
+        if (GAZV.state == ON){
+            sendCommand(GAZV, OFF)
+        }
+end         
 
-	then
-		logInfo(filename, "Garage Overide turned off Garage zone valve")
-		
-		if (GAZV.state== ON){
-			sendCommand(GAZV, OFF)
-		}
-		
+// Unit Heater (CFH3) Logic - PRESERVED but simplified
+// This uses the Garage Valve to trigger CFH3. 
+// Since CFH3 is a physical relay we might still use, we can keep this logical association
+// OR we can let the Master Logic handle it (High Temp call).
+// Recommendation: Let the Master Logic handle it.
+/*
+    rule "Call for High Heat Unit Heater ON"
+    when
+        Item GAZV changed from OFF to ON
+    then
+        if (CFH3.state !=ON){
+            CFH3.sendCommand(ON)
+            logInfo("CFH3.rule", "High Temperature Call for heat required by Unit Heaters")
+        }       
+    end
 
-end			
-
-
-
+    rule "Call for High Heat Unit Heater OFF"
+    when 
+        Item GAZV changed from ON to OFF
+    then
+        if (CFH3.state !=OFF){
+            CFH3.sendCommand(OFF)
+            logInfo("CFH3.rule", "High Temperature Call for Heat satisfied, Turning off CFH3")
+        }
+    end
+*/

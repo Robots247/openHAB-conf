@@ -12,3 +12,42 @@ then
     Lochinvar_DeltaT.sendCommand(DeltaT)
 end
 
+// Rule 1: User changes the Target Slider -> Send to Boiler immediately
+rule "Lochinvar DHW Command"
+when
+    Item DHW_Tank_Target changed
+then
+    if (DHW_Tank_Target.state instanceof QuantityType) {
+        // Send the "Truth" to the Modbus Item
+        DHW_Tank_Setpoint.sendCommand(DHW_Tank_Target.state as QuantityType<Temperature>)
+    }
+end
+
+// Rule 2: The Heartbeat (Keeps boiler alive using the Target)
+rule "Lochinvar Boiler Heartbeat"
+when
+    // Run once every minute (at second 0) to satisfy the 120s Hardware Watchdog
+    Time cron "0 * * * * ?"
+then
+    // Only send heartbeat if we actually want the boiler ON
+    if (Lochinvar_Boiler_Enable_Cmd.state == 1 || Lochinvar_Boiler_Enable_Cmd.state == ON) {
+        
+        // 1. Keep Config Alive (Enable + System + Tank)
+        // Sends 13 (Binary 1101) to Register 40001
+        Lochinvar_Control_Mode_Config.sendCommand(13) 
+
+        // 2. Keep System Setpoint Alive
+        if (Lochinvar_Setpoint_Command.state != NULL) {
+             Lochinvar_Setpoint_Command.sendCommand(Lochinvar_Setpoint_Command.state as Number)
+        }
+
+        // 3. Keep Tank Setpoint Alive (USING THE TARGET, NOT THE READ VALUE)
+        if (DHW_Tank_Target.state != NULL) {
+             // Forces boiler to 130 (or whatever target is) to prevent drift
+             DHW_Tank_Setpoint.sendCommand(DHW_Tank_Target.state as QuantityType<Temperature>)
+        }
+        
+        // 4. Keep Enable High
+        Lochinvar_Boiler_Enable_Cmd.sendCommand(1)
+    }
+end

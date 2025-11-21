@@ -198,22 +198,68 @@ BOILER LOCKOUT CODES
     
      
 Holding Registers (Read/Write) (for controlling boiler from OpenHab)
-
+    // WRITING POLLER (The Controls)
+    // Registers 40001 - 40008
 *****************************************************************************************************************************/     
    
-     Bridge poller LochinvarHoldingRegisters 	[ start=0, length=8, refresh=60000, type="holding" ] {
+     Bridge poller LochinvarHoldingRegisters 	[ start=0, length=8, refresh=2000, type="holding" ] {
      
 /****************************************************************************************************************************/          
-//add. 40001
 
-      Thing data lochinvarConf_boiler_enable 		[ readStart="0.0", readValueType="bit"]
-      Thing data lochinvarConf_Tank_Thermostat 	[ readStart="0.1", readValueType="bit"]
-      Thing data lochinvarConf_Rate_Command 		[ readStart="0.2", readValueType="bit"]
-   		Thing data lochinvarConf_Tank_Setpoint 		[ readStart="0.3", readValueType="bit"]
-   		Thing data lochinvarConf_System_Supply_Temp [ readStart="0.4", readValueType="bit"]
-   		Thing data lochinvarConf_Outdoor_Temp 		[ readStart="0.5", readValueType="bit"]
-   		Thing data lochinvarConf_Tank_Temp 		  	[ readStart="0.6", readValueType="bit"]
-   		Thing data lochinvarConf_Return_Temp		  [ readStart="0.7", readValueType="bit"]
+
+    // Added 'writeMultipleEvenWithSingleRegisterOrCoil' to force Function Code 16
+        
+        // 40001: Configuration Bits
+        // Simplified definition for robust writing
+        Thing data lochinvarConf_Register [ 
+			readStart="0", 
+			readValueType="int16", 
+			writeStart="0", 
+			writeValueType="int16", 
+			writeType="holding"
+			//writeMultipleEvenWithSingleRegisterOrCoil="true" 
+			]
+
+        // 40002: Boiler Enable Coils
+        Thing data lochinvar_HR_Coils [ 
+			readStart="1", 
+			readValueType="int16", 
+			writeStart="1", 
+			writeValueType="int16", 
+			writeType="holding"
+			//writeMultipleEvenWithSingleRegisterOrCoil="true" 
+			]
+
+        // 40003: Rate/Setpoint Command
+        Thing data lochinvar_HR_RateCommand [ 
+			readStart="2", 
+			readValueType="int16", 
+			writeStart="2", 
+			writeValueType="int16", 
+			writeType="holding", 
+			writeTransform="JS(lochinvar_temp_to_percent.js)", 
+			readTransform="JS(lochinvar_percent_to_temp.js)"
+			//writeMultipleEvenWithSingleRegisterOrCoil="true" 
+		]
+
+		//40004: Tank Setpoint
+		Thing data lochinvar_HR_TankSetpoint [ 
+    		//readStart="3", 
+    		//readValueType="int16", 
+    		writeStart="3", 
+    		writeValueType="int16", 
+    		writeType="holding", 
+    		//readTransform="JS(lochinvar_C_x2_to_F.js)", 
+    		writeTransform="JS(lochinvar_F_to_C_x2.js)"
+    		//writeMultipleEvenWithSingleRegisterOrCoil="true" 
+]
+        // Other Holding Registers
+             Thing data lochinvar_HR_TankTemperature            [ readStart="4", readValueType="int16", readTransform="JS(MBtoF.js)"]
+             Thing data lochinvar_HR_OutdoorTemperature         [ readStart="5", readValueType="int16", readTransform="JS(MBtoF.js)"]
+             Thing data lochinvar_HR_SystemSupplyTemperatureHR  [ readStart="6", readValueType="int16", readTransform="JS(MBtoF.js)"]
+             Thing data lochinvar_HR_SystemReturnTemp           [ readStart="7", readValueType="int16", readTransform="JS(MBtoF.js)"] 
+    }
+}
 
  /******************************************************************************************************************************
  CONFIGURATION INFO
@@ -233,18 +279,4 @@ Holding Registers (Read/Write) (for controlling boiler from OpenHab)
 							Bit 8 - 15: Not Used (Default = 0)
 														
 *******************************************************************************************************************************/
-//Configuration CONT.
-//add. 40002-40008
 
-
-
-   		     Thing data lochinvar_HR_Coils 					[ readStart="1", readValueType="int16"]
-   		     Thing data lochinvar_HR_RateCommand				[ readStart="2", readValueType="int16"]
-   		     Thing data lochinvar_HR_TankSetpoint	 			[ readStart="3", readValueType="int16", readTransform="JS(boil05.js)"]
-   		     Thing data lochinvar_HR_TankTemperature 			[ readStart="4", readValueType="int16", readTransform="JS(MBtoF.js)"]
-   		     Thing data lochinvar_HR_OutdoorTemperature 		[ readStart="5", readValueType="int16", readTransform="JS(MBtoF.js)"]
-   		     Thing data lochinvar_HR_SystemSupplyTemperatureHR	[ readStart="6", readValueType="int16", readTransform="JS(MBtoF.js)"]
-   		     Thing data lochinvar_HR_SystemReturnTemp	 		[ readStart="7", readValueType="int16", readTransform="JS(MBtoF.js)"] 
-
-     }
-}
