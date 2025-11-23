@@ -1,0 +1,6 @@
+// Master Control Mode for the Boiler
+// NULL/Undefined -> Defaults to CFH (Safety)
+String Boiler_Control_Mode "Boiler Control Mode" <settings>
+
+// Virtual Item to track if we are in "Fallback" firing
+Switch Boiler_Fallback_Demand "Fallback Call for Heat" <fire>

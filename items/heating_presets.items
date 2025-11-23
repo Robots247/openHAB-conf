@@ -116,3 +116,71 @@ Number DEN_Heating_PresetTempSummer "Den Heating Preset (Summer Mode) [%.1f °F]
 Number MBa_Heating_PresetTempSummer "Master Bathroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
 Number MBe_Heating_PresetTempSummer "Master Bedroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
 
+// ============================================================================
+// OUTDOOR RESET CURVE VARIABLES (Split Curves)
+// ============================================================================
+
+// --- Global Outdoor Settings (Applies to both) ---
+Number Heating_Curve_Min_Outdoor "Design Outdoor Low (Coldest Day) [%.0f °F]"
+Number Heating_Curve_Max_Outdoor "Warm Weather Shutdown [%.0f °F]"
+
+// --- High Temp Curve (Radiators / ZV Group) ---
+Number HT_Curve_Max_Water   "High Temp: Max Water (at Design Low) [%.0f °F]"
+Number HT_Curve_Min_Water   "High Temp: Min Water (at Warm Outdoor) [%.0f °F]"
+
+// --- Low Temp Curve (Radiant / RHZV Group) ---
+Number LT_Curve_Max_Water   "Low Temp: Max Water (at Design Low) [%.0f °F]"
+Number LT_Curve_Min_Water   "Low Temp: Min Water (at Warm Outdoor) [%.0f °F]"
+
+// --- Calculation Results ---
+Number Calculated_Target_Temp    "Calculated Target Temp [%.1f °F]"
+String Active_Curve_Type         "Active Curve [%s]"
+
+// ============================================================================
+// ADVANCED ODR VARIABLES (Comfort & Efficiency)
+// ============================================================================
+
+// --- Comfort Settings ---
+Number Heating_Night_Setback    "Night Setback (Curve Shift) [%.0f °F]"      (gHeating_Presets)
+Number Heating_Boost_Amount     "Morning/Pre-Heat Boost Amount [%.0f °F]"    (gHeating_Presets)
+Number Heating_Shoulder_Temp    "Shoulder Season (60-70°F) Target [%.0f °F]" (gHeating_Presets)
+
+// --- Triggers ---
+Switch Heating_Boost_Active     "Pre-Heat Boost Active"                      (gHeating_Presets)
+
+// --- Indoor Feedback (Efficiency) ---
+Number Heating_Feedback_Gain    "Indoor Feedback Gain (Aggressiveness)"      (gHeating_Presets)
+Number Calculated_Feedback_Mod  "Calculated Curve Modifier [%.1f °F]"        (gHeating_Presets)
+
+// --- Final Output Tracking ---
+Number Final_Boiler_Target      "Final Computed Boiler Target [%.1f °F]"
+
+// ============================================================================
+// CALCULATION VISIBILITY (The "Math" variables)
+// ============================================================================
+Number Heating_Calc_Base        "Base ODR Target (Before Mods) [%.1f °F]"
+Number Heating_Calc_Error       "Room Temp Error (Setpoint - Actual) [%.1f °F]"
+String Heating_Calc_Equation    "Logic Equation [%s]"
+
+// Anti-Jitter / Deadband Setting
+Number Heating_Anti_Jitter "Target Temp Deadband (Anti-Jitter) [%.1f °F]" (gHeating_Presets)
+
+// Wood Floor Protection
+Number Heating_Wood_Reduction "Wood Floor Temp Reduction [%.0f °F]" (gHeating_Presets)
+
+// ============================================================================
+// AUTO-RAMP BOOST (Lag Compensation)
+// ============================================================================
+Number Heating_Auto_Boost_Accumulator "Current Auto-Boost Added [%.1f °F]" (gHeating_Presets)
+Number Heating_Auto_Boost_Step        "Boost Step Amount (Per Hour) [%.0f °F]" (gHeating_Presets)
+Number Heating_Auto_Boost_Delay       "Boost Delay (Minutes before start) [%.0f min]" (gHeating_Presets)
+Number Heating_Auto_Boost_Max         "Max Allowed Auto-Boost [%.0f °F]" (gHeating_Presets)
+
+// ============================================================================
+// SOFT-START (Ramp Up) VARIABLES
+// ============================================================================
+Switch Heating_SoftStart_Active     "Soft-Start Sequence Running"           (gHeating_Presets)
+// Add the other soft start items here as well, if not done previously
+Number Heating_SoftStart_Step       "Ramp Step Size (Deg per Interval) [%.0f °F]" (gHeating_Presets)
+Number Heating_SoftStart_Interval   "Ramp Interval (Seconds) [%.0f s]"      (gHeating_Presets)
+Number Heating_SoftStart_Current    "Current Ramp Target [%.1f °F]"         (gHeating_Presets)

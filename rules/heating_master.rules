@@ -1,0 +1,129 @@
+// ===================================================================================
+// MASTER HEATING CONTROLLER (Hybrid: BMS Heat + Smart DHW)
+// ===================================================================================
+
+rule "Master Heating Logic"
+when
+    Item ZV changed or 
+    Item MRZV_Pin changed or
+    Item RHZV changed or
+    Item gTileFloors changed or
+    Item gWoodFloors changed or
+    Item DHW_Active changed or 
+    Item System_Supply_Temp changed or
+    Item Heating_Boost_Active changed or 
+    Item Boiler_Control_Mode changed or
+    Time cron "0/15 * * * * ?"
+then
+    var String mode = if(Boiler_Control_Mode.state != NULL) Boiler_Control_Mode.state.toString else "SW_FALLBACK"
+
+    // ---------------------------------------------------------
+    // 1. PUMP & RELAY LOGIC
+    // ---------------------------------------------------------
+    if (ZV.state == ON || MRZV_Pin.state == ON) {
+        if (CFH1.state != ON) CFH1.sendCommand(ON)
+        if (Magna1_Pump.state != ON) Magna1_Pump.sendCommand(ON)
+    } else {
+        if (CFH1.state != OFF) CFH1.sendCommand(OFF)
+        if (Magna1_Pump.state != OFF) Magna1_Pump.sendCommand(OFF)
+    }
+
+    if (RHZV.state == ON) {
+        if (RHP.state != ON) RHP.sendCommand(ON)
+        if (CFH2.state != ON) CFH2.sendCommand(ON)
+    } else {
+        if (RHP.state != OFF) RHP.sendCommand(OFF)
+        if (CFH2.state != OFF) CFH2.sendCommand(OFF)
+    }
+
+    // ---------------------------------------------------------
+    // 2. CALCULATE HEATING LOAD
+    // ---------------------------------------------------------
+    // [Your existing weight calculation logic here - abbreviated for clarity]
+    val int w_LR = if(Weight_LR.state instanceof Number) (Weight_LR.state as Number).intValue else 20
+    // ... (Include all other weights GBr, Bmt, Gar, Mud, Kit, Den, MBa, MBe) ...
+    val int w_Mud = 5
+    
+    var int currentLoad = 0
+    
+    if (LRZV.state == ON)   currentLoad = currentLoad + w_LR
+    // ... (Include all other Zone checks) ...
+    if (MRZV_Pin.state == ON) currentLoad = currentLoad + w_Mud 
+
+    if (Heating_Boost_Active.state == ON) currentLoad = currentLoad + 20 
+
+    var Number targetModulation = currentLoad.doubleValue
+    if (targetModulation > 100) targetModulation = 100
+    
+    // Supply Temp Safety
+    val Number supplyTemp = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 100.0
+    if (supplyTemp > 185) targetModulation = 0 
+    else if (supplyTemp > 180) targetModulation = targetModulation * 0.5 
+
+    Boiler_Calculated_Load.postUpdate(targetModulation)
+
+    // ---------------------------------------------------------
+    // 3. EXECUTION (The "Traffic Cop")
+    // ---------------------------------------------------------
+    
+    val int currentEnableState = if(Lochinvar_Boiler_Enable_Cmd.state != NULL) (Lochinvar_Boiler_Enable_Cmd.state as Number).intValue else 0
+    var int requiredEnableCmd = 0
+
+    // PRIORITY 1: DHW (Mode 4)
+    // If DHW is Active (Temp < Setpoint), we take full control.
+    if (DHW_Active.state == ON) {
+        requiredEnableCmd = 8 // Enable Tank Tstat
+        
+        // Send the Setpoint you want (Vacation or Normal)
+        val Number tankTarget = if(DHW_Tank_Target.state instanceof Number) (DHW_Tank_Target.state as Number).doubleValue else 125.0
+        
+        // Note: Register 40004 expects standard degrees (e.g. 125)
+        if (DHW_Tank_Setpoint.state != tankTarget) {
+            DHW_Tank_Setpoint.sendCommand(tankTarget)
+        }
+    } 
+    // PRIORITY 2: HEATING (Mode 2)
+    // If DHW is satisfied, we allow Heating.
+    else if (targetModulation > 0) {
+        requiredEnableCmd = 1 // Enable Room Tstat 1
+        
+        // UNIVERSAL SCALING: Map 0-100% -> 70-180 (Boiler Units)
+        // This fixes the "10% Fire" issue by sending what the boiler expects as a Setpoint
+        var Number commandValue = (targetModulation / 100.0) * (180.0 - 70.0) + 70.0
+        
+        if (Lochinvar_Setpoint_Command.state != commandValue) {
+            Lochinvar_Setpoint_Command.sendCommand(commandValue.intValue)
+        }
+    }
+
+    // Send the Enable Command
+    if (requiredEnableCmd > 0) {
+        // Bitwise check to avoid "1 vs 3" oscillation
+        if (currentEnableState.bitwiseAnd(requiredEnableCmd) == 0) {
+            Lochinvar_Boiler_Enable_Cmd.sendCommand(requiredEnableCmd)
+        }
+    } 
+    // Shutdown
+    else if (targetModulation == 0 && currentEnableState != 0 && DHW_Active.state != ON) {
+        Lochinvar_Boiler_Enable_Cmd.sendCommand(0)
+    }
+end
+
+// DHW Thermostat Rule (This makes the decisions!)
+rule "DHW Thermostat Control"
+when
+    Item DHW_Tank_Temperature changed or
+    Item DHW_Tank_Target changed
+then
+    val Number current = if(DHW_Tank_Temperature.state instanceof Number) (DHW_Tank_Temperature.state as Number).doubleValue else 120.0
+    val Number target = if(DHW_Tank_Target.state instanceof Number) (DHW_Tank_Target.state as Number).doubleValue else 125.0
+    val Number hyst = 5.0 
+
+    // This logic works for ANY setpoint you choose (Vacation or Normal)
+    if (DHW_Active.state != ON && current < (target - hyst)) {
+        DHW_Active.postUpdate(ON)
+    }
+    else if (DHW_Active.state != OFF && current >= target) {
+        DHW_Active.postUpdate(OFF)
+    }
+end

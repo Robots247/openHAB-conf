@@ -259,3 +259,6 @@ String Boiler_Mode "Current Boiler Mode [%s]"
 Number:Temperature Target_Boiler_Temp "Calculated Target Temp [%.0f °F]"
 Number:Temperature DHW_Tank_Target "DHW Target Setpoint [%.1f °F]" (gDHW)
 Number:Temperature Boiler_System_Setpoint  "Boiler System Setpoint Temperature [%.0f °F]" 
+
+// Switch for Grafana to track ACTUAL DHW burning (0=OFF, 1=ON)
+Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indicators, Indicators)

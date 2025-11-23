@@ -1,88 +1,135 @@
-// persistence strategies have a name and a definition and are referred to in the "Items" section
 Strategies {
-	everyHour 	: "0 0 * * * ?"
-	everyDay 	: "0 0 0 * * ?"
-	everyTenMins: "0 */10 * * * ?"
-	everyMinute : "0 * * * * ?"
+    everyHour   : "0 0 * * * ?"
+    everyDay    : "0 0 0 * * ?"
+    everyTenMins: "0 */10 * * * ?"
+    everyMinute : "0 * * * * ?"
 
-	// if no strategy is specified for an item entry below, the default list will be used
-	default = everyChange
+    // default strategy
+    default = everyChange
 }
 
-/* 
- * Each line in this section defines for which item(s) which strategy(ies) should be applied.
- * You can list single items, use "*" for all items or "groupitem*" for all members of a group
- * item (excl. the item itself).
- */
 Items { 
 
-//heating system persistence 
-		gHeating_Targets* : strategy = everyChange, everyTenMins
-		gWeather* : strategy = everyHour
-		Heating* : strategy = everyChange
-		ZV* : strategy = everyChange, everyTenMins
-		RHZV* : strategy = everyChange, everyTenMins
-        gLochinvar_temperatures* : strategy = everyChange
-		Temperatures* : strategy = everyMinute
-		gLochinvar_setpoints* : strategy = everyChange, everyTenMins
-		Weather_Current_Temperature : strategy = everyTenMins
+    // ============================================================================
+    // KICK-ASS BMS & LOGIC TRACKING (Crucial for Grafana Debugging)
+    // ============================================================================
+    
+    // 1. The Decision Making (Logic)
+    Final_Boiler_Target         : strategy = everyChange, everyMinute
+    Calculated_Target_Temp      : strategy = everyChange
+    Active_Curve_Type           : strategy = everyChange  // Logs strings like "High Temp Curve"
+    Heating_Calc_Base           : strategy = everyChange
+    Heating_Calc_Error          : strategy = everyChange
+    Calculated_Feedback_Mod     : strategy = everyChange
+    
+    // 2. The Soft-Start "Staircase"
+    Heating_SoftStart_Active    : strategy = everyChange
+    Heating_SoftStart_Current   : strategy = everyChange, everyMinute
+    Heating_SoftStart_Step      : strategy = everyChange
+    
+    // 3. The Hardware Output (What we send to Lochinvar)
+    Lochinvar_Setpoint_Command  : strategy = everyChange, everyMinute
+    Lochinvar_Boiler_Enable_Cmd : strategy = everyChange, everyMinute
+    
+    // 4. The Boiler Feedback (What Lochinvar does)
+    Boiler_Firing_Rate          : strategy = everyUpdate, everyChange // Updates frequently
+    Lochinvar_DeltaT            : strategy = everyChange, everyMinute
+    Boiler_Status_Code          : strategy = everyChange
+    Boiler_Lockout_Code         : strategy = everyChange
+    
+    // 5. Pumps (Crucial for checking Flow/DeltaT issues)
+    Magna1_Pump                 : strategy = everyChange
+    RHP                         : strategy = everyChange // Radiant Pump
+    swSystemPump                : strategy = everyChange
+    swRHPump                    : strategy = everyChange
 
 
-        Boiler_Firing_Rate : strategy = everyUpdate
-		zoneSettingsTimes* : strategy = everyChange
-        zoneSettingsSetpoints* : strategy = everyChange
-        ZoneSetpoints* : strategy = everyMinute, everyChange
-        DeviceSetpoints* : strategy = everyMinute, everyChange
-        swSystemPump : strategy = everyMinute, everyChange
-        swRHPump : strategy = everyMinute, everyChange
-        DeviceValves* : strategy = everyMinute, everyChange
-        DeviceTemps* : strategy = everyMinute, everyChange
-		Lochinvar_DeltaT : strategy = everyChange
-//lighting
-		gBMT_Lighting* : strategy = everyChange
-		gBMTBr_Lighting* : strategy = everyChange
-		gLR_Lighting* : strategy = everyChange
-		gBMTHW_Lighting* : strategy = everyChange
-		gDEN_Lighting* : strategy = everyChange
-		gDining_Lighting* : strategy = everyChange
-		gMBr_Lighting* : strategy = everyChange
-		gREC_Lighting* : strategy = everyChange
-		gMBe_Lighting* : strategy = everyChange
-
-		LR_FPDimmer : strategy = everyChange
-
-		
-		
-		
-        
- 		Heating_Mode : strategy = everyChange
-		gMS_Batteries* : strategy = everyChange 
-		gMS_Motion* : strategy = everyChange 
-		gMS_Tampers* : strategy = everyChange 
-		gMS_Humidity* : strategy = everyChange 
-		gMS_Temps* : strategy = everyChange 
-		gMS_Luminances* : strategy = everyChange 	
-		gMS_UV_LVL* : strategy = everyChange 		
-		gThermostats* : strategy = everyChange 
-		gHeating_Presets* :strategy = everyChange
-		gHousebrain* :strategy = everyMinute
-		
-		
-//Presence Tracking
-		gPresent_ANY* : strategy = everyChange
-		gAnthonyPresent : strategy = everyChange
-		gShannonPresent : strategy = everyChange
-		gPresent_ANY : strategy = everyChange
-		ShannonsIphoneUnifiRssi : strategy = everyChange
-		AnthonysPixelUnifiRssi : strategy = everyChange
-		AnthonysPixelUnifiAp : strategy = everyChange
-		ShannonsIphoneUnifiAp : strategy = everyChange
-		
-//Items to graph
-		pGraph*		: strategy = everyChange
-
-    	     	 
-}		
-		
+    // ============================================================================
+    // STANDARD HEATING GROUPS
+    // ============================================================================
+    gHeating_Targets* : strategy = everyChange, everyTenMins
+    gLochinvar_temperatures* : strategy = everyChange, everyMinute
+    gLochinvar_setpoints* : strategy = everyChange, everyTenMins
+    ZV* : strategy = everyChange, everyTenMins
+    RHZV* : strategy = everyChange, everyTenMins
+    Heating* : strategy = everyChange
+    
+    // Specific Critical Items
+    DHW_Tank_Setpoint           : strategy = everyChange
+    DHW_Tank_Temperature        : strategy = everyChange, everyMinute
+    System_Temp_Setpoint        : strategy = everyChange
+    System_Outlet_Setpoint      : strategy = everyChange
+    System_Supply_Temp          : strategy = everyChange, everyMinute
+    Outdoor_Temperature         : strategy = everyChange, everyTenMins
 
 
+    // ============================================================================
+    // WEATHER & ENVIRONMENT
+    // ============================================================================
+    gWeather* : strategy = everyHour
+    Weather_Current_Temperature : strategy = everyTenMins
+    Temperatures* : strategy = everyMinute
+    
+    // MultiSensors (Battery, Motion, Temp, etc)
+    gMS_Batteries* : strategy = everyChange 
+    gMS_Motion* : strategy = everyChange 
+    gMS_Tampers* : strategy = everyChange 
+    gMS_Humidity* : strategy = everyChange 
+    gMS_Temps* : strategy = everyChange 
+    gMS_Luminances* : strategy = everyChange    
+    gMS_UV_LVL* : strategy = everyChange        
+
+
+    // ============================================================================
+    // LIGHTING & ZONES
+    // ============================================================================
+    gBMT_Lighting* : strategy = everyChange
+    gBMTBr_Lighting* : strategy = everyChange
+    gLR_Lighting* : strategy = everyChange
+    gBMTHW_Lighting* : strategy = everyChange
+    gDEN_Lighting* : strategy = everyChange
+    gDining_Lighting* : strategy = everyChange
+    gMBr_Lighting* : strategy = everyChange
+    gREC_Lighting* : strategy = everyChange
+    gMBe_Lighting* : strategy = everyChange
+    LR_FPDimmer                 : strategy = everyChange
+
+
+    // ============================================================================
+    // DEVICE TRACKING & CONFIG
+    // ============================================================================
+    zoneSettingsTimes* : strategy = everyChange
+    zoneSettingsSetpoints* : strategy = everyChange
+    ZoneSetpoints* : strategy = everyMinute, everyChange
+    DeviceSetpoints* : strategy = everyMinute, everyChange
+    DeviceValves* : strategy = everyMinute, everyChange
+    DeviceTemps* : strategy = everyMinute, everyChange
+
+    
+    // ============================================================================
+    // PRESENCE & MODES
+    // ============================================================================
+    Heating_Mode                : strategy = everyChange
+    gThermostats* : strategy = everyChange 
+    gHeating_Presets* : strategy = everyChange
+    gHousebrain* : strategy = everyMinute
+
+    gPresent_ANY* : strategy = everyChange
+    gAnthonyPresent             : strategy = everyChange
+    gShannonPresent             : strategy = everyChange
+    gPresent_ANY                : strategy = everyChange
+    ShannonsIphoneUnifiRssi     : strategy = everyChange
+    AnthonysPixelUnifiRssi      : strategy = everyChange
+    AnthonysPixelUnifiAp        : strategy = everyChange
+    ShannonsIphoneUnifiAp       : strategy = everyChange
+    
+    // Explicit Graph Group
+    pGraph* : strategy = everyChange
+	//heating weights
+	gHeating_Weights* : strategy = everyChange, restoreOnStartup
+   
+    Lochinvar_Control_Mode_Config : strategy = everyChange, everyMinute
+    Boiler_Status_Code            : strategy = everyChange, everyMinute
+    Boiler_Blocking_Code          : strategy = everyChange
+	
+}

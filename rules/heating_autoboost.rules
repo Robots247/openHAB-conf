@@ -1,0 +1,36 @@
+rule "Initialize Auto-Boost Defaults (Safe & Persistent)"
+when
+    System started
+then
+    // Wait 45 seconds to ensure MapDB has finished restoring
+    createTimer(now.plusSeconds(45), [|
+        logInfo("Heating", "Verifying Auto-Boost Configuration...")
+
+        // 1. Configuration Variables (Respect MapDB Settings)
+        // If MapDB restored a custom value, keep it. If NULL, set default.
+        
+        if (Heating_Auto_Boost_Step.state == NULL) {
+            Heating_Auto_Boost_Step.postUpdate(5)
+            logInfo("Heating", "Initialized Boost Step to Default: 5°F")
+        }
+
+        if (Heating_Auto_Boost_Delay.state == NULL) {
+            Heating_Auto_Boost_Delay.postUpdate(60)
+            logInfo("Heating", "Initialized Boost Delay to Default: 60 min")
+        }
+
+        if (Heating_Auto_Boost_Max.state == NULL) {
+            Heating_Auto_Boost_Max.postUpdate(20)
+            logInfo("Heating", "Initialized Max Boost to Default: 20°F")
+        }
+
+        // 2. Operational State (Safety Reset)
+        // We ALWAYS reset the active accumulator to 0 on boot.
+        // Why? Because the 'rampTimer' variable is lost on reboot. 
+        // If we restored a +15°F boost without the timer, it would stick forever.
+        if (Heating_Auto_Boost_Accumulator.state != 0) {
+            Heating_Auto_Boost_Accumulator.postUpdate(0)
+            logInfo("Heating", "Safety: Reset Active Auto-Boost to 0°F (Timer cleared)")
+        }
+    ])
+end

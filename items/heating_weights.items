@@ -1,0 +1,21 @@
+Group gHeating_Weights "Zone Load Weights"
+
+// HIGH TEMP ZONES (Radiators/Fan Coils)
+Number Weight_LR   "Living Room Weight [%d]"   (gHeating_Weights)
+Number Weight_GBr  "Guest Bed Weight [%d]"     (gHeating_Weights)
+Number Weight_Bmt  "Basement Weight [%d]"      (gHeating_Weights)
+Number Weight_Gar  "Garage Heater Weight [%d]" (gHeating_Weights)
+Number Weight_Mud  "Mud Room Weight [%d]"      (gHeating_Weights)
+
+// LOW TEMP ZONES (Radiant Floors)
+Number Weight_Kit  "Kitchen Radiant Weight [%d]" (gHeating_Weights)
+Number Weight_Den  "Den Radiant Weight [%d]"     (gHeating_Weights)
+Number Weight_MBa  "Master Bath Weight [%d]"     (gHeating_Weights)
+Number Weight_MBe  "Master Bed Weight [%d]"      (gHeating_Weights)
+
+// GLOBAL SETTINGS
+Number Weight_DHW  "DHW Priority Weight [%d]"    (gHeating_Weights)
+Number Min_Fire_Pct "Minimum Boiler Fire [%d %%]" (gHeating_Weights)
+
+Number Boiler_Calculated_Load "Current Target Modulation [%.1f %%]"
+Switch DHW_Active "DHW Demand Active" // Virtual switch to track DHW state
