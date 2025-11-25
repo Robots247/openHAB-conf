@@ -1,0 +1,123 @@
+sitemap lochinvar_test label="Lochinvar Manual Test" {
+    Frame label="Test Controls" {
+        // Master switch to turn on the 1-minute repeater
+        Switch item=Boiler_Test_Repeat label="Enable 1-Min Auto-Send" icon="switch"
+
+        Text label="40001 Config Bits (Source Select)" icon="settings" {
+            // This sub-page allows granular control of 40001
+            Switch item=Conf_Bit0 label="Bit 0: Boiler Enable (Val: 1)"
+            Switch item=Conf_Bit1 label="Bit 1: Tank Tstat (Val: 2)"
+            Switch item=Conf_Bit2 label="Bit 2: Rate/0-10V (Val: 4)"
+            Switch item=Conf_Bit3 label="Bit 3: Tank Setpoint (Val: 8)"
+            Switch item=Conf_Bit4 label="Bit 4: Sys Supply Temp (Val: 16)"
+            Switch item=Conf_Bit5 label="Bit 5: Outdoor Temp (Val: 32)"
+            Switch item=Conf_Bit6 label="Bit 6: Tank Temp (Val: 64)"
+            Switch item=Conf_Bit7 label="Bit 7: Sys Return Temp (Val: 128)"
+            
+            // Show the resulting total
+            Text item=Lochinvar_40001_Control_Mode label="Resulting Register Value [%d]" icon="key"
+        }
+        
+        // Register 40002: Boiler Enable
+        // Updated mappings to include 4 (CFH3) and 7 (All CFH)
+        Selection item=Lochinvar_40002_Boiler_Enable_Cmd label="Boiler Enable (40002)" mappings=[
+            0="Disable (0x00)", 
+            1="Enable CFH1 (0x01)", 
+            2="Enable CFH2 (0x02)", 
+            3="Enable CFH1+2 (0x03)", 
+            4="Enable CFH3 (0x04)", 
+            7="Enable All (0x07)", 
+            8="Enable Tank Tstat (0x08)"
+        ] icon="fire"
+
+        // Register 40003: Rate Command
+        Setpoint item=Lochinvar_40003_Rate_Command label="Firing Rate (40003) [%d %%]" minValue=0 maxValue=100 step=5 icon="energy"
+        Slider item=Lochinvar_40003_Rate_Command label="Rate Slider"
+
+        // Register 40004: Tank Setpoint
+        Setpoint item=DHW_Tank_Setpoint label="40004: Tank Setpoint [%.0f °F]" minValue=60 maxValue=180 step=1 icon="temperature"
+
+        // Register 40005: Tank Temperature (Simulated Input to Boiler)
+        Setpoint item=DHW_Tank_Temperature label="40005: Tank Temp (Sim) [%.0f °F]" minValue=40 maxValue=180 step=1 icon="temperature"
+
+        // Register 40006: Outdoor Temperature (Simulated Input to Boiler)
+        Setpoint item=Outdoor_Temperature label="40006: Outdoor Temp (Sim) [%.0f °F]" minValue=-20 maxValue=120 step=1 icon="garden"
+
+        // Register 40007: System Supply Temperature (Simulated Input to Boiler)
+        Setpoint item=System_Supply_Temp label="40007: Sys Supply (Sim) [%.0f °F]" minValue=60 maxValue=200 step=1 icon="temperature"
+
+        // Register 40008: System Return Temperature (Simulated Input to Boiler)
+        Setpoint item=DHW_Recirc_Temp label="40008: Sys Return (Sim) [%.0f °F]" minValue=60 maxValue=180 step=1 icon="temperature"
+    }
+    
+    Frame label="Register Monitor (40001-40008)" {
+        // This section allows you to watch exactly what is in the holding registers
+        // If the boiler overwrites your command, you will see it change here.
+        Text item=Lochinvar_40001_Control_Mode label="40001: Config Mode [%d]" icon="settings"
+        Text item=Lochinvar_40002_Boiler_Enable_Cmd label="40002: Enable Cmd [%d]" icon="switch"
+        Text item=Lochinvar_40003_Rate_Command label="40003: Rate/Setpoint [%d]" icon="chart"
+        Text item=DHW_Tank_Setpoint label="40004: Tank Setpoint [%.1f °F]" icon="temperature"
+        Text item=DHW_Tank_Temperature label="40005: Tank Temp (Write) [%.1f °F]" icon="temperature"
+        Text item=Outdoor_Temperature label="40006: Outdoor Temp [%.1f °F]" icon="garden"
+        Text item=System_Supply_Temp label="40007: Sys Supply (Write) [%.1f °F]" icon="temperature"
+        Text item=DHW_Recirc_Temp label="40008: Sys Return (Write) [%.1f °F]" icon="temperature"
+    }
+
+    Frame label="Coil Status (Read Only)" {
+        // Monitoring the Coils (00001-00005)
+        Text item=CFH_Hi_COIL label="Room TStat 1 (Hi) [MAP(en.map):%s]" icon="fire"
+        Text item=CFH_Med_COIL label="Room TStat 2 (Med) [MAP(en.map):%s]" icon="fire"
+        Text item=CFH_Low_COIL label="Room TStat 3 (Low) [MAP(en.map):%s]" icon="fire"
+        Text item=Tank_Thermostat label="Tank Thermostat [MAP(en.map):%s]" icon="water"
+    }
+
+    Frame label="Internal Boiler Setpoints" {
+        // These are read from the Input Registers (300xx), showing the boiler's actual calculation
+        Text item=System_Temp_Setpoint label="System/Cascade Setpoint [%.1f °F]" icon="temperature"
+        Text item=Boiler_Outlet_Setpoint label="Outlet Setpoint [%.1f °F]" icon="temperature"
+        Text item=DHW_Tank_Setpoint label="Tank Setpoint (Holding) [%.1f °F]" icon="temperature"
+    }
+
+    Frame label="Status & Errors" {
+        Text item=Boiler_Status_Code label="Status Code [MAP(LochinvarBoilerStatus.map):%s]" icon="text"
+        Text item=Boiler_Blocking label="Blocking Code [MAP(LochinvarErrorCodes.map):%s]" icon="error"
+        Text item=Boiler_Lockout_Code label="Lockout Code [MAP(LochinvarLOC.map):%s]" icon="lock"
+    }
+
+    Frame label="General Feedback" {
+        Text item=Boiler_Firing_Rate label="Actual Firing Rate"
+        Text item=Boiler_Pump_Speed label="Boiler Pump Speed"
+        
+        // Showing both System Supply (40007) and Boiler Outlet (30009) as they can differ
+        Text item=Boiler_Outlet_Temp label="Boiler Outlet (Sensor) [%.1f °F]" icon="temperature"
+        Text item=Boiler_Inlet_Temp label="Boiler Inlet (Sensor) [%.1f °F]" icon="temperature"
+        Text item=Lochinvar_DeltaT label="Delta T (Outlet - Inlet)" icon="line"
+        
+        Text item=DHW_Tank_Temperature label="Tank Temp (Actual)"
+    }
+
+    Frame label="Zone Valves" {
+        Switch item=GAZV label="Garage Zone Valve"
+        Switch item=MRZV label="Mud Room Zone Valve"
+        Switch item=LRZV label="Living Room Zone Valve"
+        Switch item=GBrZV label="Guest Bedroom Zone Valve"
+        Switch item=BMTZV label="Basement Zone Valve"
+    }
+
+    Frame label="Radiant Heat & Pumps" {
+        Switch item=RHP label="Radiant Heat Pump" icon="pump"
+        Switch item=SysPump label="System Pump" icon="pump"
+        
+        Text label="Radiant Zone Valves" icon="heating" {
+            Switch item=KITRH label="Kitchen Radiant"
+            Switch item=DENRH label="Den Radiant"
+            Switch item=MBaRH label="Master Bath Radiant"
+            Switch item=MBeRH label="Master Bedroom Radiant"
+        }
+    }
+
+    Frame label="Demands (CFH)" {
+        Switch item=CFH1 label="Call for Heat 1 (Thermostat)" icon="fire"
+        Switch item=CFH2 label="Call for Heat 2 (Thermostat)" icon="fire"
+    }
+}

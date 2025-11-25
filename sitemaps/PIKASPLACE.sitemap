@@ -21,7 +21,6 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Moon_Phase == THIRD_QUARTER,
                         Moon_Phase == WANING_CRESCENT,
                         Moon_Phase == NEW]
-            // Ensure this closing brace matches the opening brace of the corresponding block.
             }
     
                
@@ -503,7 +502,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
     */
 
     Frame{
-        Text item=Present label="Presence Detection [MAP(LochinvarBoilerStatus.map):%s]" icon="presence"{
+        Text item=Present label="Presence Detection [MAP(sitemap_strings.map):%s]" icon="presence"{
             Frame label="Presence detection"{
                 Text item=gShannonPresent icon="iphone" label="Shannon is Present" visibility=[gShannonPresent == ON]
                 Text item=gAnthonyPresent icon="iphone" label="Anthony is Present" visibility=[gAnthonyPresent == ON]
@@ -603,7 +602,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
 /***************************************************Boiler Status Sitemap ****************************************************/
 
     Frame{
-        Text item=Boiler_Status_Code    label="Boiler Status:[MAP(LochinvarBoilerStatus.map):%s]" icon="heat"{
+        Text item=Boiler_Status_Code    label="Boiler Status:[MAP(sitemap_strings.map):%s]" icon="heat"{
 
                 Frame label="Date" {
                     Text item=Current_DateTime
@@ -613,7 +612,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                     Default item=Flame_indicator 
                     Default item=Boiler_Firing_Rate
                     Default item=Boiler_Pump_Speed
-                    Default item=Boiler_Status_Code label="[MAP(LochinvarBoilerStatus.map):%s]"
+                    Default item=Boiler_Status_Code label="[MAP(sitemap_strings.map):%s]"
                     Default item=Boiler_Lockout_Code label="[MAP(LochinvarLOC.map):%s]"
                     Default item=Boiler_Blocking
 
@@ -664,47 +663,6 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                 }
             }
         }        
-
-    Frame {
-        Text item=Boiler_Status_Code label="Boiler Control Panel [MAP(LochinvarBoilerStatus.map):%s]" icon="boiler" {
-        
-             Frame label="Master Control" {
-        // The new Master Config Item (Should be '13' for Modbus Control)
-        Text item=Lochinvar_Control_Mode_Config label="Control Mode [MAP(lochinvar_config.map):%s]" icon="settings"
-        
-        // Live Status & Commands
-        Text item=Active_Curve_Type label="Current Logic Mode [%s]" icon="fire"
-        Text item=Lochinvar_Setpoint_Command label="Target Temp Command [%.0f °F]" icon="temperature"
-        Text item=Lochinvar_Boiler_Enable_Cmd label="Boiler Firing Command [MAP(lochinvar_enable.map):%s]" icon="switch"
-    }
-
-    Frame label="System Status" {
-        // Real-time feedback from the boiler
-        Text item=Boiler_Status_Code label="Boiler Status [MAP(LochinvarBoilerStatus.map):%s]" icon="text"
-        Text item=Boiler_Firing_Rate label="Firing Rate [%d %%]" icon="fire"
-        Text item=System_Outlet_Temp label="Outlet Temp [%.1f °F]" icon="temperature"
-        Text item=System_Inlet_Temp label="Inlet Temp [%.1f °F]" icon="temperature"
-        Text item=Lochinvar_DeltaT label="Delta T [%.1f °F]" icon="line-incline"
-    }
-
-    Frame label="Pump Management" {
-        // Monitoring the Boiler's Internal Pump
-        Text item=lochinvarBoilerPumpSpeed label="Boiler Pump Speed (Read Only) [%d %%]" icon="pump"
-        
-        // Manual Overrides for Housebrain Relays
-        Switch item=RHP label="Radiant Pump (Alpha1)" icon="pump"
-        Switch item=Magna1_Pump label="High Temp Pump (Magna1)" icon="pump"
-        Switch item=DHW_Recirc_Pump_indicator label="DHW Recirc Pump" icon="pump"
-    }
-
-    Frame label="Active Zones" {
-        Text item=GAZV label="Garage Zone" visibility=[GAZV==ON]
-        Text item=LRZV label="Living Room Zone" visibility=[LRZV==ON]
-        Text item=DENRH label="Den Radiant Zone" visibility=[DENRH==ON]
-        // Add other zones as needed for visibility
-    }   
-    }
-}    
 
      /***************************************************Lighting ****************************************************/
    
@@ -1093,7 +1051,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Switch item=Heating_UpdatePresets label="update preset temps to current settings"
             }   
                 Frame{
-                Text item=Boiler_Status_Code label="Boiler Quick Look [MAP(LochinvarBoilerStatus.map):%s]" icon="boiler"  {     
+                Text item=Boiler_Status_Code label="Boiler Quick Look [MAP(sitemap_strings.map):%s]" icon="boiler"  {     
                 Frame label="Radiator Zone Valves" {
                         Switch item=GAZV    label="Garage Zone Valve"   icon="radiator"
                         Switch item=MRZV    label="Mud Room Zone Valve" icon="radiator"
@@ -1119,11 +1077,19 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Text item=Boiler_Blocking
                         Text item=Boiler_Lockout_Code
                         Text item=Boiler_Firing_Rate
-                    }   
+                        Text item=System_Supply_Temp
+                        Text item=System_Temp_Setpoint
+                        Text item=System_Inlet_Temp
+                        Text item=System_Outlet_Temp
+                       Text item=Boiler_Pump_Speed label="Boiler Pump Speed [%s]"
+                       Text item=Lochinvar_DeltaT label="Delta T Temperature [%1$.1f°F]"
+                    }
+
+
                 
                     Frame label="Pumps" {
                         Switch item=RHP     label="Radiant Heat Pump"   icon="PUMP"
-                        Switch item=Magna1_Pump   label="System Pump" icon="PUMP"
+                        Switch item=System_Pump_indicator   label="System Pump" icon="PUMP"
                         }
                     Frame {     
                         Switch item=CH_Pump     label="Boiler Pump" icon="PUMP"
@@ -1131,93 +1097,10 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         }
                     Frame {
                         Text item=DHW_Recirc_Temp label="DHW Recirculation Temperature" 
-                        Text item=DHW_Pump_indicator label="DHW Charging Pump Status [MAP(lochinvar_enable.map):%s]" icon="pump"                        }
+                        Switch item=DHW_Recirc_Pump_indicator   label="DHW Recirc Pump" icon="PUMP"
+                        }
                     }
                 } 
-                Frame label="Boiler Control Settings" {
-                    Selection item=Boiler_Control_Mode label="Control Mode" mappings=[ "HW_FALLBACK"="Hardware Fallback (Wires)", "SW_FALLBACK"="Software Fallback (Internal Curve)", "BMS_HEAT"="BMS Direct Fire (Heat Only)", "BMS_ALL"="BMS Direct Fire (Heat + DHW)" ]
-                }
-                Frame label="Boiler Tuning (Dual Curve)" {
-                    Text item=Calculated_Target_Temp icon="temperature" label="Current Target Water Temp"
-                    Text item=Active_Curve_Type icon="text"
-                    Text item=Outdoor_Temperature icon="temperature"
-
-                    Text label="Outdoor Limits (Global)" icon="world" {
-                        Setpoint item=Heating_Curve_Min_Outdoor label="Design Day Low (Coldest) [%.0f °F]" minValue=-20 maxValue=30 step=1
-                        Setpoint item=Heating_Curve_Max_Outdoor label="Warm Weather Shutdown [%.0f °F]" minValue=50 maxValue=85 step=1
-                    }
-
-                    Text label="High Temp Curve (Radiators)" icon="fire" {
-                        Setpoint item=HT_Curve_Max_Water label="Max Water (at Design Low) [%.0f °F]" minValue=160 maxValue=190 step=1
-                        Setpoint item=HT_Curve_Min_Water label="Min Water (at Warm Out) [%.0f °F]" minValue=120 maxValue=160 step=1
-                    }
-
-                    Text label="Low Temp Curve (Radiant)" icon="water" {
-                        Setpoint item=LT_Curve_Max_Water label="Max Water (at Design Low) [%.0f °F]" minValue=100 maxValue=140 step=1
-                        Setpoint item=LT_Curve_Min_Water label="Min Water (at Warm Out) [%.0f °F]" minValue=75 maxValue=110 step=1
-                    }
-                }
-                Frame label="Advanced Logic Tuning" {
-        Text item=Final_Boiler_Target icon="fire" label="Active Target Temp"
-        Text item=Active_Curve_Type icon="text"
-        Text item=Calculated_Feedback_Mod icon="line-incline" label="Active Indoor Feedback Mod [%.1f °F]"
-        Text label="Soft-Start (Ramp Up) Settings" icon="chart" {
-            Setpoint item=Heating_SoftStart_Step label="Ramp Step Size (Deg) [%.0f °F]" minValue=2 maxValue=10 step=1
-            Setpoint item=Heating_SoftStart_Interval label="Ramp Interval (Seconds) [%.0f s]" minValue=30 maxValue=120 step=10
-            Text item=Heating_SoftStart_Active label="Ramp Active" valuecolor=[ON="green", OFF="grey"]
-            Text item=Heating_SoftStart_Current label="Current Ramp Target [%.1f °F]" visibility=[Heating_SoftStart_Active==ON]
-        }
-        
-        Text label="Comfort & Efficiency Params" icon="settings" {
-            Setpoint item=Heating_Shoulder_Temp label="Shoulder Season (60-70F) Target [%.0f °F]" minValue=80 maxValue=100 step=1
-
-            Setpoint item=Heating_Night_Setback label="Night Setback (Curve Reduction) [%.0f °F]" minValue=0 maxValue=30 step=1
-
-            Setpoint item=Heating_Boost_Amount label="Pre-Heat Boost (Curve Increase) [%.0f °F]" minValue=0 maxValue=30 step=1
-            Switch item=Heating_Boost_Active label="Manual Boost Switch"
-
-            Setpoint item=Heating_Feedback_Gain label="Indoor Feedback Gain (Multiplier) [%.1f]" minValue=0 maxValue=10 step=0.5
-            Setpoint item=Heating_Anti_Jitter label="Target Deadband (Prevents Short Cycling) [%.0f °F]" minValue=0 maxValue=10 step=1
-        }
-    }
-    
-   
-    
-    Frame label="Advanced Logic Tuning" {
-            // VISIBILITY SECTION
-            Text item=Final_Boiler_Target icon="fire" label="Active Target Temp"
-            Text item=Active_Curve_Type icon="text"
-            
-            Text item=Heating_Calc_Equation label="Math: [%s]" icon="function"
-            Text item=Heating_Calc_Error    label="Room Error (Avg Set - Avg Act) [%.1f °F]" icon="chart"
-            
-            // TUNING SECTION
-            Text label="Comfort & Efficiency Params" icon="settings" {
-                Setpoint item=Heating_Shoulder_Temp label="Shoulder Season (60-70F) Target [%.0f °F]" minValue=80 maxValue=100 step=1
-                
-                Setpoint item=Heating_Night_Setback label="Night Setback (Curve Reduction) [%.0f °F]" minValue=0 maxValue=30 step=1
-                
-                Setpoint item=Heating_Boost_Amount label="Pre-Heat Boost (Curve Increase) [%.0f °F]" minValue=0 maxValue=30 step=1
-                Switch item=Heating_Boost_Active label="Manual Boost Switch"
-                
-                Setpoint item=Heating_Feedback_Gain label="Indoor Feedback Gain (Multiplier) [%.1f]" minValue=0 maxValue=10 step=0.5
-                Setpoint item=Heating_Wood_Reduction label="Wood Floor Protection (Curve Reduction) [%.0f °F]" minValue=0 maxValue=20 step=1
-            
-            Text label="Auto-Ramp (Lag) Settings" icon="time" {
-            Setpoint item=Heating_Auto_Boost_Step label="Ramp Step Amount (Deg per cycle) [%.0f °F]" minValue=1 maxValue=10 step=1
-            Setpoint item=Heating_Auto_Boost_Delay label="Ramp Delay (Minutes to wait) [%.0f min]" minValue=15 maxValue=120 step=5
-            Setpoint item=Heating_Auto_Boost_Max label="Max Total Boost Allowed [%.0f °F]" minValue=5 maxValue=40 step=5
-            Text item=Heating_Auto_Boost_Accumulator label="Current Active Boost [%.1f °F]" icon="line-incline" valuecolor=[0="green", >0="red"]
-        }
-            Text label="Kick-Ass Settings Checklist (Reference)" {
-            Text label="Recommended Settings:" icon="returnpipe"
-            Text label="1. Shoulder Season: 85°F (Floor Neutral)" icon="temperature"
-            Text label="2. Night Setback: 4°F (Prevent Slab Crash)" icon="moon"
-            Text label="3. Pre-Heat Boost: 15°F (Wake Up Warm)" icon="fire"
-            Text label="4. Feedback Gain: 5.0 (Fast Reaction)" icon="line-incline"
-        }
-            }
-        }
                 Frame label="Thermostat Overrides " {
                     Switch item=vGA_Heating_OFF_Override label="Garage Thermostat Enable" icon=radiator
                 }  
@@ -1227,28 +1110,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                 }  
             }
 }
-Text label="Boiler Tuning (Direct Fire Weights)" icon="settings" {
-    Frame label="Global Settings" {
-        Setpoint item=Min_Fire_Pct label="Min Boiler Fire [%d %%]" minValue=0 maxValue=40 step=1
-        Setpoint item=Weight_DHW label="DHW Priority Weight [%d]" minValue=50 maxValue=100 step=5
-        Text item=Boiler_Calculated_Load label="Current Target Modulation [%.1f %%]" icon="fire"
-    }
-    
-    Frame label="High Temp Zones (Radiators)" {
-        Setpoint item=Weight_LR label="Living Room [%d]" minValue=0 maxValue=50 step=1
-        Setpoint item=Weight_GBr label="Guest Bed [%d]" minValue=0 maxValue=50 step=1
-        Setpoint item=Weight_Bmt label="Basement [%d]" minValue=0 maxValue=50 step=1
-        Setpoint item=Weight_Gar label="Garage Heater [%d]" minValue=0 maxValue=50 step=1
-        Setpoint item=Weight_Mud label="Mud Room [%d]" minValue=0 maxValue=50 step=1
-    }
-    
-    Frame label="Low Temp Zones (Radiant)" {
-        Setpoint item=Weight_Kit label="Kitchen [%d]" minValue=0 maxValue=30 step=1
-        Setpoint item=Weight_Den label="Den [%d]" minValue=0 maxValue=30 step=1
-        Setpoint item=Weight_MBa label="Master Bath [%d]" minValue=0 maxValue=30 step=1
-        Setpoint item=Weight_MBe label="Master Bed [%d]" minValue=0 maxValue=30 step=1
-    }
-}
+
 
 /***************************************************Admin control ****************************************************/
 

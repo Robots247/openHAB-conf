@@ -1,24 +1,27 @@
 Strategies {
-    default = everyChange
-}
+    everyHour : "0 0 * * * ?"
+    everyDay : "0 0 0 * * ?"
+    everyTenMins : "0 */10 * * * ?"
+    everyMinute : "0 * * * * ?"    
 
+    default = everyChange, restoreOnStartup
+}
 Items {
-    * : strategy = everyChange, restoreOnStartup
+    * : strategy = everyHour, restoreOnStartup
+    Heating_Mode : strategy = everyUpdate, restoreOnStartup
+    gHeating_PresetNormal* : strategy = everyUpdate, restoreOnStartup
+    gTstatModes* : strategy = everyUpdate, restoreOnStartup
+    gHysteresis* : strategy = everyUpdate, restoreOnStartup
+    gHeating_Presets* : strategy = everyUpdate, restoreOnStartup
     
-    // You can keep these specific group overrides if you wish, 
-    // but the "*" line above actually covers them all now.
-    // It is safe to leave them as-is or comment them out.
-    
-    Heating_Mode : strategy = everyChange, restoreOnStartup
-    gHeating_PresetNormal* : strategy = everyChange, restoreOnStartup
-    gTstatModes* : strategy = everyChange, restoreOnStartup
-    gHysteresis* : strategy = everyChange, restoreOnStartup
-    gHeating_Presets* : strategy = everyChange, restoreOnStartup
-    
-    // Save Items
+    //Save Items
     pSave* : strategy = everyChange, restoreOnStartup
+    //persistence Tracking
+		
+    gTstatModes* : strategy = everyUpdate, restoreOnStartup
+   	gHysteresis* : strategy = everyUpdate, restoreOnStartup
+    gHeating_Presets* : strategy = everyUpdate, restoreOnStartup
+    gMS_Temps* : strategy = everyUpdate, restoreOnStartup
+    gScenes* : strategy = everyUpdate, restoreOnStartup
     
-    // Persistence Tracking
-    gMS_Temps* : strategy = everyChange, restoreOnStartup
-    gScenes* : strategy = everyChange, restoreOnStartup
 }

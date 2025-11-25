@@ -1,27 +1,10 @@
 
-// Aggregation Groups - These switch to ON if ANY member is ON
-Group:Switch:OR(ON, OFF) ZV   "High Temp Demand Group"
-Group:Switch:OR(ON, OFF) RHZV "Radiant Low Temp Group"
-
-// ============================================================================
-// MATERIAL GROUPS (Kick-Ass 2.0)
-// ============================================================================
-Group:Switch:OR(ON, OFF) gTileFloors "High Mass Floors (Tile)"
-Group:Switch:OR(ON, OFF) gWoodFloors "Low Mass Floors (Wood)"
-
 
 //Zone Valves
 Switch GAZV "Garage Zone Valve" (ZV, 24VAC_Relays) ["Switchable"] { gpio="pin:12 activelow:no",	ga="Valve" [roomHint="Garage"], homekit="valve" }			
 			
-// --- MUD ROOM overheats Den- control SETUP ---
-// 1. The Proxy (Your thermostat rules will talk to this)
-Switch MRZV "Mud Room Demand (Virtual)" (ZV, 24VAC_Relays)
-
-// 2. The Hardware (Only the Modulation Rule talks to this)
-// removed the groups so the Master Pump Logic doesn't get confused by the cycling
-
-Switch MRZV_Pin "Mud Room Physical Valve" { gpio="pin:4 activelow:no" }	
-		
+Switch MRZV "Mud Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:4 activelow:no" } 			
+			
 Switch LRZV "Living Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:23 activelow:no" }			
 			
 Switch GBrZV "Guest Bedroom Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:26 activelow:no" }			
@@ -29,31 +12,26 @@ Switch GBrZV "Guest Bedroom Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:26 active
 Switch BMTZV "Basement Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:13 activelow:no" }		
 
 //Pumps
-Switch RHP "Radient heat pump" (PUMP, 24VAC_Relays, RH) { gpio="pin:21 activelow:no" }
-
-// *** NEW FUNCTION: High Temp System Pump (Magna1) ***
-// Reuses the physical wiring/relay previously used for CFH3 (Pin 20).
-// Logic: Housebrain switches 24V -> Boiler Relay Coil -> Pump 120V.
-Switch Magna1_Pump "High Temp System Pump" (gLochinvar_pumps, PUMP) { gpio="pin:20 activelow:yes initialValue:high" }
-
-
+Switch RHP "Radient heat pump" (PUMP, 24VAC_Relays, RH) { gpio="pin:21 activelow:no" }			
+Switch SysPump "System Pump" (gLochinvar_pumps, PUMP) { gpio="pin:20 activelow:yes initialValue:high" }	
+		
 //Radient Zone Valves						
-Switch KITRH "Kitchen Radient heat" (RHZV, 24VDC_Relays, RH, gTileFloors) { gpio="pin:16 activelow:yes initialValue:high" }			
+Switch KITRH "Kitchen Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:16 activelow:yes initialValue:high" }			
 			
-Switch DENRH "Den Radient heat" (RHZV, 24VDC_Relays, RH, gTileFloors) { gpio="pin:17 activelow:yes initialValue:high" }			
+Switch DENRH "Den Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:17 activelow:yes initialValue:high" }			
 			
-Switch MBaRH "Master Bath Radient heat" (RHZV, 24VDC_Relays, RH, gTileFloors) { gpio="pin:6 activelow:yes initialValue:high" }			
+Switch MBaRH "Master Bath Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:6 activelow:yes initialValue:high" }			
 			
-Switch MBeRH "Master Bedroom Radient heat" (RHZV, 24VDC_Relays, RH, gTileFloors) { gpio="pin:5 activelow:yes initialValue:high" }	
+Switch MBeRH "Master Bedroom Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:5 activelow:yes initialValue:high" }	
 
 		
-//Calls for heat (Legacy contacts - CFH3 repurposed above)
+//Calls for heat (for Lochinvar boiler Contacts (same as thermostat connection in conventional system			
 Switch CFH1 "Call for Heat 1" (CFHs, Relays) { gpio="pin:19 activelow:yes initialValue:high" }
 
 Switch CFH2 "Call for Heat 2" (CFHs, Relays) { gpio="pin:24 activelow:yes initialValue:high" }
 
+//reused for SysPump 
 //Switch CFH3 "Call for Heat 3" (CFHs, Relays) { gpio="pin:20 activelow:yes initialValue:high" }
-
 
 //Ventilation
 

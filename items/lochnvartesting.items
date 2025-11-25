@@ -1,0 +1,29 @@
+// Virtual Switch to enable the 1-minute repeater rule
+// Add this to your existing items file or keep separate
+Switch Boiler_Test_Repeat "Boiler Test Repeat Mode" (gLochinvar_config)
+
+Group gConfigBits "Configuration Bits"
+
+// Bit 0: Value 1
+Switch Conf_Bit0 "Bit 0: Boiler Enable Source [BAS]" (gConfigBits)
+
+// Bit 1: Value 2
+Switch Conf_Bit1 "Bit 1: Tank Tstat Source [BAS]" (gConfigBits)
+
+// Bit 2: Value 4
+Switch Conf_Bit2 "Bit 2: Rate/Setpoint Source [BAS]" (gConfigBits)
+
+// Bit 3: Value 8
+Switch Conf_Bit3 "Bit 3: Tank Setpoint Source [BAS]" (gConfigBits)
+
+// Bit 4: Value 16
+Switch Conf_Bit4 "Bit 4: Sys Supply Temp Source [BAS]" (gConfigBits)
+
+// Bit 5: Value 32
+Switch Conf_Bit5 "Bit 5: Outdoor Temp Source [BAS]" (gConfigBits)
+
+// Bit 6: Value 64
+Switch Conf_Bit6 "Bit 6: Tank Temp Source [BAS]" (gConfigBits)
+
+// Bit 7: Value 128
+Switch Conf_Bit7 "Bit 7: Sys Return Temp Source [BAS]" (gConfigBits)

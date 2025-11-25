@@ -1,59 +1,23 @@
-// ---------------------------------------------------------
-// THE HEARTBEAT (Dynamic Mode Switcher)
-// ---------------------------------------------------------
-rule "Lochinvar Boiler Heartbeat"
+rule "Calculate Lochinvar Delta T"
 when
-    Time cron "0 * * * * ?" 
+    Item Boiler_Outlet_Temp changed or
+    Item Boiler_Inlet_Temp changed
 then
-    // We assume BMS_ALL allows both logic paths
-    var String mode = if(Boiler_Control_Mode.state != NULL) Boiler_Control_Mode.state.toString else "SW_FALLBACK"
-    var int configBit = 0
-    var int enableCmd = 0
-
-    if (mode == "BMS_ALL") {
-        if (DHW_Active.state == ON) {
-            // MODE 4: Direct DHW Control
-            // Config 10 = Tank Tstat(2) + Tank Setpoint(8)
-            configBit = 10  
-            if ((Lochinvar_Boiler_Enable_Cmd.state as Number).intValue.bitwiseAnd(8) != 0) enableCmd = 8
+    // Check if both items have valid states (not NULL or UNDEF)
+    if (Boiler_Outlet_Temp.state instanceof Number && Boiler_Inlet_Temp.state instanceof Number) {
+        
+        // Get values as floats
+        var float outlet = (Boiler_Outlet_Temp.state as Number).floatValue
+        var float inlet = (Boiler_Inlet_Temp.state as Number).floatValue
+        
+        // Calculate Delta
+        var float delta = outlet - inlet
+        
+        // Post update (ensure no negative values if sensors are reading odd during startup)
+        if (delta < 0) {
+            Lochinvar_DeltaT.postUpdate(0)
         } else {
-            // MODE 2: Heating Control
-            // Config 5 = Enable(1) + Rate(4)
-            configBit = 5
-            if ((Lochinvar_Boiler_Enable_Cmd.state as Number).intValue.bitwiseAnd(1) != 0) enableCmd = 1
+            Lochinvar_DeltaT.postUpdate(delta)
         }
-    }
-    // Fallback modes
-    else if (mode == "SW_FALLBACK") {
-        configBit = 1
-        if (Boiler_Fallback_Demand.state == ON) enableCmd = 1
-    }
-
-    // Send Configuration (This switches the boiler mode!)
-    Lochinvar_Control_Mode_Config.sendCommand(configBit) 
-    
-    // Send Enable Command
-    if (enableCmd > 0) {
-        val int currentStatus = (Lochinvar_Boiler_Enable_Cmd.state as Number).intValue
-        if (currentStatus.bitwiseAnd(enableCmd) == 0) {
-            Lochinvar_Boiler_Enable_Cmd.sendCommand(enableCmd)
-        }
-    }
-    
-    // Feed Rate Watchdog (HEATING ONLY)
-    // Uses Universal Scaling (0-100 -> 70-180)
-    if (mode == "BMS_ALL" && DHW_Active.state != ON && enableCmd == 1) {
-         if (Boiler_Calculated_Load.state instanceof Number) {
-            val Number rawLoad = Boiler_Calculated_Load.state as Number
-            var Number targetCommand = 70.0 // Minimum (0%)
-            
-            if (rawLoad > 0) {
-                targetCommand = (rawLoad.doubleValue / 100.0) * (180.0 - 70.0) + 70.0
-            }
-
-            if (Math.abs((Lochinvar_Setpoint_Command.state as Number).doubleValue - targetCommand.doubleValue) > 2.0) {
-                Lochinvar_Setpoint_Command.sendCommand(targetCommand.intValue)
-            }
-         }
     }
 end

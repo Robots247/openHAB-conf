@@ -1,0 +1,53 @@
+rule "Boiler Manual Repeater"
+when
+    // Cron trigger: Seconds Minutes Hours DayOfMonth Month DayOfWeek
+    // Runs at second 0 of every minute
+    Time cron "0 * * ? * *"
+then
+    if (Boiler_Test_Repeat.state == ON) {
+        logInfo("boiler.test", "Test Mode Active: Resending Boiler Commands.")
+
+        // 1. Resend Config (40001)
+        // User wants 3, 5, or 7. 
+        // 3 = Enable (Bit 0) + Tank Tstat (Bit 1)
+        // 5 = Enable (Bit 0) + Rate Command (Bit 2)
+        // 7 = Enable + Tank Tstat + Rate Command
+        if (Lochinvar_40001_Control_Mode.state !== NULL) {
+            Lochinvar_40001_Control_Mode.sendCommand(Lochinvar_40001_Control_Mode.state as Number)
+        }
+
+        // 2. Resend Enable (40002)
+        // Sends 1 (Enable) or 0 (Disable)
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state !== NULL) {
+            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(Lochinvar_40002_Boiler_Enable_Cmd.state as Number)
+        }
+
+        // 3. Resend Rate (40003)
+        // Sends 0-100. Binding handles the Decimal -> Hex conversion.
+        // e.g. 20 becomes 0x0014
+        if (Lochinvar_40003_Rate_Command.state !== NULL) {
+            Lochinvar_40003_Rate_Command.sendCommand(Lochinvar_40003_Rate_Command.state as Number)
+        }
+    }
+end
+rule "Calculate Register 40001 from Bits"
+when
+    Member of gConfigBits changed
+then
+    var int configValue = 0
+
+    // Add up the values based on which switches are ON
+    if (Conf_Bit0.state == ON) configValue = configValue + 1
+    if (Conf_Bit1.state == ON) configValue = configValue + 2
+    if (Conf_Bit2.state == ON) configValue = configValue + 4
+    if (Conf_Bit3.state == ON) configValue = configValue + 8
+    if (Conf_Bit4.state == ON) configValue = configValue + 16
+    if (Conf_Bit5.state == ON) configValue = configValue + 32
+    if (Conf_Bit6.state == ON) configValue = configValue + 64
+    if (Conf_Bit7.state == ON) configValue = configValue + 128
+
+    logInfo("lochinvar", "Bit Config Changed. New Value: " + configValue)
+    
+    // Send the calculated integer to the Modbus Item
+    Lochinvar_40001_Control_Mode.sendCommand(configValue)
+end

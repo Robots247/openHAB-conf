@@ -211,7 +211,7 @@ Holding Registers (Read/Write) (for controlling boiler from OpenHab)
         
         // 40001: Configuration Bits
         // Simplified definition for robust writing
-        Thing data lochinvarConf_Register [ 
+        Thing data lochinvarConf_40001_Register [ 
 			readStart="0", 
 			readValueType="int16", 
 			writeStart="0", 
@@ -221,7 +221,7 @@ Holding Registers (Read/Write) (for controlling boiler from OpenHab)
 			]
 
         // 40002: Boiler Enable Coils
-        Thing data lochinvar_HR_Coils [ 
+        Thing data lochinvar_40002_Enable [ 
 			readStart="1", 
 			readValueType="int16", 
 			writeStart="1", 
@@ -230,33 +230,34 @@ Holding Registers (Read/Write) (for controlling boiler from OpenHab)
 			//writeMultipleEvenWithSingleRegisterOrCoil="true" 
 			]
 
+
         // 40003: Rate/Setpoint Command
-        Thing data lochinvar_HR_RateCommand [ 
+        
+        Thing data lochinvar_40003_RateCommand [ 
 			readStart="2", 
 			readValueType="int16", 
 			writeStart="2", 
 			writeValueType="int16", 
-			writeType="holding", 
-			writeTransform="JS(lochinvar_temp_to_percent.js)", 
-			readTransform="JS(lochinvar_percent_to_temp.js)"
-			//writeMultipleEvenWithSingleRegisterOrCoil="true" 
+			writeType="holding"
+			
 		]
+	
 
 		//40004: Tank Setpoint
-		Thing data lochinvar_HR_TankSetpoint [ 
+		Thing data lochinvar_40004_TankSetpoint [ 
     		//readStart="3", 
     		//readValueType="int16", 
     		writeStart="3", 
     		writeValueType="int16", 
     		writeType="holding", 
-    		//readTransform="JS(lochinvar_C_x2_to_F.js)", 
+    		readTransform="JS(lochinvar_C_x2_to_F.js)", 
     		writeTransform="JS(lochinvar_F_to_C_x2.js)"
     		//writeMultipleEvenWithSingleRegisterOrCoil="true" 
 ]
         // Other Holding Registers
              Thing data lochinvar_HR_TankTemperature            [ readStart="4", readValueType="int16", readTransform="JS(MBtoF.js)"]
              Thing data lochinvar_HR_OutdoorTemperature         [ readStart="5", readValueType="int16", readTransform="JS(MBtoF.js)"]
-             Thing data lochinvar_HR_SystemSupplyTemperatureHR  [ readStart="6", readValueType="int16", readTransform="JS(MBtoF.js)"]
+             Thing data lochinvar_HR_SystemSupplyTemp  [ readStart="6", readValueType="int16", readTransform="JS(MBtoF.js)"]
              Thing data lochinvar_HR_SystemReturnTemp           [ readStart="7", readValueType="int16", readTransform="JS(MBtoF.js)"] 
     }
 }

@@ -13,7 +13,6 @@ Group gLochinvar_limits "Lochinvar Limits" (gLochinvar)
 Group gLochinvar_contacts "Lochinvar Contacts" (gLochinvar)
 Group gLochinvar_rates "Lochinvar Rates" (gLochinvar)
 Group gLochinvar_config "Lochinvar Config" (gLochinvar)
-
  
 
 /***************************************************************************************************************************** Coils /Coils (read/write) (do not control Boiler, refer to holding registers)
@@ -81,10 +80,10 @@ Group gLochinvar_config "Lochinvar Config" (gLochinvar)
     // Cascade Total Power
     // Cascade Current Power    
         // System temps
-        Number:Temperature System_Outlet_Setpoint   "System Outlet Setpoint [%.1f °F]" (gLochinvar_setpoints) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletSetPoint:number" }
-        Number:Temperature System_Outlet_Temp   "System Outlet Temperature [%.1f °F]  " (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletTemperature:number" }
+        Number:Temperature Boiler_Outlet_Setpoint   "System Setpoint [%.1f °F]" (gLochinvar_setpoints) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletSetPoint:number" }
+        Number:Temperature Boiler_Outlet_Temp   "System Outlet Temperature [%.1f °F]  " (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarOutletTemperature:number" }
 //OLD       Number System_Inlet_Temp    "System Inlet Temperature [%.1f °F]" (Temperatures) {modbus="<[Sys_Temps:2:transformation=JS(MBtoF.js)]"}
-        Number:Temperature System_Inlet_Temp    "System Inlet Temperature [%.1f °F]" (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarInletTemperature:number" }
+        Number:Temperature Boiler_Inlet_Temp    "System Inlet Temperature [%.1f °F]" (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarInletTemperature:number" }
 
 
         Number:Temperature Boiler_flue_Temp "Boiler Flue Temperature [%.1f °F]" (gLochinvar_temperatures) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarFlueTemperature:number" }
@@ -104,44 +103,11 @@ Group gLochinvar_config "Lochinvar Config" (gLochinvar)
     
     
     
-    
-    
     //Input Boiler Status gLochinvar_codes
         Number Boiler_Status_Code   "Boiler Status:[MAP(LochinvarBoilerStatus.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerStatusCode:number" }
         /******************************************************************************************************************************
 
-BOILER STATSUS CODES:
-             
-Status gLochinvar_codes (Input Register 30014)
-2 = Heat Demand blocked due to high absolute outlet
-temperature
-3 = Heat Demand blocked due to high absolute flue
-temperature
-4 = Heat Demand blocked due to high absolute Delta T
-(Outlet - Inlet)
-8 = Heat Demand blocked due to Low 24 VAC
-9 = Outdoor shutdown
-10 = Block due to switch OFF boiler (ON/OFF of Display)
-12 = Block due to no correct communication Cascade
-16 = Service function
-19 = gDHW function Storage Tank
-21 = SH function Heat demand from Room Thermostat
-22 = SH function Heat demand from Boiler Management
-System
-23 = SH function Heat demand from Cascade
-30 = Heat demand activated by Freeze Protection
-32 = gDHW Pump Delay
-33 = SH Pump Delay
-34 = No heat function (after pump delay)
-40 = Lockout
-32764 = Busy with updating status
-32765 = gDHW blocked due to no present tank sensor
-32766 = Burner control(s) manually shut down
-32767 = Code not present
 
-
-
-******************************************************************************************************************************/
     
     
     //Input Boiler_Blocking_gLochinvar_codes
@@ -222,43 +188,46 @@ BOILER LOCKOUT CODES
 
 
 
-/***************************************************************************************************************************** Holding Registers (Read/Write) (for controlling boiler from OpenHab)
+/***************************************************************************************************************************** 
+
+Holding Registers (Read/Write) (for controlling boiler from OpenHab)
 
 *****************************************************************************************************************************/
     
-        //Config Bits 
-        // NOTE: Replaced individual config switches with single Number item to write Integer '5'
-        Number Lochinvar_Control_Mode_Config "Control Mode Config" (gLochinvar_config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_Register:number" }
+       //Config Bits 
+        Number Lochinvar_40001_Control_Mode "Control Mode Config" (gLochinvar_config) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvarConf_40001_Register:number" }
         
         //Coils (controls boiler gCFH)
-        // 1 = Boiler Enable (Fire), 0 = Standby
-        Number Lochinvar_Boiler_Enable_Cmd      "Boiler Enable Command"           (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_Coils:number" }
+        Number Lochinvar_40002_Boiler_Enable_Cmd      "Boiler Enable Command"           (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_40002_Enable:number" }
         
         //0-10V Input/ Rate Command /Setpoint Command %
-        // Writes Temperature (e.g., 180), Thing transform converts to % (e.g., 39)
-        Number Lochinvar_Setpoint_Command       "Target Temp Command [%.0f °F]"   (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_RateCommand:number" }
+        Number Lochinvar_40003_Rate_Command       "Target Temp Command [%.0f °F]"   (gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_40003_RateCommand:number" }
 
         //Temps
-        Number:Temperature DHW_Tank_Setpoint "DHW Tank Temperature Setpoint [%.1f °F]" (gDHW,gLochinvar_setpoints,gLochinvar_inputs){ channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_TankSetpoint:number" }
+        Number:Temperature DHW_Tank_Setpoint "DHW Tank Temperature Setpoint [%.1f °F]" (gDHW,gLochinvar_setpoints,gLochinvar_inputs){ channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_40004_TankSetpoint:number" }
         Number:Temperature DHW_Tank_Temperature "DHW Tank Temperature [%.1f °F]" (gLochinvar_temperatures, gDHW, gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_TankTemperature:number" }
         Number:Temperature Outdoor_Temperature "Outdoor Temperature [%.1f °F]"(gLochinvar_temperatures, gOutdoor_Sensors_AVG,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_OutdoorTemperature:number" }
-        Number:Temperature System_Supply_Temp "System Supply Temperature [%.1f °F]" (gLochinvar_temperatures,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_SystemSupplyTemperatureHR:number" }
+        Number:Temperature System_Supply_Temp "System Supply Temperature [%.1f °F]" (gLochinvar_temperatures,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_SystemSupplyTemp:number" }
         Number:Temperature DHW_Recirc_Temp "DHW Recirculation Temperature [%.1f °F] " (gLochinvar_temperatures,gDHW,gLochinvar_inputs) { channel="modbus:data:lochinvar:LochinvarHoldingRegisters:lochinvar_HR_SystemReturnTemp:number" }
     
-
-
-        
 //calculated values
 Number:Temperature Lochinvar_DeltaT "Lochinvar boiler deltaT (outlet-input) [%.1f °F]" (gLochinvar_temperatures)
 Number Lochinvar_cycles "Lochinvar Cycle Count today" 
 Number Lochinvar_cyclesHour "Lochinvar Cycle Count this hour"
 
-// Virtual Items for Logic Rules
-// Renamed from Heating_Mode to Boiler_Mode as requested
-String Boiler_Mode "Current Boiler Mode [%s]"
-Number:Temperature Target_Boiler_Temp "Calculated Target Temp [%.0f °F]"
-Number:Temperature DHW_Tank_Target "DHW Target Setpoint [%.1f °F]" (gDHW)
-Number:Temperature Boiler_System_Setpoint  "Boiler System Setpoint Temperature [%.0f °F]" 
+// =================================================================================
+// NEW LOGIC ITEMS (Hybrid BMS Control)
+// =================================================================================
+
+// Switch to toggle between OLD rules (Thermostat Logic) and NEW rules (Hybrid PID)
+Switch Boiler_BMS_ENBLE "Use New Hybrid Logic" <settings>
+
+// Visibility for New Logic
+String Boiler_Demand_Type "Demand Type [%s]" <text> // "High Temp", "Low Temp", "None"
+Number:Temperature Boiler_Target_Temp "Calculated Target Temp [%.1f °F]" <temperature>
+Number Boiler_PID_Output "PID Output Rate [%.1f %%]" <line>
+Number Boiler_Zone_Limit "Zone Load Limit [%.1f %%]" <chart>
+Number Boiler_Final_Command "Final Rate Command [%.1f %%]" <fire>
 
 // Switch for Grafana to track ACTUAL DHW burning (0=OFF, 1=ON)
 Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indicators, Indicators)
