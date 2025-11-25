@@ -10,9 +10,32 @@ Strategies {
 
 Items { 
 
+// --- LOCHINVAR BMS & TUNING (NEW) ---
+    // These are critical for tuning the PID loop. We want every change.
+    Boiler_BMS_ENBLE : strategy = everyChange
+    Boiler_Kp : strategy = everyChange
+    Boiler_Ki : strategy = everyChange
+    Boiler_Kd : strategy = everyChange
+    
+    // PID Internals (Calculated values - these change frequently)
+    Boiler_Target_Temp : strategy = everyChange
+    Boiler_PID_Output : strategy = everyChange
+    Boiler_Zone_Limit : strategy = everyChange
+    Boiler_Final_Command : strategy = everyChange
+    Boiler_Demand_Type : strategy = everyChange
+    
+    // Raw Modbus Commands (What we sent)
+    Lochinvar_40001_Control_Mode : strategy = everyChange
+    Lochinvar_40002_Boiler_Enable_Cmd : strategy = everyChange
+    Lochinvar_40003_Rate_Command : strategy = everyChange
+
+    // Raw Modbus Feedback (What boiler did)
+    Boiler_Status_Code : strategy = everyChange
+    Boiler_Pump_Speed : strategy = everyChange
+    Boiler_Firing_Rate : strategy = everyChange
+
 // --- HEATING SYSTEM ---
     // OPTIMIZATION: Setpoints/Targets only need to be saved when you change them. 
-    // Saving them every 10 mins is redundant data.
     gHeating_Targets* : strategy = everyChange
     gLochinvar_setpoints* : strategy = everyChange
     zoneSettingsSetpoints* : strategy = everyChange
@@ -20,20 +43,13 @@ Items {
     DeviceSetpoints* : strategy = everyChange
 
     // OPTIMIZATION: Temperatures usually don't fluctuate wildly in 60 seconds. 
-    // 'everyChange' captures the movement. 'every15Mins' ensures the graph line 
-    // doesn't break if the temp stays perfectly stable for hours.
     Temperatures* : strategy = everyChange, every15Mins
     DeviceTemps* : strategy = everyChange, every15Mins
     gLochinvar_temperatures* : strategy = everyChange, every15Mins
     Weather_Current_Temperature : strategy = everyChange, everyHour
     gWeather* : strategy = everyHour
 
-    // CRITICAL FIX: 'everyUpdate' forces a write even if the value is the same. 
-    // If your boiler reports "0" every 5 seconds, Influx writes "0" every 5 seconds.
-    // Changed to 'everyChange'.
-    Boiler_Firing_Rate : strategy = everyChange
-    
-    // Pumps and Valves are mechanical/binary. They do not need minute-by-minute logging.
+    // Pumps and Valves
     ZV* : strategy = everyChange
     RHZV* : strategy = everyChange
     DeviceValves* : strategy = everyChange
@@ -48,8 +64,7 @@ Items {
     gThermostats* : strategy = everyChange 
     gHeating_Presets* :strategy = everyChange
 
-// --- LIGHTING ---
-    // Lighting is event-based. No time strategy needed.
+    // Lighting
     gBMT_Lighting* : strategy = everyChange
     gBMTBr_Lighting* : strategy = everyChange
     gLR_Lighting* : strategy = everyChange
@@ -61,9 +76,7 @@ Items {
     gMBe_Lighting* : strategy = everyChange
     LR_FPDimmer : strategy = everyChange
 
-// --- SENSORS & HOUSE BRAIN ---
-    // System stats (Housebrain) can destroy SD cards. 
-    // If this is CPU load/RAM, 5 or 15 mins is usually enough for history.
+    // Sensors & System
     gHousebrain* :strategy = every15Mins, everyChange
     
     gMS_Batteries* : strategy = everyChange, everyDay
@@ -74,17 +87,15 @@ Items {
     gMS_Luminances* : strategy = everyChange    
     gMS_UV_LVL* : strategy = everyChange        
     
-// --- PRESENCE TRACKING ---
-    // Presence is purely event-based.
+    // Presence
     gPresent_ANY* : strategy = everyChange
     gAnthonyPresent : strategy = everyChange
     gShannonPresent : strategy = everyChange
-    gPresent_ANY : strategy = everyChange
     ShannonsIphoneUnifiRssi : strategy = everyChange
     AnthonysPixelUnifiRssi : strategy = everyChange
     AnthonysPixelUnifiAp : strategy = everyChange
     ShannonsIphoneUnifiAp : strategy = everyChange
     
-// --- MANUAL GRAPHS ---
+    // Manual Graphs
     pGraph* : strategy = everyChange, every15Mins
 }

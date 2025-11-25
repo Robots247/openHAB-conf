@@ -23,5 +23,6 @@ Items {
     gHeating_Presets* : strategy = everyUpdate, restoreOnStartup
     gMS_Temps* : strategy = everyUpdate, restoreOnStartup
     gScenes* : strategy = everyUpdate, restoreOnStartup
+    gLochinvar_tuning : strategy = everyChange, restoreOnStartup
     
 }

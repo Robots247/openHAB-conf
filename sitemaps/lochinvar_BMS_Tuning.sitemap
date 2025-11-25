@@ -1,0 +1,60 @@
+sitemap lochinvar_bms label="Lochinvar BMS Monitor" {
+    
+    Frame label="Master Control" {
+        // The main switch to hand over control to the new rule
+        Switch item=Boiler_BMS_ENBLE label="Hybrid BMS Logic" icon="network" mappings=[OFF="Legacy (Relays)", ON="BMS (Modbus)"]
+        
+        // Live Feedback of what the rule decided
+        Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="text"
+        Text item=Boiler_Final_Command label="Command Sent to Boiler [%.0f %%]" icon="fire"
+    }
+
+    Frame label="Control Loop Internals" {
+        // Watch the math happen in real-time
+        Text item=Boiler_Target_Temp label="Calculated Target Temp [%.1f °F]" icon="temperature"
+        Text item=System_Supply_Temp label="Actual Supply Temp [%.1f °F]" icon="temperature"
+        
+        Text item=Boiler_PID_Output label="Raw PID Output [%.1f %%]" icon="chart"
+        Text item=Boiler_Zone_Limit label="Zone Load Limit [%.1f %%]" icon="speed"
+        
+        Text item=Lochinvar_DeltaT label="System Delta T [%.1f °F]" icon="line"
+    }
+
+    Frame label="Boiler Feedback (Modbus)" {
+        // What the boiler is actually doing
+        Text item=Boiler_Status_Code label="Status [MAP(LochinvarBoilerStatus.map):%s]"
+        Text item=Boiler_Firing_Rate label="Actual Firing Rate [%d %%]" icon="fire"
+        Text item=Boiler_Pump_Speed label="Boiler Pump Speed [%d %%]" icon="pump"
+        Text item=Boiler_Outlet_Temp label="Outlet Temp (Sensor) [%.1f °F]"
+        Text item=Boiler_Inlet_Temp label="Inlet Temp (Sensor) [%.1f °F]"
+    }
+
+    Frame label="PID Tuning (Adjust Live)" {
+        // Adjust these to tune the loop without restarting rules
+        // Kp: Proportional Gain (Main Driver)
+        Setpoint item=Boiler_Kp label="Kp (Proportional) [%.1f]" minValue=0 maxValue=10 step=0.1
+        
+        // Ki: Integral Gain (Accumulates error over time to close the gap)
+        Setpoint item=Boiler_Ki label="Ki (Integral) [%.2f]" minValue=0 maxValue=1 step=0.01
+        
+        // Kd: Derivative (Dampens overshooting - usually 0 for boilers)
+        Setpoint item=Boiler_Kd label="Kd (Derivative) [%.2f]" minValue=0 maxValue=5 step=0.1
+    }
+
+    Frame label="Active Zones (Inputs)" {
+        // Quick view of what is calling for heat
+        Text label="High Temp Zones" icon="fire" {
+            Text item=LRZV label="Living Room"
+            Text item=GBrZV label="Guest Bed"
+            Text item=BMTZV label="Basement"
+            Text item=GAZV label="Garage"
+            Text item=MRZV label="Mud Room"
+        }
+        Text label="Radiant Zones (Low Temp)" icon="water" {
+            Text item=KITRH label="Kitchen"
+            Text item=DENRH label="Den"
+            Text item=MBaRH label="Master Bath"
+            Text item=MBeRH label="Master Bed"
+        }
+    }
+}

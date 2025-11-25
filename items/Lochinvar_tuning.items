@@ -1,0 +1,4 @@
+// PID Tuning Parameters (Persist these if possible!)
+Number Boiler_Kp "PID Kp (Proportional) [%.1f]" <line> (gLochinvar_tuning)
+Number Boiler_Ki "PID Ki (Integral) [%.2f]" <line> (gLochinvar_tuning)
+Number Boiler_Kd "PID Kd (Derivative) [%.2f]" <line> (gLochinvar_tuning)
