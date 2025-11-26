@@ -11,6 +11,27 @@ Number ODR_Intercept "Curve Intercept (0F) [%.1f °F]" <temperature> (gLochinvar
 Number Room_Kp "Room Kp (Boost/Deg) [%.1f]" <line> (gLochinvar_tuning)
 Number Room_Ki "Room Ki (Learn/Min) [%.2f]" <line> (gLochinvar_tuning)
 
+// === SMART OVERRUN LOGIC (NEW) ===
+Switch Boiler_SmartOverrun_Enable "Enable Smart Overrun Logic" <switch> (gLochinvar_tuning)
+Switch Boiler_Block_Active "Block Active (Internal)" <lock> // The "Kill Switch" signal
+String Boiler_Block_Status "Block Status [%s]" <text>
+
+// Tunables
+Number Boiler_Overrun_Threshold "Overrun Threshold [%.1f °F]" <temperature> (gLochinvar_tuning)
+Number Boiler_Block_Time "Block Time Setting [%d min]" <time> (gLochinvar_tuning)
+Number Boiler_Rescue_Threshold "Rescue Threshold [%.1f °F]" <temperature> (gLochinvar_tuning)
+
+// Counters
+Number Boiler_Block_Timer_Rem "Block Timer Remaining [%d min]" <time>
+
+// === BTU ENERGY CALCULATOR (NEW) ===
+Number Boiler_Output_BTU "Current Output [%.0f BTU/hr]" <energy>
+Number Boiler_Est_Flow "Estimated Flow [%.1f GPM]" <flow>
+
+// Virtual Flow Calibration (Tune these to match reality)
+Number Flow_GPM_System "Calib: System Pump GPM [%.1f]" <flow> (gLochinvar_tuning)
+Number Flow_GPM_Radiant "Calib: Radiant Pump GPM [%.1f]" <flow> (gLochinvar_tuning)
+
 // === Outdoor Reset Control Items ===
 
 // The calculated target (Output of the reset rule)
@@ -29,3 +50,5 @@ Number Boiler_Room_Integral "Room PID Integral Accumulator [%.2f]"
 
 // Calculated Error (The "Worst Case" room) - Useful for UI
 Number Boiler_Max_Error "Max Room Error [%.1f °F]"
+String Boiler_Max_Error_Room "Worst Performing Room [%s]" <bedroom>
+Switch Boiler_Boost_Active "PID Boost Active" <fire>

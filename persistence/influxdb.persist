@@ -11,32 +11,50 @@ Strategies {
 Items { 
 
 // --- LOCHINVAR BMS & TUNING (NEW) ---
-    // Critical Tuning Parameters (Record on Change)
+    // 1. Control Switches & Tuning Parameters (Save on Change)
     Boiler_BMS_ENBLE : strategy = everyChange
+    
+    // PID Tuning
     Boiler_Kp : strategy = everyChange
     Boiler_Ki : strategy = everyChange
     Boiler_Kd : strategy = everyChange
-    
-    // NEW: Outdoor Reset & Room PID Tuning
-    ODR_Slope : strategy = everyChange
-    ODR_Intercept : strategy = everyChange
     Room_Kp : strategy = everyChange
     Room_Ki : strategy = everyChange
     
-    // --- GRAFANA HIGH-RES LOGGING ---
-    // We record these every minute to create smooth tuning curves in Grafana
-    // (Even if they haven't changed, we want a data point to draw the line)
+    // Outdoor Reset Tuning
+    ODR_Slope : strategy = everyChange
+    ODR_Intercept : strategy = everyChange
+    
+    // Smart Overrun Tuning
+    Boiler_SmartOverrun_Enable : strategy = everyChange
+    Boiler_Overrun_Threshold : strategy = everyChange
+    Boiler_Block_Time : strategy = everyChange
+    Boiler_Rescue_Threshold : strategy = everyChange
+    
+    // Flow Calibration
+    Flow_GPM_System : strategy = everyChange
+    Flow_GPM_Radiant : strategy = everyChange
+
+    // 2. High-Resolution Graphing Data (Save Every Minute for Smooth Graphs)
+    // These values fluctuate constantly; recording every minute prevents "staircase" graphs
     Boiler_Target_Temp : strategy = everyMinute, everyChange
-    System_Supply_Temp : strategy = everyMinute, everyChange
+    Boiler_PID_Output : strategy = everyMinute, everyChange
     Boiler_Final_Command : strategy = everyMinute, everyChange
+    
+    // New Math Items (BTU & Flow)
+    Boiler_Output_BTU : strategy = everyMinute, everyChange
+    Boiler_Est_Flow : strategy = everyMinute, everyChange
+    
+    // Room Feedback
     Boiler_Max_Error : strategy = everyMinute, everyChange
     Boiler_Room_Integral : strategy = everyMinute, everyChange
-    Outdoor_Temperature : strategy = everyMinute, everyChange
 
-    // Calculated Internal States
-    Boiler_PID_Output : strategy = everyChange
+    // 3. Status & State Indicators (Save on Change)
     Boiler_Zone_Limit : strategy = everyChange
     Boiler_Demand_Type : strategy = everyChange
+    Boiler_Block_Active : strategy = everyChange
+    Boiler_Block_Status : strategy = everyChange
+    Boiler_Block_Timer_Rem : strategy = everyChange
     
     // Raw Modbus Commands (What we sent)
     Lochinvar_40001_Control_Mode : strategy = everyChange

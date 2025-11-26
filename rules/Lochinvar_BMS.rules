@@ -5,7 +5,6 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 
 // PID Controller Variables (Firing Loop Only)
-// Note: This is separate from the Room Integral in outdoor_reset.rules
 var Number pid_integral = 0.0
 
 // -----------------------------------------------------------------------------------
@@ -15,49 +14,36 @@ rule "Boiler Heartbeat and Mode Enforcement"
 when
     Time cron "0 * * ? * *" 
 then
-    // *** NEW: TEST MODE BLOCK ***
-    // If Test Mode is active, BMS Heartbeat yields control.
     if (Boiler_Test_Repeat.state == ON) {
-        logInfo("Boiler.Watchdog", "Yielding to Test Mode (Boiler_Test_Repeat is ON). Heartbeat skipped.")
+        logInfo("Boiler.Watchdog", "Yielding to Test Mode. Heartbeat skipped.")
         return;
     }
 
-    // CHECK MASTER SWITCH
     if (Boiler_BMS_ENBLE.state == ON) {
         // === BMS MODE ===
         
-        // 1. Send ENABLE to Register 40002 (Value 1 = Enable Unit)
-        if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
-             logInfo("Boiler.Watchdog", "Heartbeat (BMS Mode): Enforcing Enable (40002=1)")
-             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        // CONFLICT RESOLUTION: 
+        // Only enforce Enable=1 if we are NOT currently blocked by the Shutoff Rule.
+        if (Boiler_Block_Active.state != ON) {
+            if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
+                 logInfo("Boiler.Watchdog", "Heartbeat: Enforcing Enable (40002=1)")
+                 Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+            }
         }
-
-        // 2. Send CONFIG to Register 40001 (Value 5 = Enable + Rate)
-        // We do this periodically to ensure the boiler doesn't revert to local control
+        
+        // Always enforce Control Mode 5 (BMS Rate)
         Lochinvar_40001_Control_Mode.sendCommand(5)
         
-        // Safety: Ensure Physical CFH Relays are OFF when in Rate Control Mode
-        // This prevents "fighting" between the BMS enable and the physical thermostat inputs
-        if (CFH1.state == ON) {
-            logInfo("Boiler.Watchdog", "Safety: Turning OFF CFH1 Relay (BMS Mode Active)")
-            CFH1.sendCommand(OFF)
-        }
-        if (CFH2.state == ON) {
-            logInfo("Boiler.Watchdog", "Safety: Turning OFF CFH2 Relay (BMS Mode Active)")
-            CFH2.sendCommand(OFF)
-        }
-    
+        // Safety: Ensure Physical CFH Relays are OFF
+        if (CFH1.state == ON) CFH1.sendCommand(OFF)
+        if (CFH2.state == ON) CFH2.sendCommand(OFF)
     } 
     else {
         // === RELAY/LEGACY MODE ===
-        // Force local control if BMS is disabled
         Lochinvar_40001_Control_Mode.sendCommand(0)
-        
         if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 0) {
             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
         }
-
-        // Safety: Ensure Rate Command is 0 when in Relay Mode
         if ((Lochinvar_40003_Rate_Command.state as Number).intValue != 0) {
             Lochinvar_40003_Rate_Command.sendCommand(0)
         }
@@ -71,133 +57,124 @@ rule "Hybrid Boiler PID Loop"
 when
     Time cron "0/15 * * * * ?"
 then
-    // 1. SYSTEM CHECKS
     if (Boiler_Test_Repeat.state == ON) return;
-
-    // IF IN RELAY MODE, STOP HERE.
     if (Boiler_BMS_ENBLE.state != ON) {
-        pid_integral = 0.0 // Reset PID
+        pid_integral = 0.0 
         return;
     }
 
-    // 2. GATHER ACTUATION DATA
-    // Tuning Parameters for the Firing Loop (Not the Room Loop)
-    var double Kp = if(Boiler_Kp.state instanceof Number) (Boiler_Kp.state as Number).doubleValue else 2.5
+    // 1. CHECK SHUTOFF BLOCK
+    // -----------------------------------------------------------------------
+    if (Boiler_Block_Active.state == ON) {
+        // == HARD SHUTDOWN SEQUENCE ==
+        pid_integral = 0.0 
+        Boiler_PID_Output.postUpdate(0)
+        Boiler_Final_Command.postUpdate(0)
+        
+        // A. Send 0% Rate
+        if (Lochinvar_40003_Rate_Command.state == NULL || (Lochinvar_40003_Rate_Command.state as Number).intValue != 0) {
+             Lochinvar_40003_Rate_Command.sendCommand(0)
+        }
+        
+        // B. Send DISABLE Command (Standby)
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state == NULL || (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 0) {
+             logInfo("Boiler.BMS", "BLOCK ACTIVE: Forcing Enable=0 (Standby)")
+             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
+        }
+        // Fall through to keep pumps running (Purge Cycle)
+    }
+
+    // 2. GATHER DATA
+    var double base_Kp = if(Boiler_Kp.state instanceof Number) (Boiler_Kp.state as Number).doubleValue else 2.5
     var double Ki = if(Boiler_Ki.state instanceof Number) (Boiler_Ki.state as Number).doubleValue else 0.1
-    // Note: Kd is available in items but typically unused for Boiler Firing to prevent gas valve jitter
-    
-    // Process Variable
     val Number supplyTemp  = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 140.0
-    
-    // Setpoint (Calculated by outdoor_reset.rules)
-    // We default to 0.0 if NULL to ensure safety
     val Number targetTemp = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
-    
-    // Zone Limit (Calculated by outdoor_reset.rules)
     val int zoneWeight = if(Boiler_Zone_Limit.state instanceof Number) (Boiler_Zone_Limit.state as Number).intValue else 0
 
-    // 3. PUMP ACTUATION (Local Safety Check)
-    // We re-check the switches locally to ensure pumps run even if the Reset Rule lags.
+    // 3. PUMP ACTUATION 
     var boolean highTempCall = false
     var boolean lowTempCall = false
 
-    // High Temp Zones
-    if (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON) {
-        highTempCall = true
-    }
+    if (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON) highTempCall = true
+    if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) lowTempCall = true
 
-    // Low Temp Zones
-    if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) {
-        lowTempCall = true
-    }
+    if (highTempCall) { if (SysPump.state != ON) SysPump.sendCommand(ON) } 
+    else { if (SysPump.state != OFF) SysPump.sendCommand(OFF) }
 
-    // Actuate System Pump
-    if (highTempCall) {
-        if (SysPump.state != ON) SysPump.sendCommand(ON)
-    } else {
-        if (SysPump.state != OFF) SysPump.sendCommand(OFF)
-    }
+    if (lowTempCall) { if (RHP.state != ON) RHP.sendCommand(ON) } 
+    else { if (RHP.state != OFF) RHP.sendCommand(OFF) }
 
-    // Actuate Radiant Pump
-    if (lowTempCall) {
-        if (RHP.state != ON) RHP.sendCommand(ON)
-    } else {
-        if (RHP.state != OFF) RHP.sendCommand(OFF)
-    }
-
-    // 4. FIRING PID CALCULATION
+    // 4. FIRING PID (Only run if NOT Blocked)
     var Number finalRate = 0.0
     
-    // Only attempt to fire if we have active zones AND a valid target temperature
-    if ((highTempCall || lowTempCall) && targetTemp > 0) {
+    // We only calculate PID if Block is OFF
+    if (Boiler_Block_Active.state != ON) {
         
-        var Number error = targetTemp - supplyTemp
-        
-        // Proportional Term
-        var Number P = Kp * error
-        
-        // Integral Term (Accumulates over time)
-        pid_integral = pid_integral + (Ki * error)
-        
-        // Anti-Windup: Clamp Integral 
-        // Prevents "Integral Windup" where the term grows infinitely if the boiler can't keep up
-        if (pid_integral > 40) pid_integral = 40
-        if (pid_integral < -10) pid_integral = -10
-        
-        var Number rawOutput = P + pid_integral
-        
-        Boiler_PID_Output.postUpdate(rawOutput)
-
-        // 5. OUTPUT CLAMPING & SAFETY
-        
-        // A. Load Limiting (Zone Weighting)
-        // Prevents high fire rates when only 1 small zone is open (short cycling protection)
-        var Number maxAllowed = zoneWeight * 1.5 
-        if (maxAllowed > 100) maxAllowed = 100
-        if (rawOutput > maxAllowed) rawOutput = maxAllowed
-
-        // B. Minimum Fire Logic
-        // Most condensing boilers flame out below 10-20% modulation
-        if (rawOutput < 10) {
-            if (rawOutput > 1) {
-                // Keep it at minimum fire (10%) to prevent short cycling
-                finalRate = 10 
-            } else {
-                // Shut down
-                finalRate = 0  
-                pid_integral = 0 // Reset integral on shutdown
-            }
-        } else {
-            finalRate = rawOutput
+        // Ensure Enable=1 if we are coming out of a block
+        if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
+            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
         }
-        
-        // C. Absolute Max
-        if (finalRate > 100) finalRate = 100
 
-    } else {
-        // No Demand
+        if ((highTempCall || lowTempCall) && targetTemp > 0) {
+            
+            var Number error = targetTemp - supplyTemp
+            
+            // === SMART GAIN SCHEDULING (NEW) ===
+            // Prevents 100% blast during step changes (Soft Start)
+            var double dynamic_Kp = base_Kp
+            
+            if (error > 20) {
+                // MASSIVE step change (e.g. 110F -> 160F). 
+                // Reduce aggression to 20% to Soft Start.
+                dynamic_Kp = base_Kp * 0.2 
+            } else if (error > 10) {
+                // Moderate step. Reduce aggression to 50%.
+                dynamic_Kp = base_Kp * 0.5
+            }
+            // Else: Use full Kp for precision finishing
+            
+            var Number P = dynamic_Kp * error
+            pid_integral = pid_integral + (Ki * error)
+            
+            if (pid_integral > 40) pid_integral = 40
+            if (pid_integral < -10) pid_integral = -10
+            
+            var Number rawOutput = P + pid_integral
+            Boiler_PID_Output.postUpdate(rawOutput)
+
+            // Clamps
+            var Number maxAllowed = zoneWeight * 1.5 
+            if (maxAllowed > 100) maxAllowed = 100
+            if (rawOutput > maxAllowed) rawOutput = maxAllowed
+
+            if (rawOutput < 10) {
+                if (rawOutput > 1) { finalRate = 10 } 
+                else { finalRate = 0; pid_integral = 0 }
+            } else {
+                finalRate = rawOutput
+            }
+            if (finalRate > 100) finalRate = 100
+        } 
+        else {
+            // No Demand
+            finalRate = 0.0
+            if (Boiler_Block_Active.state == ON) pid_integral = 0.0 
+        }
+    } 
+    else {
+        // Blocked - Ensure rate is 0
         finalRate = 0.0
-        pid_integral = 0.0
     }
 
     Boiler_Final_Command.postUpdate(finalRate)
 
-    // 6. SEND COMMAND TO MODBUS (With Pre-Flight Check)
+    // 5. MODBUS COMMAND
     var int payload = finalRate.intValue
-    
-    // Only send if the value has changed or is NULL (Reduces Modbus traffic)
-    if (Lochinvar_40003_Rate_Command.state == NULL || 
-        (Lochinvar_40003_Rate_Command.state as Number).intValue != payload) {
-        
-        // PRE-FLIGHT: Force Mode 5 if not set
-        // Sometimes the boiler resets to Mode 0 on errors; this forces it back.
+    if (Lochinvar_40003_Rate_Command.state == NULL || (Lochinvar_40003_Rate_Command.state as Number).intValue != payload) {
         if ((Lochinvar_40001_Control_Mode.state as Number).intValue != 5) {
-             logInfo("Boiler.PID", "Pre-Flight Correction: Forcing Mode 5 before sending Rate " + payload)
              Lochinvar_40001_Control_Mode.sendCommand(5)
-             Thread::sleep(200) // Short blocking wait to ensure Register Write processes
+             Thread::sleep(200) 
         }
-
-        logInfo("Boiler.PID", "Updating Firing Rate: " + payload + "% | Target: " + targetTemp + "F | Supply: " + supplyTemp + "F")
         Lochinvar_40003_Rate_Command.sendCommand(payload)
     }
 end
