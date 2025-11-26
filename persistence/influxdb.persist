@@ -11,17 +11,31 @@ Strategies {
 Items { 
 
 // --- LOCHINVAR BMS & TUNING (NEW) ---
-    // These are critical for tuning the PID loop. We want every change.
+    // Critical Tuning Parameters (Record on Change)
     Boiler_BMS_ENBLE : strategy = everyChange
     Boiler_Kp : strategy = everyChange
     Boiler_Ki : strategy = everyChange
     Boiler_Kd : strategy = everyChange
     
-    // PID Internals (Calculated values - these change frequently)
-    Boiler_Target_Temp : strategy = everyChange
+    // NEW: Outdoor Reset & Room PID Tuning
+    ODR_Slope : strategy = everyChange
+    ODR_Intercept : strategy = everyChange
+    Room_Kp : strategy = everyChange
+    Room_Ki : strategy = everyChange
+    
+    // --- GRAFANA HIGH-RES LOGGING ---
+    // We record these every minute to create smooth tuning curves in Grafana
+    // (Even if they haven't changed, we want a data point to draw the line)
+    Boiler_Target_Temp : strategy = everyMinute, everyChange
+    System_Supply_Temp : strategy = everyMinute, everyChange
+    Boiler_Final_Command : strategy = everyMinute, everyChange
+    Boiler_Max_Error : strategy = everyMinute, everyChange
+    Boiler_Room_Integral : strategy = everyMinute, everyChange
+    Outdoor_Temperature : strategy = everyMinute, everyChange
+
+    // Calculated Internal States
     Boiler_PID_Output : strategy = everyChange
     Boiler_Zone_Limit : strategy = everyChange
-    Boiler_Final_Command : strategy = everyChange
     Boiler_Demand_Type : strategy = everyChange
     
     // Raw Modbus Commands (What we sent)

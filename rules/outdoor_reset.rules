@@ -8,10 +8,57 @@ import org.openhab.core.model.script.ScriptServiceUtil
 var Number last_outdoor_smooth = 40.0 // Seed default
 var Number room_integral_mem = 0.0    // Local memory for integral
 
+// NEW: Initialization Rule (Sets defaults if MapDB is empty)
+rule "Initialize Tuning Parameters"
+when
+    System started
+then
+    // Initialize Defaults only if NULL (First run or cache clear)
+    if (ODR_Slope.state == NULL || ODR_Slope.state == UNDEF) {
+        ODR_Slope.postUpdate(-1.1)
+        logInfo("Boiler.Init", "ODR_Slope initialized to default: -1.1")
+    }
+    if (ODR_Intercept.state == NULL || ODR_Intercept.state == UNDEF) {
+        ODR_Intercept.postUpdate(180.0)
+        logInfo("Boiler.Init", "ODR_Intercept initialized to default: 180.0")
+    }
+    if (Room_Kp.state == NULL || Room_Kp.state == UNDEF) {
+        Room_Kp.postUpdate(4.0)
+        logInfo("Boiler.Init", "Room_Kp initialized to default: 4.0")
+    }
+    if (Room_Ki.state == NULL || Room_Ki.state == UNDEF) {
+        Room_Ki.postUpdate(0.5)
+        logInfo("Boiler.Init", "Room_Ki initialized to default: 0.5")
+    }
+    
+    // Initialize Boiler PID defaults if missing
+    if (Boiler_Kp.state == NULL || Boiler_Kp.state == UNDEF) {
+        Boiler_Kp.postUpdate(2.5)
+        logInfo("Boiler.Init", "Boiler_Kp initialized to default: 2.5")
+    }
+    if (Boiler_Ki.state == NULL || Boiler_Ki.state == UNDEF) {
+        Boiler_Ki.postUpdate(0.1)
+        logInfo("Boiler.Init", "Boiler_Ki initialized to default: 0.1")
+    }
+    
+    logInfo("Boiler.Init", "Tuning parameters checked.")
+end
+
 rule "Calculate Outdoor Reset Target"
 when
     Time cron "0 * * ? * *" // Runs every 1 Minute (Aligned with thermal time constant)
 then
+    // 0. FETCH TUNING PARAMETERS (With Safety Defaults)
+    // -------------------------------------------------------------------------------
+    // Curve Shape
+    val Number curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
+    val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 180.0
+    
+    // Room PID Coefficients
+    val Number Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 4.0
+    val Number Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.5
+
+
     // 1. OUTDOOR SENSOR SMOOTHING
     // -------------------------------------------------------------------------------
     // Safety check for NULL outdoor sensor
@@ -21,20 +68,17 @@ then
     }
     
     // EMA Filter (Alpha 0.05 = Heavy smoothing for massive thermal systems)
-    // On a 1-minute loop, this alpha effectively averages the last ~20 minutes.
     last_outdoor_smooth = (0.05 * rawOutdoor) + (0.95 * last_outdoor_smooth)
     val Number outdoorInput = last_outdoor_smooth 
 
     // 2. CALCULATE "MAX ERROR" (The Driver)
     // -------------------------------------------------------------------------------
-    
     var double maxErrorHT = 0.0
     var double maxErrorLT = 0.0
     
-    // CORRECTION: Used Function2 (2 inputs, 1 output) instead of Function3
+    // Function2: Inputs (Setpoint, Actual) -> Output (Positive Error)
     val Functions$Function2<Object, Object, Double> calcError = [ Object setpointObj, Object actualObj |
         
-        // Safety: Logic to handle NULL items without crashing
         if (setpointObj === null || actualObj === null) return 0.0
         if (setpointObj == NULL || actualObj == NULL) return 0.0
         if (setpointObj == UNDEF || actualObj == UNDEF) return 0.0
@@ -53,7 +97,6 @@ then
     if (MRZV.state == ON)   maxErrorHT = Math::max(maxErrorHT, calcError.apply(MR_Heating_TargetTemp.state, MRMS_Temp.state))
     if (BMTZV.state == ON)  maxErrorHT = Math::max(maxErrorHT, calcError.apply(BMT_Heating_TargetTemp.state, BMTBrMS_Temp.state))
     
-    // Garage: Only if Override is NOT active
     if (GAZV.state == ON && vGA_Heating_OFF_Override.state != ON) {
          maxErrorHT = Math::max(maxErrorHT, calcError.apply(GA_Heating_TargetTemp.state, GAMS_Temp.state))
     }
@@ -62,13 +105,11 @@ then
     if (DENRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state))
     if (MBaRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)) 
     if (MBeRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state))
-    // Kitchen matches Den in your rules
     if (KITRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)) 
 
-    // Update the UI item for debugging
     Boiler_Max_Error.postUpdate(Math::max(maxErrorHT, maxErrorLT))
 
-    // 3. ASSESS DEMAND WEIGHT (For Boiler limits)
+    // 3. ASSESS DEMAND WEIGHT
     // -------------------------------------------------------------------------------
     var int zoneWeight = 0
     var boolean highTempCall = false
@@ -93,28 +134,23 @@ then
     var Number targetTemp = 0.0
     var String demandType = "None"
     
-    // We prioritize High Temp. If both are calling, we must satisfy the High Temp requirement
-    
     if (highTempCall) {
         demandType = "High Temp (PID)"
         
-        // A. Base Curve (-1.1 Slope)
-        var Number baseTarget = 180.0 + (-1.1 * outdoorInput)
+        // A. Base Curve (Tunable)
+        var Number baseTarget = curveIntercept + (curveSlope * outdoorInput)
         
-        // B. Room PID (Driven by maxErrorHT)
+        // B. Room PID (Tunable)
         var Number error = maxErrorHT
         
-        // P-Term: 4 degrees boost per degree of error (Instant)
-        var Number P_room = 4.0 * error
+        // P-Term
+        var Number P_room = Kp_room_val * error
         
-        // I-Term: Adjusted for 1-minute loop
-        // We want 0.5 degrees per minute. 
-        // Multiplier increased from 0.125 (15s) to 0.5 (60s)
+        // I-Term (With Decay) - Tuned for 1 Minute Interval
         if (error > 0.1) {
-            room_integral_mem = room_integral_mem + (0.5 * error)
+            room_integral_mem = room_integral_mem + (Ki_room_val * error)
         } else {
-            // Slowly bleed off integral if error is resolved
-            // Adjusted decay: 0.98^4 ≈ 0.92
+            // Decay (0.92 per minute)
             room_integral_mem = room_integral_mem * 0.92
         }
         
@@ -122,7 +158,6 @@ then
         if (room_integral_mem > 20) room_integral_mem = 20
         if (room_integral_mem < -5) room_integral_mem = -5 
         
-        // Visualize Integral
         Boiler_Room_Integral.postUpdate(room_integral_mem)
 
         targetTemp = baseTarget + P_room + room_integral_mem
@@ -133,10 +168,9 @@ then
         
     } else if (lowTempCall) {
         demandType = "Low Temp"
-        // Radiant Curve (-0.5 Slope)
+        // Radiant Curve (Fixed for now, or add items if needed)
         var Number baseTarget = 120.0 + (-0.5 * outdoorInput)
         
-        // Mild boost for Radiant
         var Number P_room = 2.0 * maxErrorLT
         
         targetTemp = baseTarget + P_room
@@ -144,7 +178,6 @@ then
         if (targetTemp > 120) targetTemp = 120
         if (targetTemp < 85) targetTemp = 85
         
-        // Reset High Temp Integral
         room_integral_mem = 0.0
         Boiler_Room_Integral.postUpdate(0)
     } else {

@@ -1,0 +1,47 @@
+sitemap boiler label="Boiler Control" {
+    
+    Frame label="Main Control" {
+        Switch item=Boiler_BMS_ENBLE label="Boiler BMS Control"
+        Text item=Boiler_Demand_Type icon="fire"
+        Text item=Boiler_Final_Command label="Firing Rate [%d %%]" icon="fire"
+        Text item=System_Supply_Temp icon="temperature" valuecolor=[>180="red", >140="orange", >100="green"]
+        Text item=Boiler_Target_Temp icon="target" valuecolor=[>180="red", >140="orange", >100="green"]
+    }
+
+    Frame label="Live Feedback" {
+        Text item=Outdoor_Temperature label="Outdoor Temp [%.1f °F]" icon="garden"
+        Text item=Boiler_Max_Error label="Max Room Error [%.1f °F]" icon="error" valuecolor=[>2.0="red", >0.5="orange", <=0.5="green"]
+        Text item=Boiler_Room_Integral label="Integral Boost [%.1f °F]" icon="chart"
+    }
+
+    Frame label="Tuning: Outdoor Reset Curve" {
+        Setpoint item=ODR_Intercept label="Intercept (Base 0°F) [%.0f °F]" minValue=160 maxValue=200 step=1
+        Setpoint item=ODR_Slope label="Slope Multiplier [%.1f]" minValue=-2.0 maxValue=-0.5 step=0.1
+    }
+
+    Frame label="Tuning: Room Response (PID)" {
+        Setpoint item=Room_Kp label="Room Kp (Boost) [%.1f]" minValue=0.0 maxValue=10.0 step=0.5
+        Setpoint item=Room_Ki label="Room Ki (Learn) [%.2f]" minValue=0.00 maxValue=2.00 step=0.05
+    }
+
+    Frame label="Tuning: Boiler Firing (PID)" {
+        Setpoint item=Boiler_Kp label="Firing Kp [%.1f]" minValue=0.0 maxValue=10.0 step=0.1
+        Setpoint item=Boiler_Ki label="Firing Ki [%.2f]" minValue=0.00 maxValue=1.00 step=0.01
+    }
+
+    // === CHEATSHEET SUB-PAGE ===
+    Text label="Tuning Guide / Cheatsheet" icon="book" {
+        Frame label="Outdoor Reset (The Baseline)" {
+            Text label="Slope: Make steeper (more negative) if house is cold in deep winter (<10°F)" icon="trend"
+            Text label="Intercept: Increase if 'Integral Boost' stays maxed at +20" icon="temperature"
+        }
+        Frame label="Room PID (The Comfort)" {
+            Text label="Kp: Increase if recovery from night setback is too slow" icon="chart"
+            Text label="Ki: Increase if room temp stalls just below target (e.g. 69.5°F)" icon="chart"
+        }
+        Frame label="Boiler PID (The Engine)" {
+            Text label="Kp: Decrease if boiler short-cycles (Overshoots target)" icon="fire"
+            Text label="Ki: Increase if supply temp lags below target for long periods" icon="fire"
+        }
+    }
+}
