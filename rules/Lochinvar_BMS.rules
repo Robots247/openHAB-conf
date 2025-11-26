@@ -11,31 +11,32 @@ var Number last_run_time = 0
 // -----------------------------------------------------------------------------------
 // RULE 1: HEARTBEAT & WATCHDOG (Runs every minute)
 // -----------------------------------------------------------------------------------
-// This ensures the boiler Modbus connection stays alive and the mode is enforced.
-// CRITICAL: We must re-send the command every minute to reset the boiler's watchdog timer.
 rule "Boiler Heartbeat and Mode Enforcement"
 when
     Time cron "0 * * ? * *" // Every Minute
 then
+    // *** NEW: TEST MODE BLOCK ***
+    // If Test Mode is active, BMS Heartbeat yields control.
+    if (Boiler_Test_Repeat.state == ON) {
+        logInfo("Boiler.Watchdog", "Yielding to Test Mode (Boiler_Test_Repeat is ON). Heartbeat skipped.")
+        return;
+    }
+
     // CHECK MASTER SWITCH
     if (Boiler_BMS_ENBLE.state == ON) {
         // === BMS MODE ===
         
         // 1. Send ENABLE to Register 40002 (Value 1 = Enable Unit)
-        // This ensures the boiler knows it has permission to fire.
         if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
              logInfo("Boiler.Watchdog", "Heartbeat (BMS Mode): Enforcing Enable (40002=1)")
              Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
         }
 
         // 2. Send CONFIG to Register 40001 (Value 5 = Enable + Rate)
-        // Bit 0 (1) + Bit 2 (4) = 5.
-        // This tells boiler: "Listen to Modbus for Enable AND Firing Rate."
         logInfo("Boiler.Watchdog", "Heartbeat (BMS Mode): Refreshing Register 40001 -> 5")
         Lochinvar_40001_Control_Mode.sendCommand(5)
         
         // Safety: Ensure Physical CFH Relays are OFF when in Rate Control Mode
-        // We turn them off here to prevent "fighting" between physical inputs and Modbus.
         if (CFH1.state == ON) {
             logInfo("Boiler.Watchdog", "Safety: Turning OFF CFH1 Relay (BMS Mode Active)")
             CFH1.sendCommand(OFF)
@@ -44,11 +45,11 @@ then
             logInfo("Boiler.Watchdog", "Safety: Turning OFF CFH2 Relay (BMS Mode Active)")
             CFH2.sendCommand(OFF)
         }
+    
     } 
     else {
         // === RELAY/LEGACY MODE ===
         // FORCE SEND '0' to Register 40001 every minute.
-        // Value 0 = Use Physical Inputs (Legacy).
         logInfo("Boiler.Watchdog", "Heartbeat (Relay Mode): Refreshing Register 40001 -> 0")
         Lochinvar_40001_Control_Mode.sendCommand(0)
         
@@ -57,7 +58,7 @@ then
             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
         }
 
-        // Safety: Ensure Rate Command is 0 when in Relay Mode so we don't confuse it
+        // Safety: Ensure Rate Command is 0 when in Relay Mode
         if ((Lochinvar_40003_Rate_Command.state as Number).intValue != 0) {
             Lochinvar_40003_Rate_Command.sendCommand(0)
         }
@@ -69,8 +70,16 @@ end
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop"
 when
-    Time cron "0/15 * * * * ?" // Every 15 seconds
+    Time cron "0/15 * * * * ?"
 then
+    // *** NEW: TEST MODE BLOCK ***
+    // If Test Mode is active, PID Loop yields control immediately.
+    if (Boiler_Test_Repeat.state == ON) {
+        // Optional: Reset integral so it doesn't wind up while testing?
+        // pid_integral = 0.0 
+        return;
+    }
+
     // 1. IF IN RELAY MODE, STOP HERE.
     if (Boiler_BMS_ENBLE.state != ON) {
         pid_integral = 0.0 // Reset PID
@@ -83,7 +92,6 @@ then
     var double Kd = if(Boiler_Kd.state instanceof Number) (Boiler_Kd.state as Number).doubleValue else 0.0
 
     // 3. GATHER SENSOR DATA
-    // Default to safe values if sensors are NULL
     val Number outdoorTemp = if(Outdoor_Temperature.state instanceof Number) (Outdoor_Temperature.state as Number).doubleValue else 32.0
     val Number supplyTemp  = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 140.0
     
@@ -97,25 +105,23 @@ then
     if (GBrZV.state == ON)  { zoneWeight = zoneWeight + 15; highTempCall = true; }
     if (BMTZV.state == ON)  { zoneWeight = zoneWeight + 15; highTempCall = true; }
     if (GAZV.state == ON)   { zoneWeight = zoneWeight + 25; highTempCall = true; }
-    if (MRZV.state == ON)   { zoneWeight = zoneWeight + 5;  highTempCall = true; }
+    if (MRZV.state == ON)   { zoneWeight = zoneWeight + 5; highTempCall = true; }
     // if (Heating_Boost_Active.state == ON) { zoneWeight = zoneWeight + 20; highTempCall = true; }
 
     // --- Radiant Zones (Low Temp) ---
     if (KITRH.state == ON)  { zoneWeight = zoneWeight + 10; lowTempCall = true; }
     if (DENRH.state == ON)  { zoneWeight = zoneWeight + 10; lowTempCall = true; }
-    if (MBaRH.state == ON)  { zoneWeight = zoneWeight + 5;  lowTempCall = true; }
-    if (MBeRH.state == ON)  { zoneWeight = zoneWeight + 5;  lowTempCall = true; }
+    if (MBaRH.state == ON)  { zoneWeight = zoneWeight + 5; lowTempCall = true; }
+    if (MBeRH.state == ON)  { zoneWeight = zoneWeight + 5; lowTempCall = true; }
 
     // Cap Weight at 100%
     if (zoneWeight > 100) zoneWeight = 100
     Boiler_Zone_Limit.postUpdate(zoneWeight)
 
     // 5. PUMP CONTROL (GPIO)
-    // Manage external pumps based on demand type
     if (highTempCall) {
         if (SysPump.state != ON) SysPump.sendCommand(ON)
     } else {
-        // Optional: Run-on timer could go here, for now turn off instantly
         if (SysPump.state != OFF) SysPump.sendCommand(OFF)
     }
 
@@ -131,14 +137,12 @@ then
 
     if (highTempCall) {
         demandType = "High Temp"
-        // High Curve: 0F Outdoor -> 180F Target | 60F Outdoor -> 130F Target
         targetTemp = 180.0 + (-0.83 * outdoorTemp) 
         if (targetTemp > 180) targetTemp = 180
         if (targetTemp < 130) targetTemp = 130
     } 
     else if (lowTempCall) {
         demandType = "Low Temp"
-        // Low Curve: 0F Outdoor -> 120F Target | 60F Outdoor -> 90F Target
         targetTemp = 120.0 + (-0.5 * outdoorTemp)
         if (targetTemp > 120) targetTemp = 120
         if (targetTemp < 85) targetTemp = 85
@@ -150,7 +154,6 @@ then
     // 7. PID CALCULATION
     var Number finalRate = 0.0
     
-    // Only run PID if we actually have a zone calling
     if (zoneWeight > 0 && targetTemp > 0) {
         var Number error = targetTemp - supplyTemp
         
@@ -165,24 +168,20 @@ then
         
         Boiler_PID_Output.postUpdate(rawOutput)
 
-        // 8. OUTPUT CLAMPING & SAFETY (The Crucial Part)
-        // =================================================
+        // 8. OUTPUT CLAMPING & SAFETY
         
-        // A. Load Limiting: Don't fire 100% if only one tiny zone is open
-        var Number maxAllowed = zoneWeight * 1.5 // Allow some overhead
+        // A. Load Limiting
+        var Number maxAllowed = zoneWeight * 1.5 
         if (maxAllowed > 100) maxAllowed = 100
         if (rawOutput > maxAllowed) rawOutput = maxAllowed
 
-        // B. Minimum Fire Logic (Prevent Short Cycling)
-        // Boiler shuts off below 10%. We must be >= 10 or 0.
+        // B. Minimum Fire Logic
         if (rawOutput < 10) {
-            // Hysteresis: If we are really close (e.g. calculated 8%), 
-            // stay at 10% to prevent short cycling unless we are WAY over temp.
             if (rawOutput > 1) {
-                finalRate = 10 // Hold minimum fire
+                finalRate = 10 
             } else {
-                finalRate = 0  // Shut off if error is negative enough
-                pid_integral = 0 // Reset integral to stop accumulation while off
+                finalRate = 0  
+                pid_integral = 0 
             }
         } else {
             finalRate = rawOutput
@@ -192,7 +191,6 @@ then
         if (finalRate > 100) finalRate = 100
 
     } else {
-        // No Zones calling
         finalRate = 0.0
         pid_integral = 0.0
     }
@@ -200,19 +198,15 @@ then
     Boiler_Final_Command.postUpdate(finalRate)
 
     // 9. SEND COMMAND TO MODBUS (With Pre-Flight Check)
-    // In Config Mode 3 (Value 4), sending 0 shuts boiler off. Sending > 0 fires it.
     var int payload = finalRate.intValue
     
-    // Only send if value changed to reduce bus traffic, OR if payload is > 0 (Active Heating)
     if (Lochinvar_40003_Rate_Command.state == NULL || 
         (Lochinvar_40003_Rate_Command.state as Number).intValue != payload) {
         
-        // PRE-FLIGHT: Ensure Mode is correct before sending Rate
-        // We force 5 (Enable + Rate) to ensure both bits are active
+        // PRE-FLIGHT: Force Mode 5 if not set
         if ((Lochinvar_40001_Control_Mode.state as Number).intValue != 5) {
              logInfo("Boiler.PID", "Pre-Flight Correction: Forcing Mode 5 before sending Rate " + payload)
              Lochinvar_40001_Control_Mode.sendCommand(5)
-             // Slight pause to allow bus to process (optional, OpenHAB queues usually handle it)
              Thread::sleep(200) 
         }
 

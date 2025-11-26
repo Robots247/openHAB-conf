@@ -1,3 +1,4 @@
+var Timer testModeTimer = null
 rule "Boiler Manual Repeater"
 when
     // Cron trigger: Seconds Minutes Hours DayOfMonth Month DayOfWeek
@@ -50,4 +51,33 @@ then
     
     // Send the calculated integer to the Modbus Item
     Lochinvar_40001_Control_Mode.sendCommand(configValue)
+end
+
+rule "Boiler Test Mode Safety Watchdog"
+when
+    Item Boiler_Test_Repeat changed
+then
+    if (Boiler_Test_Repeat.state == ON) {
+        logInfo("boiler.test", "Test Mode Enabled. Safety timer started for 30 minutes.")
+        
+        // Cancel any existing timer just in case
+        if (testModeTimer !== null) {
+            testModeTimer.cancel()
+        }
+        
+        // Schedule the auto-off
+        testModeTimer = createTimer(now.plusMinutes(30), [ |
+            logWarn("boiler.test", "SAFETY: Test Mode left on for 30 minutes. Automatically turning OFF.")
+            Boiler_Test_Repeat.sendCommand(OFF)
+            testModeTimer = null
+        ])
+    } 
+    else {
+        // If you turn it off manually, we kill the timer so it doesn't fire later
+        if (testModeTimer !== null) {
+            logInfo("boiler.test", "Test Mode Disabled manually. Cancelling safety timer.")
+            testModeTimer.cancel()
+            testModeTimer = null
+        }
+    }
 end
