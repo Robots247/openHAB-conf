@@ -66,7 +66,7 @@ Bridge modbus:serial:lochinvar [ port="/dev/ttyUSB0", baud=19200, id=1, stopBits
 
 *****************************************************************************************************************************/
 	//(add. 30001-30016)
-     Bridge poller Lochinvar_InputRegisters 		[ start=0, length=16, refresh=234000, type="input" ] {
+     Bridge poller Lochinvar_InputRegisters 		[ start=0, length=16, refresh=5000, type="input" ] {
 			     
 
            Thing data lochinvarDiscreteInputs0116	[ readStart="0", readValueType="int16"]
@@ -84,7 +84,7 @@ Bridge modbus:serial:lochinvar [ port="/dev/ttyUSB0", baud=19200, id=1, stopBits
    		     Thing data lochinvarOutletTemperature	[ readStart="8", readValueType="int16", readTransform="JS(MBtoF.js)"]
    		     Thing data lochinvarInletTemperature 	[ readStart="9", readValueType="int16", readTransform="JS(MBtoF.js)"]
    		     Thing data lochinvarFlueTemperature 	[ readStart="10", readValueType="int16", readTransform="JS(MBtoF.js)"]
-   		     Thing data lochinvarFiringRate 		[ readStart="11", readValueType="int16"]
+   		     Thing data lochinvarFiringRate 		[ readStart="11", readValueType="int16", readTransform="JS(Lochinvar_FiringRate.js)"]
    		     Thing data lochinvarBoilerPumpSpeed	[ readStart="12", readValueType="int16"]
    		     
    		 
@@ -280,4 +280,3 @@ Holding Registers (Read/Write) (for controlling boiler from OpenHab)
 							Bit 8 - 15: Not Used (Default = 0)
 														
 *******************************************************************************************************************************/
-
