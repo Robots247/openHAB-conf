@@ -2,3 +2,30 @@
 Number Boiler_Kp "PID Kp (Proportional) [%.1f]" <line> (gLochinvar_tuning)
 Number Boiler_Ki "PID Ki (Integral) [%.2f]" <line> (gLochinvar_tuning)
 Number Boiler_Kd "PID Kd (Derivative) [%.2f]" <line> (gLochinvar_tuning)
+
+// === Outdoor Reset Tuning ===
+Number ODR_Slope "Curve Slope [%.1f]" <line> (gLochinvar_tuning)
+Number ODR_Intercept "Curve Intercept (0F) [%.1f °F]" <temperature> (gLochinvar_tuning)
+
+// === Room Feedback Tuning ===
+Number Room_Kp "Room Kp (Boost/Deg) [%.1f]" <line> (gLochinvar_tuning)
+Number Room_Ki "Room Ki (Learn/Min) [%.2f]" <line> (gLochinvar_tuning)
+
+// === Outdoor Reset Control Items ===
+
+// The calculated target (Output of the reset rule)
+Number Boiler_Target_Temp "Calculated Target Temp [%.1f °F]"
+
+// Status string for debugging/UI
+String Boiler_Demand_Type "Current Demand Type [%s]"
+
+// The calculated Zone Weight (0-100)
+Number Boiler_Zone_Limit "Zone Load Weighting [%d %%]"
+
+// PID Internal Memory (Needed to persist integral across rule runs)
+// Note: We don't strictly need an Item for this if we use a global var, 
+// but an Item allows you to graph the Integral term in Grafana to tune it.
+Number Boiler_Room_Integral "Room PID Integral Accumulator [%.2f]"
+
+// Calculated Error (The "Worst Case" room) - Useful for UI
+Number Boiler_Max_Error "Max Room Error [%.1f °F]"
