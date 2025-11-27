@@ -1,4 +1,6 @@
-CLOSED=closed
-OPEN=open
-NULL=unknown
- 
+ON=ON
+OFF=OFF
+NULL=-
+-=-
+CLOSED=Closed
+OPEN=Open

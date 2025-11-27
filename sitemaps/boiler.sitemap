@@ -31,7 +31,9 @@ sitemap boiler label="Boiler Control Center" {
 
     Frame label="Comfort Feedback (The Inputs)" {
         Text item=Outdoor_Temperature label="Outdoor Temp [%.1f °F]" icon="garden"
-        Text item=Boiler_Max_Error label="Coldest Room Error [%.1f °F]" icon="error" valuecolor=[>2.0="red", >0.5="orange", <=0.5="green"]
+        Text item=Boiler_Boost_Active label="PID Boost Mode [MAP(onoff.map):%s]" icon="fire" valuecolor=[ON="orange", OFF="green"]
+        Text item=Boiler_Max_Error_Room label="Coldest Room [%s]" icon="bedroom" valuecolor=["None"="green"] visibility=[Boiler_Boost_Active==ON]
+        Text item=Boiler_Max_Error label="Error Magnitude [%.1f °F]" icon="error" valuecolor=[>2.0="red", >0.5="orange", <=0.5="green"]
         Text label="Error: How far the coldest room is below its setpoint." icon="none"
         Text item=Boiler_Room_Integral label="PID Integral Boost [%.1f °F]" icon="chart"
         Text label="Boost: Extra heat added to target to fix long-term cold rooms." icon="none"

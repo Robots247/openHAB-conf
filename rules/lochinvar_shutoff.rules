@@ -50,13 +50,14 @@ then
 
     // B. OVERRUN SUPERVISOR
     // -------------------------------------------------------------------------------
-    var Number supply = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 0.0
-    var Number target = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
-    var Number fireRate = if(Boiler_Firing_Rate.state instanceof Number) (Boiler_Firing_Rate.state as Number).doubleValue else 0.0
+    // SAFETY: Check for NULLs before converting to double. Default to 0.0 to prevent crash.
+    var double supply = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 0.0
+    var double target = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
+    var double fireRate = if(Boiler_Firing_Rate.state instanceof Number) (Boiler_Firing_Rate.state as Number).doubleValue else 0.0
     
-    var double ovr_thresh = (Boiler_Overrun_Threshold.state as Number).doubleValue
-    var double res_thresh = (Boiler_Rescue_Threshold.state as Number).doubleValue
-    var int block_min = (Boiler_Block_Time.state as Number).intValue
+    var double ovr_thresh = if(Boiler_Overrun_Threshold.state instanceof Number) (Boiler_Overrun_Threshold.state as Number).doubleValue else 6.0
+    var double res_thresh = if(Boiler_Rescue_Threshold.state instanceof Number) (Boiler_Rescue_Threshold.state as Number).doubleValue else 15.0
+    var int block_min = if(Boiler_Block_Time.state instanceof Number) (Boiler_Block_Time.state as Number).intValue else 10
 
     // --- DECISION LOGIC ---
 
@@ -66,7 +67,11 @@ then
 
     // 2. Is the Overrun Condition met right now? (Rate low & Temp High)
     // Note: We include rate < 21 to catch idling, but if rate is 0 (already blocked), we still check temp.
-    var boolean overrun_condition = (supply > (target + ovr_thresh)) && (fireRate < 21.0)
+    // SAFETY: Ensure we aren't comparing garbage data
+    var boolean overrun_condition = false
+    if (System_Supply_Temp.state instanceof Number && Boiler_Target_Temp.state instanceof Number) {
+        overrun_condition = (supply > (target + ovr_thresh)) && (fireRate < 21.0)
+    }
     
     // 3. Has the temp dropped enough to release a Normal Block? (Simple Hysteresis)
     var boolean release_condition = (supply <= target)

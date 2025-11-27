@@ -71,10 +71,13 @@ then
     last_outdoor_smooth = (0.05 * rawOutdoor) + (0.95 * last_outdoor_smooth)
     val Number outdoorInput = last_outdoor_smooth 
 
-    // 2. CALCULATE "MAX ERROR" (The Driver)
+    // 2. CALCULATE "MAX ERROR" AND IDENTIFY ROOM
     // -------------------------------------------------------------------------------
+    
     var double maxErrorHT = 0.0
     var double maxErrorLT = 0.0
+    var String worstRoomHT = "None"
+    var String worstRoomLT = "None"
     
     // Function2: Inputs (Setpoint, Actual) -> Output (Positive Error)
     val Functions$Function2<Object, Object, Double> calcError = [ Object setpointObj, Object actualObj |
@@ -91,23 +94,63 @@ then
         return err
     ]
 
-    // --- High Temp Zones ---
-    if (LRZV.state == ON)   maxErrorHT = Math::max(maxErrorHT, calcError.apply(LR_Heating_TargetTemp.state, LRMS_Temp.state))
-    if (GBrZV.state == ON)  maxErrorHT = Math::max(maxErrorHT, calcError.apply(GBr_Heating_TargetTemp.state, GBrMS_Temp.state))
-    if (MRZV.state == ON)   maxErrorHT = Math::max(maxErrorHT, calcError.apply(MR_Heating_TargetTemp.state, MRMS_Temp.state))
-    if (BMTZV.state == ON)  maxErrorHT = Math::max(maxErrorHT, calcError.apply(BMT_Heating_TargetTemp.state, BMTBrMS_Temp.state))
-    
+    // --- High Temp Zones (Iterate to find max) ---
+    if (LRZV.state == ON) {
+        var double e = calcError.apply(LR_Heating_TargetTemp.state, LRMS_Temp.state)
+        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Living Room" }
+    }
+    if (GBrZV.state == ON) {
+        var double e = calcError.apply(GBr_Heating_TargetTemp.state, GBrMS_Temp.state)
+        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Guest Bed" }
+    }
+    if (MRZV.state == ON) {
+        var double e = calcError.apply(MR_Heating_TargetTemp.state, MRMS_Temp.state)
+        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Mud Room" }
+    }
+    if (BMTZV.state == ON) {
+        var double e = calcError.apply(BMT_Heating_TargetTemp.state, BMTBrMS_Temp.state)
+        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Basement" }
+    }
     if (GAZV.state == ON && vGA_Heating_OFF_Override.state != ON) {
-         maxErrorHT = Math::max(maxErrorHT, calcError.apply(GA_Heating_TargetTemp.state, GAMS_Temp.state))
+         var double e = calcError.apply(GA_Heating_TargetTemp.state, GAMS_Temp.state)
+         if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Garage" }
     }
 
     // --- Low Temp Zones ---
-    if (DENRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state))
-    if (MBaRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)) 
-    if (MBeRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state))
-    if (KITRH.state == ON) maxErrorLT = Math::max(maxErrorLT, calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)) 
+    if (DENRH.state == ON) {
+        var double e = calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)
+        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Den" }
+    }
+    if (MBaRH.state == ON) {
+        var double e = calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)
+        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Master Bath" }
+    }
+    if (MBeRH.state == ON) {
+        var double e = calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)
+        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Master Bed" }
+    }
+    if (KITRH.state == ON) {
+        var double e = calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)
+        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Kitchen" }
+    }
 
-    Boiler_Max_Error.postUpdate(Math::max(maxErrorHT, maxErrorLT))
+    // Determine Global Max
+    var double globalMax = 0.0
+    var String globalRoom = "None"
+    
+    if (maxErrorHT >= maxErrorLT) {
+        globalMax = maxErrorHT
+        globalRoom = worstRoomHT
+    } else {
+        globalMax = maxErrorLT
+        globalRoom = worstRoomLT
+    }
+
+    Boiler_Max_Error.postUpdate(globalMax)
+    Boiler_Max_Error_Room.postUpdate(globalRoom)
+    
+    // Set Boost Indicator (True if error > 0.5 deg)
+    if (globalMax > 0.5) Boiler_Boost_Active.postUpdate(ON) else Boiler_Boost_Active.postUpdate(OFF)
 
     // 3. ASSESS DEMAND WEIGHT
     // -------------------------------------------------------------------------------

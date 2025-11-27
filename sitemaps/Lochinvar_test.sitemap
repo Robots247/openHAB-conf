@@ -1,4 +1,4 @@
-sitemap lochinvar_test label="Lochinvar Manual Test" {
+sitemap Lochinvar_test label="Lochinvar_Test" {
     Frame label="Test Controls" {
         // Master switch to turn on the 1-minute repeater
         Switch item=Boiler_Test_Repeat label="Enable 1-Min Auto-Send" icon="switch"
@@ -80,7 +80,7 @@ sitemap lochinvar_test label="Lochinvar Manual Test" {
 
     Frame label="Status & Errors" {
         Text item=Boiler_Status_Code label="Status Code [MAP(LochinvarBoilerStatus.map):%s]" icon="text"
-        Text item=Boiler_Blocking label="Blocking Code [MAP(LochinvarErrorCodes.map):%s]" icon="error"
+        //Text item=Boiler_Blocking_Code label="Blocking Code [MAP(LochinvarErrorCodes.map):%s]" icon="error"
         Text item=Boiler_Lockout_Code label="Lockout Code [MAP(LochinvarLOC.map):%s]" icon="lock"
     }
 
