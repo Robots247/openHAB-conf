@@ -14,6 +14,8 @@ rule "Call For High Heat"
 when    
     Item ZV changed from OFF to ON 
 then 
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -27,6 +29,8 @@ rule "CFH OFF"
 when
     Item ZV changed from ON to OFF
 then
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -41,6 +45,8 @@ rule "Call For Low Radiant Heat"
 when    
     Item RHP changed from OFF to ON
 then 
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -54,6 +60,8 @@ rule "Call For Low Radiant Heat OFF"
 when    
     Item RHP changed from ON to OFF
 then 
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -64,12 +72,13 @@ then
 end
 
 // CFH3 High-Temp Unit Heater (Bypass)
-// This usually stays active as it might be independent, but adding guard for consistency 
-// unless Unit Heater is strictly standalone.
 rule "Call for High Heat Unit Heater ON"
 when
     Item GAZV changed from OFF to ON
 then
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
+
     if (CFH3.state != ON){
         CFH3.sendCommand(ON)
         logInfo("CFH3.rule", "High Temperature Call for heat required by Unit Heaters")
@@ -80,6 +89,9 @@ rule "Call for High Heat Unit Heater OFF"
 when 
     Item GAZV changed from ON to OFF
 then
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
+
     if (CFH3.state != OFF){
         CFH3.sendCommand(OFF)
         logInfo("CFH3.rule", "High Temperature Call for Heat satisfied, Turning off CFH3")
@@ -93,6 +105,8 @@ rule "Radiant Pump OFF"
 when    
     Item RHZV changed from ON to OFF
 then 
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active (BMS handles pumps)
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -107,6 +121,8 @@ rule "Radiant Pump ON"
 when    
     Item RHZV changed from OFF to ON
 then
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -122,6 +138,8 @@ rule "System Pump OFF"
 when    
     Item ZV changed from ON to OFF
 then 
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -136,6 +154,8 @@ rule "System Pump ON"
 when    
     Item ZV changed from OFF to ON
 then
+    // GUARD: Stop if Maintenance Mode is ON
+    if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
     if (Boiler_BMS_ENBLE.state == ON) return;
 
@@ -150,24 +170,30 @@ end
 // =================================================================================
 // THERMOSTAT LOGIC (ALWAYS ACTIVE)
 // =================================================================================
-// These rules MUST remain active in all modes. 
-// They control the Zone Valves (GAZV, LRZV, etc), which act as Inputs for the BMS Logic.
+// These rules MUST remain active in all modes to update the UI (Virtual Tstat).
+// However, the ACTUATION (Sending Commands to Valves) is blocked in Maintenance Mode.
 
 //Radiant Rules
 
 rule "DEN Radiant CFH Thermostat"
     when
         Item DEN_Heating_TargetTemp changed or
-        Item DENMS_Temp changed 
+        Item DENMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (DENMS_Temp.state as Number).doubleValue
         var setpoint = (DEN_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
 
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT (Visuals)
+        // We do this BEFORE checking Maintenance Mode so the UI stays alive.
         sendCommand(Den_TstatTemp, temperature)
         
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (DENRH.state != ON) {
                 sendCommand(DENRH, ON)
@@ -187,16 +213,21 @@ end
 rule "Master Bath Radiant Thermostat"
     when
         Item MBe_Heating_TargetTemp changed or
-        Item MBeMS_Temp changed 
+        Item MBeMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (MBeMS_Temp.state as Number).doubleValue
         var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
         
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(MBa_Tstat_Temp, temperature)
 
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (MBaRH.state != ON) {
                 sendCommand(MBaRH, ON)
@@ -212,16 +243,21 @@ end
 rule "Master Bedroom Radiant Thermostat"
     when
         Item MBe_Heating_TargetTemp changed or
-        Item MBeMS_Temp changed 
+        Item MBeMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (MBeMS_Temp.state as Number).doubleValue
         var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (RH_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (RH_HysteresisLow.state as Number).doubleValue
 
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(MBe_Tstat_Temp, temperature)
     
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (MBeRH.state != ON) {
                 sendCommand(MBeRH, ON)
@@ -239,16 +275,21 @@ end
 rule "Living Room CFH Thermostat"
     when
         Item LR_Heating_TargetTemp changed or
-        Item LRMS_Temp changed 
+        Item LRMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (LRMS_Temp.state as Number).doubleValue
         var setpoint = (LR_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
         
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(LR_Tstat_Temp, temperature)
     
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (LRZV.state != ON) {
                 sendCommand(LRZV, ON)
@@ -264,16 +305,21 @@ end
 rule "Guest BedRoom CFH Thermostat"
     when
         Item GBr_Heating_TargetTemp changed or
-        Item GBrMS_Temp changed 
+        Item GBrMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (GBrMS_Temp.state as Number).doubleValue
         var setpoint = (GBr_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
         
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(GBr_Tstat_Temp, temperature)
 
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (GBrZV.state != ON) {
                 sendCommand(GBrZV, ON)
@@ -289,16 +335,21 @@ end
 rule "MudRoom CFH Thermostat"
     when
         Item MR_Heating_TargetTemp changed or
-        Item MRMS_Temp changed 
+        Item MRMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (MRMS_Temp.state as Number).doubleValue
         var setpoint = (MR_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
 
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(MR_Tstat_Temp, temperature)
     
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (MRZV.state != ON) {
                 sendCommand(MRZV, ON)
@@ -314,16 +365,21 @@ end
 rule "Basement CFH Thermostat"
     when
         Item BMT_Heating_TargetTemp changed or
-        Item BMTBrMS_Temp changed 
+        Item BMTBrMS_Temp changed or
+        Item System_Maintenance_Mode changed to OFF
     then
         var temperature = (BMTBrMS_Temp.state as Number).doubleValue
         var setpoint = (BMT_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (ZV_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (ZV_HysteresisLow.state as Number).doubleValue
 
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(BMT_Tstat_Temp, temperature)
     
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (temperature < (setpoint - hysteresisLow)) {
             if (BMTZV.state != ON) {
                 sendCommand(BMTZV, ON)
@@ -340,7 +396,8 @@ rule "Garage CFH Thermostat"
     when
         Item GA_Heating_TargetTemp changed or
         Item GAMS_Temp changed or
-        Item vGA_Heating_OFF_Override changed from OFF to ON
+        Item vGA_Heating_OFF_Override changed from OFF to ON or
+        Item System_Maintenance_Mode changed to OFF
 
     then
         var temperature = (GAMS_Temp.state as Number).doubleValue
@@ -348,9 +405,13 @@ rule "Garage CFH Thermostat"
         var hysteresisHigh = (GA_HysteresisHigh.state as Number).doubleValue
         var hysteresisLow = (GA_HysteresisLow.state as Number).doubleValue
         
-        //update virtual thermostat state
+        // 1. UPDATE VIRTUAL THERMOSTAT
         sendCommand(GA_Tstat_Temp, temperature)
 
+        // 2. CHECK MAINTENANCE GUARD
+        if (System_Maintenance_Mode.state == ON) return;
+
+        // 3. ACTUATION LOGIC
         if (vGA_Heating_OFF_Override.state == ON){
             if (temperature < (setpoint - hysteresisLow)) {
                 if (GAZV.state != ON) {
@@ -372,6 +433,9 @@ rule "Garage Overide OFF turns Off Garage Zone Valve "
     when
         Item vGA_Heating_OFF_Override changed from ON to OFF
     then
+        // GUARD: Stop if Maintenance Mode is ON
+        if (System_Maintenance_Mode.state == ON) return;
+
         if (GAZV.state== ON){
             sendCommand(GAZV, OFF)
         }

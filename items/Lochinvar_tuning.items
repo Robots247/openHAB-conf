@@ -52,3 +52,5 @@ Number Boiler_Room_Integral "Room PID Integral Accumulator [%.2f]"
 Number Boiler_Max_Error "Max Room Error [%.1f °F]"
 String Boiler_Max_Error_Room "Worst Performing Room [%s]" <bedroom>
 Switch Boiler_Boost_Active "PID Boost Active" <fire>
+
+Number Boiler_Rate_Deviation "Boiler Rate Deviation [%.1f %%]" <chart>

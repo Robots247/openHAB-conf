@@ -29,6 +29,15 @@ rule "Boiler Supervisor Loop"
 when
     Time cron "0/15 * * * * ?" 
 then
+    // GUARD: Maintenance Mode - Disable Safety Supervisor
+    if (System_Maintenance_Mode.state == ON) {
+        if (Boiler_Block_Active.state == ON) {
+            Boiler_Block_Active.postUpdate(OFF) // Clear block if entering maintenance
+            Boiler_Block_Status.postUpdate("Maintenance Mode Active")
+        }
+        return;
+    }
+
     // A. CALCULATE VIRTUAL FLOW & BTU
     // -------------------------------------------------------------------------------
     var double current_gpm = 0.0

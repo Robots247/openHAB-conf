@@ -1,5 +1,4 @@
 //BOILER LOCKOUT CODES
-32767=Clear
 161 = EEPROM code Parameters not Re-Programmed by Lochinvar
 164 = EEPROM code No Reset Allowed (> 15 minutes)
 166 = EEPROM code Auto Reset High Limit
@@ -28,4 +27,5 @@
 237 = EEPROM code flame out of sequence
 239 = EEPROM code when gas valve relay test fails
 240 = EEPROM code MRHL
+32767 = Clear
 = initializing 

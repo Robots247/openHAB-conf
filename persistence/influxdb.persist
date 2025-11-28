@@ -68,11 +68,14 @@ Items {
 
 // --- HEATING SYSTEM ---
     // OPTIMIZATION: Setpoints/Targets only need to be saved when you change them. 
+    gLochinvar* : strategy = everyChange
     gHeating_Targets* : strategy = everyChange
     gLochinvar_setpoints* : strategy = everyChange
     zoneSettingsSetpoints* : strategy = everyChange
+    gLochinvar_codes* : strategy = everyChange
     ZoneSetpoints* : strategy = everyChange
     DeviceSetpoints* : strategy = everyChange
+    
 
     // OPTIMIZATION: Temperatures usually don't fluctuate wildly in 60 seconds. 
     Temperatures* : strategy = everyChange, every15Mins
@@ -115,7 +118,7 @@ Items {
     gMS_Motion* : strategy = everyChange 
     gMS_Tampers* : strategy = everyChange 
     gMS_Humidity* : strategy = everyChange 
-    gMS_Temps* : strategy = everyChange 
+    gMS_Temps* : strategy = everyChange, every15Mins 
     gMS_Luminances* : strategy = everyChange    
     gMS_UV_LVL* : strategy = everyChange        
     

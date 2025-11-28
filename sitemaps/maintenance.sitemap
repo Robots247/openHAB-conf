@@ -1,0 +1,46 @@
+sitemap maintenance label="System Maintenance" {
+
+    Frame label="Maintenance Master Control" {
+        Switch item=System_Maintenance_Mode label="MAINTENANCE MODE"
+        Text item=Maintenance_Timer_Msg icon="time" visibility=[System_Maintenance_Mode==ON]
+        Text label="Warning: Logic Disabled" icon="error" visibility=[System_Maintenance_Mode==ON]
+    }
+
+    Frame label="Manual Boiler Control" visibility=[System_Maintenance_Mode==ON] {
+        Switch item=Boiler_Manual_Enable label="Enable Firing"
+        Slider item=Boiler_Manual_Rate label="Manual Rate [%d %%]" minValue=0 maxValue=100 step=1 visibility=[Boiler_Manual_Enable==ON]
+        Text item=System_Supply_Temp
+        Text item=System_Return_Temp
+        Text item=Boiler_Firing_Rate label="Actual Rate [%d %%]"
+    }
+
+    Frame label="Manual Pump Control" visibility=[System_Maintenance_Mode==ON] {
+        Switch item=SysPump label="System Pump"
+        Switch item=RHP label="Radiant Pump"
+        Switch item=RecFan
+        Switch item=MBaFan
+        Switch item=BmtBaFan
+        Switch item=GuestBaFan
+    }
+
+    Frame label="High Temp Zone Valves" visibility=[System_Maintenance_Mode==ON] {
+        Switch item=GAZV label="Garage"
+        Switch item=MRZV label="Mud Room"
+        Switch item=LRZV label="Living Room"
+        Switch item=GBrZV label="Guest Bed"
+        Switch item=BMTZV label="Basement"
+    }
+
+    Frame label="Radiant Zone Valves" visibility=[System_Maintenance_Mode==ON] {
+        Switch item=KITRH label="Kitchen"
+        Switch item=DENRH label="Den"
+        Switch item=MBaRH label="Master Bath"
+        Switch item=MBeRH label="Master Bed"
+    }
+    
+    Frame label="Readouts" {
+        Text item=Lochinvar_40001_Control_Mode label="Control Mode (Reg 40001) [%d]"
+        Text item=Lochinvar_40002_Boiler_Enable_Cmd label="Enable Cmd (Reg 40002) [%d]"
+        Text item=Lochinvar_40003_Rate_Command label="Rate Cmd (Reg 40003) [%d]"
+    }
+}

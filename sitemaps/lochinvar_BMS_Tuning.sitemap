@@ -1,4 +1,4 @@
-sitemap lochinvar_bms label="Lochinvar BMS Monitor" {
+sitemap lochinvar_BMS_Tuning label="Lochinvar_BMS Monitor" {
     
     Frame label="Master Control" {
         // The main switch to hand over control to the new rule

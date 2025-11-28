@@ -1,0 +1,56 @@
+var Timer maintenanceTimer = null
+
+rule "Maintenance Mode Activation"
+when
+    Item System_Maintenance_Mode changed to ON
+then
+    logInfo("Maintenance", "Maintenance Mode ACTIVATED. Rules Interlocked.")
+    
+    // Start 4 Hour Safety Timer
+    if (maintenanceTimer !== null) maintenanceTimer.cancel()
+    
+    maintenanceTimer = createTimer(now.plusHours(4), [|
+        logWarn("Maintenance", "SAFETY: Maintenance Mode active for 4 hours. Resetting system.")
+        System_Maintenance_Mode.sendCommand(OFF)
+    ])
+    
+    // Update Status Message
+    Maintenance_Timer_Msg.postUpdate("4 Hours Remaining")
+end
+
+rule "Maintenance Mode Timer Update"
+when
+    Time cron "0 0/15 * * * ?" // Update message every 15 mins
+then
+    if (System_Maintenance_Mode.state == ON) {
+        // Just a visual indicator update could go here if using a DateTime item, 
+        // but for simplicity we assume the user checks the logs or sees the switch.
+        logInfo("Maintenance", "System is still in Maintenance Mode.")
+    }
+end
+
+rule "Maintenance Mode Deactivation"
+when
+    Item System_Maintenance_Mode changed to OFF
+then
+    logInfo("Maintenance", "Maintenance Mode DEACTIVATED. Resuming Automation.")
+
+    // Kill Timer
+    if (maintenanceTimer !== null) {
+        maintenanceTimer.cancel()
+        maintenanceTimer = null
+    }
+    Maintenance_Timer_Msg.postUpdate("Inactive")
+
+    // Reset Manual Boiler Controls
+    Boiler_Manual_Enable.postUpdate(OFF)
+    Boiler_Manual_Rate.postUpdate(0)
+
+    // Force Boiler to Standby immediately to prevent "stuck" high rate from manual test
+    Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
+    Lochinvar_40003_Rate_Command.sendCommand(0)
+    
+    // Optional: Trigger Outdoor Reset Initialization to refresh calculations
+    // (This ensures the system picks up the correct target temp immediately)
+    ODR_Slope.postUpdate(ODR_Slope.state) 
+end

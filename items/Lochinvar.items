@@ -100,20 +100,34 @@ Group gLochinvar_config "Lochinvar Config" (gLochinvar)
         Number Boiler_Firing_Rate "Boiler Firing Rate [%d %%]" (gLochinvar_rates) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarFiringRate:number" }
         Number Boiler_Pump_Speed "Boiler Pump Speed [%d %%]" (gLochinvar_pumps) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerPumpSpeed:number" }
     
-    
+    /*******************************************************************************************************************************
+        2 = Heat Demand blocked due to high absolute outlet temperature
+        3 = Heat Demand blocked due to high absolute flue temperature
+        4 = Heat Demand blocked due to high absolute Delta T (Outlet - Inlet)
+        8 = Heat Demand blocked due to low 24VAC Voltage
+        9 = Outdoor Shutdown
+        10 = Block due do to switch on boiler set to 'OFF'
+        12 = Block due to no communication with Cascade
+        16 = Service Function
+        19 = DHW Function Storage Tank
+        21 = SH heat demand function from Room Thermostat
+        22 = SH function Heat demand from Room Thermostat
+        23 = SH function heat demand from cascade
+        30 = Heat Demand activated by freeze protection
+        32 = DHW Pump Delay
+        33 = SH Heat Pump Delay
+        34 = No Heat Function (After Pump Delay)
+        40 = Lockout
+        32764 = Busy with updating status
+        32765 = DHW blocked due to no present tank sensor
+        32766 = Burner control(s) manually shut down
+        32767 = Code not present
+        = initializing 	*/
     
     
     //Input Boiler Status gLochinvar_codes
         Number Boiler_Status_Code   "Boiler Status:[MAP(LochinvarBoilerStatus.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerStatusCode:number" }
-        /******************************************************************************************************************************
-
-
-    
-    
-    //Input Boiler_Blocking_gLochinvar_codes
-        Number Boiler_Blocking "Blocking Code: [MAP(LochinvarErrorCodes.map):%s]" (gLochinvar_codes){ channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerBlockingCode:number" }
-
-
+        
 
 /******************************************************************************************************************************
 BOILER BLOCKING CODES:
@@ -146,11 +160,10 @@ as storage tank)
     
     
     
-    
-    //Input Boiler Lockout gLochinvar_codes
-        Number Boiler_Lockout_Code "Lockout code: [MAP(LochinvarLOC.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerLockoutCode:number" }
+    //Input Boiler_Blocking_gLochinvar_codes
+        Number Boiler_Blocking "Blocking Code: [MAP(LochinvarErrorCodes.map):%s]" (gLochinvar_codes){ channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerBlockingCode:number" }
 
-    
+
 
 /******************************************************************************************************************************
 BOILER LOCKOUT CODES
@@ -183,8 +196,19 @@ BOILER LOCKOUT CODES
 237 = EEPROM code flame out of sequence
 239 = EEPROM code when gas valve relay test fails
 240 = EEPROM code MRHL
+32767 = Code not present
+
 
 ******************************************************************************************************************************/
+
+
+    
+    
+    
+    //Input Boiler Lockout gLochinvar_codes
+        Number Boiler_Lockout_Code "Lockout code: [MAP(LochinvarLOC.map):%s]" (gLochinvar_codes) { channel="modbus:data:lochinvar:Lochinvar_InputRegisters:lochinvarBoilerLockoutCode:number" }
+
+    
 
 
 

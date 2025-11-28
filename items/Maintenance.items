@@ -1,0 +1,10 @@
+// =================================================================================
+// MAINTENANCE MODE ITEMS
+// =================================================================================
+
+Switch System_Maintenance_Mode "Maintenance Mode" <tools>
+String Maintenance_Timer_Msg   "Auto-Reset: [%s]" <time>
+
+// Manual Boiler Control (Only visible/active in Maintenance Mode)
+Switch Boiler_Manual_Enable    "Manual Boiler Firing" <fire> (gLochinvar_config)
+Number Boiler_Manual_Rate      "Manual Rate Command [%d %%]" <heating> (gLochinvar_config) { autoupdate="true" }
