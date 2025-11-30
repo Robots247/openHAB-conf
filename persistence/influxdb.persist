@@ -110,7 +110,11 @@ Items {
     gREC_Lighting* : strategy = everyChange
     gMBe_Lighting* : strategy = everyChange
     LR_FPDimmer : strategy = everyChange
+    Boiler_Kp : strategy = everyChange
+    Boiler_Ki : strategy = everyChange
+    Boiler_Kd : strategy = everyChange  
 
+    
     // Sensors & System
     gHousebrain* :strategy = every15Mins, everyChange
     

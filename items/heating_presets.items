@@ -2,32 +2,17 @@ Group gHeating_Presets "Heating Presets" (gHeating)
 //heating preset items
 //sitemap switch to enable setpoint changing
 Switch Heating_PresetSwitch "Switch to Enable Heating Preset Mode" (gHeating_Presets)
- 
-  
 
 //these values are unbound and used to hold data for heating presets.  Used in sitemaps to change values on the fly
 
 Number Summer_HeatingMinTemp "Minimum Summer Heating Temperature (all items) [%.1f °F]" (gHeating_PresetNormal)
 
-//heating mode switches
-String Heating_Mode "Global Heating Mode [%s]" (Thermostats)
-Switch Heating_UpdateHeater "Send Target Temperatures to Heaters" (Thermostats)
+// --- CLEANUP NOTE: ---
+// Removed "Heating_Mode", "Heating_UpdateHeater", and all "Manual_Override" items
+// because they are already defined in heating_mode.items. 
+// Having them in both files crashes the system.
 
-//manual override
-Group gManual_Overrides "manual override group"
-Group:Switch:OR(ON,OFF) Heating_Manual_Override "There is a Manual Heat Setpoint Override"
-Switch LR_Heating_Manual_Override "Living Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch GBr_Heating_Manual_Override "Guest Bedroom Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch BMT_Heating_Manual_Override "Basement Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch GA_Heating_Manual_Override "Garage Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch MR_Heating_Manual_Override "Mud Room Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch KIT_Heating_Manual_Override "Kitchen Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
- 
-Switch DEN_Heating_Manual_Override "DEN Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch MBa_Heating_Manual_Override "MBa Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-Switch MBe_Heating_Manual_Override "MBe Manual Heat Setpoint Override" (gManual_Overrides, Heating_Manual_Override,Thermostats)
-
- //Normal Preset temps
+//Normal Preset temps
 Group gHeating_PresetTempNormal (gHeating_Presets)
 Number LR_Heating_PresetTempNormal "Livingroom Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
 Number GBr_Heating_PresetTempNormal "Guest Bed/Bath Heating Preset (Normal Mode) [%.1f °F]" (gHeating_PresetNormal)
@@ -115,4 +100,3 @@ Number KIT_Heating_PresetTempSummer "Kitchen Heating Preset (Summer Mode) [%.1f 
 Number DEN_Heating_PresetTempSummer "Den Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
 Number MBa_Heating_PresetTempSummer "Master Bathroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
 Number MBe_Heating_PresetTempSummer "Master Bedroom Heating Preset (Summer Mode) [%.1f °F]" (gHeating_PresetSummer)
-

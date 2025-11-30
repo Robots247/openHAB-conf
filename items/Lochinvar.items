@@ -255,3 +255,11 @@ Number Boiler_Final_Command "Final Rate Command [%.1f %%]" <fire>
 
 // Switch for Grafana to track ACTUAL DHW burning (0=OFF, 1=ON)
 Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indicators, Indicators)
+
+// === VISUALIZATION HELPER ===
+// -2 = Hard Lockout (Requires Reset)
+// -1 = Soft Block (High Delta T, etc)
+//  0 = Standby / Pump Delay / Check
+//  1 = Space Heating (SH)
+//  2 = DHW Heating
+Number Boiler_Graph_State "Boiler State Graph [-2 to 2]" <chart> (gLochinvar, gLochinvar_codes)

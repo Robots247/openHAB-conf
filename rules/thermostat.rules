@@ -1,3 +1,4 @@
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
 val String filename = "thermostat rules"
 var Timer RHP_timer = null
 
@@ -439,4 +440,45 @@ rule "Garage Overide OFF turns Off Garage Zone Valve "
         if (GAZV.state== ON){
             sendCommand(GAZV, OFF)
         }
+end
+rule "Calculate Max Room Error"
+when
+    // Trigger whenever any temp or target changes
+    Member of gMS_Temps changed or
+    Member of gHeating_Targets changed or
+    Time cron "0 * * ? * *"
+then
+    var Double maxError = 0.0
+    var String worstRoom = "None"
+
+    // List of Room Prefixes to check
+    // Ensure these match your item naming convention: [Prefix]MS_Temp and [Prefix]_Heating_TargetTemp
+    val rooms = newArrayList("DEN", "LR", "KIT", "GBr", "MR", "BMT", "MBe", "MBa")
+
+    rooms.forEach[ room |
+        val tempItem = ScriptServiceUtil.getItemRegistry.getItem(room + "MS_Temp")
+        val targetItem = ScriptServiceUtil.getItemRegistry.getItem(room + "_Heating_TargetTemp")
+
+        if (tempItem.state instanceof Number && targetItem.state instanceof Number) {
+            val Double currentTemp = (tempItem.state as Number).doubleValue
+            val Double targetTemp = (targetItem.state as Number).doubleValue
+            
+            // Calculate Error (Positive means too cold)
+            var Double error = targetTemp - currentTemp
+            
+            // Ignore negative error (room is too hot)
+            if (error < 0) error = 0.0
+
+            if (error > maxError) {
+                maxError = error
+                worstRoom = room
+            }
+        }
+    ]
+
+    // Post the result
+    if (Boiler_Max_Error.state != maxError) {
+        Boiler_Max_Error.postUpdate(maxError)
+        logInfo("Boiler.ErrorCalc", "New Max Error: " + maxError + "°F in " + worstRoom)
+    }
 end

@@ -1,57 +1,36 @@
-
-
 //Zone Valves
-Switch GAZV "Garage Zone Valve" (ZV, 24VAC_Relays) ["Switchable"] { gpio="pin:12 activelow:no",	ga="Valve" [roomHint="Garage"], homekit="valve" }			
-			
-Switch MRZV "Mud Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:4 activelow:no" } 			
-			
-Switch LRZV "Living Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:23 activelow:no" }			
-			
-Switch GBrZV "Guest Bedroom Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:26 activelow:no" }			
-			
-Switch BMTZV "Basement Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:13 activelow:no" }		
+// NOTE: "homekit" tags must use Capitalized types like "Valve", "Switchable", "Fan"
+
+Switch GAZV "Garage Zone Valve" (ZV, 24VAC_Relays) ["Switchable"] { gpio="pin:12 activelow:no", ga="Valve", homekit="Valve" }
+Switch MRZV "Mud Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:4 activelow:no", homekit="Valve" }
+Switch LRZV "Living Room Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:23 activelow:no", homekit="Valve" }
+Switch GBrZV "Guest Bedroom Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:26 activelow:no", homekit="Valve" }
+Switch BMTZV "Basement Zone Valve" (ZV, 24VAC_Relays) { gpio="pin:13 activelow:no", homekit="Valve" }
 
 //Pumps
-Switch RHP "Radient heat pump" (PUMP, 24VAC_Relays, RH) { gpio="pin:21 activelow:no" }			
-Switch SysPump "System Pump" (gLochinvar_pumps, PUMP) { gpio="pin:20 activelow:yes initialValue:high" }	
-		
-//Radient Zone Valves						
-Switch KITRH "Kitchen Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:16 activelow:yes initialValue:high" }			
-			
-Switch DENRH "Den Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:17 activelow:yes initialValue:high" }			
-			
-Switch MBaRH "Master Bath Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:6 activelow:yes initialValue:high" }			
-			
-Switch MBeRH "Master Bedroom Radient heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:5 activelow:yes initialValue:high" }	
+Switch RHP "Radient heat pump" (PUMP, 24VAC_Relays, RH) { gpio="pin:21 activelow:no" }
+Switch SysPump "System Pump" (gLochinvar_pumps, PUMP) { gpio="pin:20 activelow:yes initialValue:high" }
 
-		
-//Calls for heat (for Lochinvar boiler Contacts (same as thermostat connection in conventional system			
+//Radiant Zone Valves
+Switch KITRH "Kitchen Radiant heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:16 activelow:yes initialValue:high", homekit="Valve" }
+Switch DENRH "Den Radiant heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:17 activelow:yes initialValue:high", homekit="Valve" }
+Switch MBaRH "Master Bath Radiant heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:6 activelow:yes initialValue:high", homekit="Valve" }
+Switch MBeRH "Master Bedroom Radiant heat" (RHZV, 24VDC_Relays, RH) { gpio="pin:5 activelow:yes initialValue:high", homekit="Valve" }
+
+
+//Calls for heat (for Lochinvar boiler Contacts)
 Switch CFH1 "Call for Heat 1" (CFHs, Relays) { gpio="pin:19 activelow:yes initialValue:high" }
-
 Switch CFH2 "Call for Heat 2" (CFHs, Relays) { gpio="pin:24 activelow:yes initialValue:high" }
 
-//reused for SysPump 
-//Switch CFH3 "Call for Heat 3" (CFHs, Relays) { gpio="pin:20 activelow:yes initialValue:high" }
+// VIRTUAL SWITCH: CFH3 (Unlinked from physical GPIO 20, which is now SysPump)
+Switch CFH3 "Call for Heat 3 (Virtual)" (CFHs, Relays)
 
 //Ventilation
-
 Group gFans "Fans" <fan> (Ventilation)
 Group:Switch:OR(ON, OFF) Venting "Ventilation group Switch" (Ventilation)
-	Switch RecFan "Rec Room Fan"	<fan> (gFans, Venting) ["Switchable"] {channel="zwave:device:c603a394:node32:switch_binary", ga="Fan" [roomHint="Rec Room"] } 
-	Switch MBaFan "Master Bath Fan"<fan> (gFans, Venting) ["Switchable"]
-	Switch BmtBaFan "Basement Bath Fan" <fan> (gFans, Venting) ["Switchable"] {channel="zwave:device:c603a394:node5:switch_binary"}
-	Switch GuestBaFan "Guest Bath Fan" <fan> (gFans, Venting) ["Switchable"]
 
-// Swamp Cooler
-//Switch SwampLow 		"Swamp Cooler Fan Low"				(gSwamp)
-//Switch SwampHigh		"Swamp Cooler Fan High"				(gSwamp)
-//Switch SwampPump		"Swamp Cooler Pump Switch"			(gSwamp)
-//Number SwampIntakeTemp	"Swamp Cooler Intake Temperature" 	(gSwamp, gTemps)
-//Number SwampExhaustTemp	"Swamp Cooler Exhaust Temperature" 	(gSwamp, gTemps)
-
-// Garage Heater
-//Switch Garage HeaterLow 		"Garage Heater Heater Fan Low"				(gGaHeater, Ventilation)
-//Switch Garage HeaterHigh		"Garage Heater Heater Fan High"				(gGaHeater, Ventilation)
-//Switch Garage HeaterPump		"Garage Heater Heater Pump Switch"			(gGaHeater, Ventilation)
-//Number GaExhaustTemp	"Garage Heater Heater Exhaust Temperature" 	(gGaHeater, Ventilation, gTemps)
-
+// Fans (Standardized tags)
+Switch RecFan "Rec Room Fan" <fan> (gFans, Venting) ["Switchable"] { channel="zwave:device:c603a394:node32:switch_binary", ga="Fan", homekit="Fan" }
+Switch MBaFan "Master Bath Fan" <fan> (gFans, Venting) ["Switchable"] { homekit="Fan" }
+Switch BmtBaFan "Basement Bath Fan" <fan> (gFans, Venting) ["Switchable"] { channel="zwave:device:c603a394:node5:switch_binary", homekit="Fan" }
+Switch GuestBaFan "Guest Bath Fan" <fan> (gFans, Venting) ["Switchable"] { homekit="Fan" }

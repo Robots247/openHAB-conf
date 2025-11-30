@@ -989,7 +989,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         // What the boiler is actually doing
                         Text item=Boiler_Status_Code label="Status [MAP(LochinvarBoilerStatus.map):%s]"
                         Text item=Boiler_Blocking label="Blocking Status [MAP(LochinvarErrorCodes.map):%s]"
-                        Text item=Boiler_Lockout_Code label="Lockout Code [MAP(LochinvarLOC.map.map):%s]"
+                        Text item=Boiler_Lockout_Code label="Lockout Code [MAP(LochinvarLOC.map):%s]"
                         Text item=Boiler_Firing_Rate label="Actual Firing Rate [%d %%]" icon="fire"
                         Text item=Boiler_Pump_Speed label="Boiler Pump Speed [%d %%]" icon="pump"
                         Text item=Boiler_Outlet_Temp label="Outlet Temp (Sensor) [%.1f °F]"

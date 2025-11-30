@@ -17,11 +17,23 @@ then
     if (Boiler_Test_Repeat.state == ON) return;
     if (System_Maintenance_Mode.state == ON) return;
 
+    // SAFETY CHECK: LOCKOUT
+    val int lockoutCode = if(Boiler_Lockout_Code.state instanceof Number) (Boiler_Lockout_Code.state as Number).intValue else 32767
+    
+    if (lockoutCode != 32767) {
+        logWarn("Boiler.Safety", "HARD LOCKOUT DETECTED (Code " + lockoutCode + "). BMS Control Paused.")
+        return;
+    }
+
+    // NULL SAFETY CHECK
+    if (Boiler_BMS_ENBLE.state == NULL || Boiler_BMS_ENBLE.state == UNDEF) {
+        return;
+    }
+
     if (Boiler_BMS_ENBLE.state == ON) {
         // === BMS MODE ===
         // Only enforce Enable=1 if we are NOT currently blocked by the Shutoff Rule.
         if (Boiler_Block_Active.state != ON) {
-            // Safe Modbus Check
             if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
                 if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
                      Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
@@ -36,7 +48,7 @@ then
         if (CFH1.state == ON) CFH1.sendCommand(OFF)
         if (CFH2.state == ON) CFH2.sendCommand(OFF)
     } 
-    else {
+    else if (Boiler_BMS_ENBLE.state == OFF) {
         // === RELAY/LEGACY MODE ===
         Lochinvar_40001_Control_Mode.sendCommand(0)
         
@@ -45,6 +57,7 @@ then
                 Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
             }
         }
+    
         if (Lochinvar_40003_Rate_Command.state instanceof Number) {
             if ((Lochinvar_40003_Rate_Command.state as Number).intValue != 0) {
                 Lochinvar_40003_Rate_Command.sendCommand(0)
@@ -67,32 +80,25 @@ then
     // =======================================================================
     if (System_Maintenance_Mode.state == ON) {
         
-        // Manual Boiler Control Logic
         if (Boiler_Manual_Enable.state == ON) {
-            // 1. Force Control Mode 5 (BMS Rate)
             Lochinvar_40001_Control_Mode.sendCommand(5)
 
-            // 2. Force Enable (1)
             if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
                 if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
                      Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
                 }
             }
 
-            // 3. Send Manual Rate from Slider
             var Number manualRate = 0
             if (Boiler_Manual_Rate.state instanceof Number) {
                 manualRate = (Boiler_Manual_Rate.state as Number).intValue
             }
             
-            // Only send if different to prevent bus spam
-            if (Lochinvar_40003_Rate_Command.state == NULL || 
-               (Lochinvar_40003_Rate_Command.state as Number).intValue != manualRate) {
+            if (Lochinvar_40003_Rate_Command.state == NULL || (Lochinvar_40003_Rate_Command.state as Number).intValue != manualRate) {
                    Lochinvar_40003_Rate_Command.sendCommand(manualRate)
             }
             
         } else {
-            // Manual Enable is OFF - Force Boiler Standby
              if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
                 if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 0) {
                     Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
@@ -105,12 +111,10 @@ then
             }
         }
         
-        // Zero out PID variables so they don't wind up while in maintenance
         pid_integral = 0.0
         Boiler_PID_Output.postUpdate(0)
         Boiler_Final_Command.postUpdate(0)
-        
-        return; // EXIT RULE HERE
+        return;
     }
     
     // =======================================================================
@@ -123,32 +127,28 @@ then
     }
 
     // 1. CHECK SHUTOFF BLOCK
-    // -----------------------------------------------------------------------
     if (Boiler_Block_Active.state == ON) {
-        // == HARD SHUTDOWN SEQUENCE ==
         pid_integral = 0.0 
         Boiler_PID_Output.postUpdate(0)
         Boiler_Final_Command.postUpdate(0)
         
-        // A. Send 0% Rate
         Lochinvar_40003_Rate_Command.sendCommand(0)
         
-        // B. Send DISABLE Command (Standby)
         if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
             if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 0) {
                  logInfo("Boiler.BMS", "BLOCK ACTIVE: Forcing Enable=0 (Standby)")
                  Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
             }
         }
-        // Fall through to keep pumps running (Purge Cycle)
     }
 
-    // 2. GATHER DATA
+    // 2. GATHER DATA (Null-Safe)
     var double base_Kp = if(Boiler_Kp.state instanceof Number) (Boiler_Kp.state as Number).doubleValue else 2.5
     var double Ki = if(Boiler_Ki.state instanceof Number) (Boiler_Ki.state as Number).doubleValue else 0.1
+    
     val Number supplyTemp  = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 140.0
     val Number targetTemp = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
-    val int zoneWeight = if(Boiler_Zone_Limit.state instanceof Number) (Boiler_Zone_Limit.state as Number).intValue else 0
+    val Number outletTemp = if(Boiler_Outlet_Temp.state instanceof Number) (Boiler_Outlet_Temp.state as Number).doubleValue else 140.0
 
     // 3. PUMP ACTUATION 
     var boolean highTempCall = false
@@ -156,9 +156,6 @@ then
 
     if (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON) highTempCall = true
     if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) lowTempCall = true
-
-    // Log Logic State for Debugging
-    // logInfo("Boiler.Debug", "Demand: High=" + highTempCall + " Low=" + lowTempCall + " SysPump=" + SysPump.state)
 
     if (highTempCall) { 
         if (SysPump.state != ON) SysPump.sendCommand(ON) 
@@ -171,43 +168,52 @@ then
     } else { 
         if (RHP.state != OFF) RHP.sendCommand(OFF) 
     }
+    
+ // 3A. CALCULATE ZONE LOAD LIMIT (For Logging Only - Logic is now Unleashed)
+    var int activeLoad = 0
+    if (LRZV.state == ON)  activeLoad = activeLoad + 35 
+    if (BMTZV.state == ON) activeLoad = activeLoad + 30 
+    if (GAZV.state == ON)  activeLoad = activeLoad + 30 
+    if (GBrZV.state == ON) activeLoad = activeLoad + 15 
+    if (MRZV.state == ON)  activeLoad = activeLoad + 10 
+    
+    if (KITRH.state == ON) activeLoad = activeLoad + 20 
+    if (DENRH.state == ON) activeLoad = activeLoad + 15 
+    if (MBaRH.state == ON) activeLoad = activeLoad + 10 
+    if (MBeRH.state == ON) activeLoad = activeLoad + 15 
+
+    // Visual cap for graph consistency
+    if (activeLoad > 100) activeLoad = 100
+    if (activeLoad < 10 && (highTempCall || lowTempCall)) activeLoad = 20
+    
+    Boiler_Zone_Limit.postUpdate(activeLoad)
+    val int zoneWeight = activeLoad
 
     // 4. FIRING PID (Only run if NOT Blocked)
     var Number finalRate = 0.0
     
-    // We only calculate PID if Block is OFF
     if (Boiler_Block_Active.state != ON) {
         
-        // Ensure Enable=1 if we are coming out of a block
-        // CRITICAL FIX: Check if state is NULL before casting
-        if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
-            if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != 1) {
-                Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
-            }
-        } else {
-            // If NULL (Startup), just send it to be safe
-            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
-        }
-
         if ((highTempCall || lowTempCall) && targetTemp > 0) {
             
             var Number error = targetTemp - supplyTemp
             
-            // === SMART GAIN SCHEDULING (NEW) ===
+           // === SMART GAIN SCHEDULING ===
+            // Buffer Tank Tune: More aggressive on large errors.
             var double dynamic_Kp = base_Kp
             
             if (error > 20) {
-                dynamic_Kp = base_Kp * 0.2 
+                dynamic_Kp = base_Kp * 0.6 // Increased from 0.2
             } else if (error > 10) {
-                dynamic_Kp = base_Kp * 0.5
+                dynamic_Kp = base_Kp * 0.8 // Increased from 0.5
             }
             
             var Number P = dynamic_Kp * error
             pid_integral = pid_integral + (Ki * error)
             
-            // Anti-Windup / Clamping
-            if (pid_integral > 40) {
-                pid_integral = 40
+            // Anti-Windup
+            if (pid_integral > 25) {
+                pid_integral = 25
                 logInfo("Boiler.PID", "Anti-Windup Active: Target=" + targetTemp + " Actual=" + supplyTemp + " Dev=" + error + ". Pausing I-term.")
             }
             if (pid_integral < -10) pid_integral = -10
@@ -215,54 +221,129 @@ then
             var Number rawOutput = P + pid_integral
             Boiler_PID_Output.postUpdate(rawOutput)
 
-            // Clamps
-            var Number maxAllowed = zoneWeight * 1.5 
-            if (maxAllowed > 100) maxAllowed = 100
+            // === A. ZONE CLAMPING (BUFFER TANK MODE: UNLEASHED) ===
+            // OLD LOGIC: var Number maxAllowed = zoneWeight * 1.5 
+            // NEW LOGIC: If we have ANY demand, allow 100% fire. 
+            // The Buffer Tank will absorb the energy.
+            
+            var Number maxAllowed = 100.0 
+            
+            // === B. SOFT GOVERNOR (Proportional Throttle) ===
+            // Safety: Still throttle if OUTLET temp gets dangerous (180F+)
+            // This protects the boiler heat exchanger, regardless of buffer tank.
+            var double safetyLimit = 185.0
+            var double governorStart = 175.0
+            var double safetyFactor = 1.0
+            
+            if (outletTemp > governorStart) {
+                var double headroom = safetyLimit - outletTemp
+                
+                if (headroom <= 0) {
+                    safetyFactor = 0.0 // Hard Stop
+                    logWarn("Boiler.Safety", "Governor: Outlet " + outletTemp + " exceeded limit! Killing rate.")
+                } else {
+                    // Linear reduction
+                    safetyFactor = headroom / (safetyLimit - governorStart)
+                    logInfo("Boiler.Safety", "Governor Active: Outlet=" + outletTemp + " throttling max output by " + ((1.0 - safetyFactor) * 100).intValue + "%")
+                }
+            }
+            maxAllowed = maxAllowed * safetyFactor
+            // ============================================
+
             if (rawOutput > maxAllowed) rawOutput = maxAllowed
 
             if (rawOutput < 10) {
-                if (rawOutput > 1) { finalRate = 10 } 
+                // Deadband: Math must demand at least 4% to start the boiler.
+                if (rawOutput > 4.0) { finalRate = 10 } 
                 else { finalRate = 0; pid_integral = 0 }
-            } else {
+            } 
+            else {
                 finalRate = rawOutput
             }
             if (finalRate > 100) finalRate = 100
         } 
         else {
-            // No Demand
             finalRate = 0.0
             if (Boiler_Block_Active.state == ON) pid_integral = 0.0 
         }
     } 
     else {
-        // Blocked - Ensure rate is 0
         finalRate = 0.0
     }
 
     Boiler_Final_Command.postUpdate(finalRate)
 
-    // 5. MODBUS COMMAND (SAFE VERSION)
+    // 5. MODBUS COMMAND (FIXED ENABLE LOGIC)
     var int payload = finalRate.intValue
+    var int desiredEnable = 0
     
-    // Safety check on Register 40003
+    // --- THE FIX: Only Enable if Rate > 0 ---
+    if (payload > 0) {
+        desiredEnable = 1
+    }
+    
+    // Send Enable Command First
+    if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
+        if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != desiredEnable) {
+             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
+             // Short delay to let boiler process 'Enable' before seeing 'Rate'
+             if (desiredEnable == 1) Thread::sleep(100) 
+        }
+    } else {
+        // Fallback for NULL state
+        Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
+    }
+    
+    // Send Rate Command
     var int currentRate = -1
     if (Lochinvar_40003_Rate_Command.state instanceof Number) {
         currentRate = (Lochinvar_40003_Rate_Command.state as Number).intValue
     }
     
     if (currentRate != payload) {
-        
-        // Safety Check on Control Mode (40001)
-        // If it's NULL (unknown), we force it to 5 just to be safe
         var int currentMode = 0
         if (Lochinvar_40001_Control_Mode.state instanceof Number) {
             currentMode = (Lochinvar_40001_Control_Mode.state as Number).intValue
         }
         
-        if (currentMode != 5) {
+        // Enforce Control Mode 5 if firing
+        if (currentMode != 5 && payload > 0) {
              Lochinvar_40001_Control_Mode.sendCommand(5)
-             Thread::sleep(200) 
+             Thread::sleep(100) 
         }
         Lochinvar_40003_Rate_Command.sendCommand(payload)
+    }
+end
+
+rule "Normalize Boiler State for Grafana"
+when
+    Item Boiler_Status_Code changed or
+    Item Boiler_Blocking changed or
+    Item Boiler_Lockout_Code changed
+then
+    var int graphState = 0
+    var int status = if(Boiler_Status_Code.state instanceof Number) (Boiler_Status_Code.state as Number).intValue else 0
+    var int block  = if(Boiler_Blocking.state instanceof Number) (Boiler_Blocking.state as Number).intValue else 0
+    var int lock   = if(Boiler_Lockout_Code.state instanceof Number) (Boiler_Lockout_Code.state as Number).intValue else 32767
+
+    if (lock != 32767) {
+        graphState = -2
+    }
+    else if (block != 0 && block != 32767) {
+        graphState = -1
+        logInfo("Boiler.Monitor", "Boiler Soft Block Detected: Code " + block)
+    }
+    else if (status == 19) {
+        graphState = 2
+    }
+    else if (status == 21 || status == 22 || status == 23) {
+        graphState = 1
+    }
+    else {
+        graphState = 0
+    }
+
+    if (Boiler_Graph_State.state != graphState) {
+        Boiler_Graph_State.postUpdate(graphState)
     }
 end

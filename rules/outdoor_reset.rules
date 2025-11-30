@@ -46,176 +46,88 @@ end
 
 rule "Calculate Outdoor Reset Target"
 when
-    Time cron "0 * * ? * *" // Runs every 1 Minute (Aligned with thermal time constant)
+    Time cron "0 * * ? * *" // Runs every 1 Minute
 then
-    // 0. FETCH TUNING PARAMETERS (With Safety Defaults)
-    // -------------------------------------------------------------------------------
-    // Curve Shape
+    // 0. FETCH TUNING PARAMETERS (Safe Defaults)
     val Number curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
     val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 180.0
-    
-    // Room PID Coefficients
     val Number Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 4.0
     val Number Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.5
 
-
     // 1. OUTDOOR SENSOR SMOOTHING
-    // -------------------------------------------------------------------------------
-    // Safety check for NULL outdoor sensor
     var Number rawOutdoor = 32.0
     if (Outdoor_Temperature.state instanceof Number) {
         rawOutdoor = (Outdoor_Temperature.state as Number).doubleValue
     }
-    
-    // EMA Filter (Alpha 0.05 = Heavy smoothing for massive thermal systems)
     last_outdoor_smooth = (0.05 * rawOutdoor) + (0.95 * last_outdoor_smooth)
     val Number outdoorInput = last_outdoor_smooth 
 
-    // 2. CALCULATE "MAX ERROR" AND IDENTIFY ROOM
-    // -------------------------------------------------------------------------------
-    
-    var double maxErrorHT = 0.0
-    var double maxErrorLT = 0.0
-    var String worstRoomHT = "None"
-    var String worstRoomLT = "None"
-    
-    // Function2: Inputs (Setpoint, Actual) -> Output (Positive Error)
-    val Functions$Function2<Object, Object, Double> calcError = [ Object setpointObj, Object actualObj |
-        
-        if (setpointObj === null || actualObj === null) return 0.0
-        if (setpointObj == NULL || actualObj == NULL) return 0.0
-        if (setpointObj == UNDEF || actualObj == UNDEF) return 0.0
-
-        var double sp = (setpointObj as Number).doubleValue
-        var double act = (actualObj as Number).doubleValue
-        
-        var double err = sp - act
-        if (err < 0) return 0.0
-        return err
-    ]
-
-    // --- High Temp Zones (Iterate to find max) ---
-    if (LRZV.state == ON) {
-        var double e = calcError.apply(LR_Heating_TargetTemp.state, LRMS_Temp.state)
-        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Living Room" }
-    }
-    if (GBrZV.state == ON) {
-        var double e = calcError.apply(GBr_Heating_TargetTemp.state, GBrMS_Temp.state)
-        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Guest Bed" }
-    }
-    if (MRZV.state == ON) {
-        var double e = calcError.apply(MR_Heating_TargetTemp.state, MRMS_Temp.state)
-        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Mud Room" }
-    }
-    if (BMTZV.state == ON) {
-        var double e = calcError.apply(BMT_Heating_TargetTemp.state, BMTBrMS_Temp.state)
-        if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Basement" }
-    }
-    if (GAZV.state == ON && vGA_Heating_OFF_Override.state != ON) {
-         var double e = calcError.apply(GA_Heating_TargetTemp.state, GAMS_Temp.state)
-         if (e > maxErrorHT) { maxErrorHT = e; worstRoomHT = "Garage" }
-    }
-
-    // --- Low Temp Zones ---
-    if (DENRH.state == ON) {
-        var double e = calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)
-        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Den" }
-    }
-    if (MBaRH.state == ON) {
-        var double e = calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)
-        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Master Bath" }
-    }
-    if (MBeRH.state == ON) {
-        var double e = calcError.apply(MBe_Heating_TargetTemp.state, MBeMS_Temp.state)
-        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Master Bed" }
-    }
-    if (KITRH.state == ON) {
-        var double e = calcError.apply(DEN_Heating_TargetTemp.state, DENMS_Temp.state)
-        if (e > maxErrorLT) { maxErrorLT = e; worstRoomLT = "Kitchen" }
-    }
-
-    // Determine Global Max
-    var double globalMax = 0.0
-    var String globalRoom = "None"
-    
-    if (maxErrorHT >= maxErrorLT) {
-        globalMax = maxErrorHT
-        globalRoom = worstRoomHT
-    } else {
-        globalMax = maxErrorLT
-        globalRoom = worstRoomLT
-    }
-
-    Boiler_Max_Error.postUpdate(globalMax)
-    Boiler_Max_Error_Room.postUpdate(globalRoom)
-    
-    // Set Boost Indicator (True if error > 0.5 deg)
-    if (globalMax > 0.5) Boiler_Boost_Active.postUpdate(ON) else Boiler_Boost_Active.postUpdate(OFF)
-
-    // 3. ASSESS DEMAND WEIGHT
-    // -------------------------------------------------------------------------------
-    var int zoneWeight = 0
+    // 2. DETERMINE DEMAND (Null Safe Checks)
     var boolean highTempCall = false
     var boolean lowTempCall = false
+    
+    // Check High Temp Zones (Null Safe)
+    if ((LRZV.state == ON) || (GBrZV.state == ON) || (BMTZV.state == ON) || (GAZV.state == ON) || (MRZV.state == ON)) {
+        highTempCall = true
+    }
+    
+    // Check Low Temp Zones (Null Safe)
+    if ((KITRH.state == ON) || (DENRH.state == ON) || (MBaRH.state == ON) || (MBeRH.state == ON)) {
+        lowTempCall = true
+    }
 
-    if (LRZV.state == ON)   { zoneWeight += 20; highTempCall = true; }
-    if (GBrZV.state == ON)  { zoneWeight += 15; highTempCall = true; }
-    if (BMTZV.state == ON)  { zoneWeight += 15; highTempCall = true; }
-    if (GAZV.state == ON)   { zoneWeight += 25; highTempCall = true; }
-    if (MRZV.state == ON)   { zoneWeight += 5;  highTempCall = true; }
+    // 3. CALCULATE ROOM ERROR (Placeholder / Safety)
+    var Number maxErrorHT = 0.0
+    var Number maxErrorLT = 0.0
+    
+    if (Boiler_Max_Error.state instanceof Number) {
+        maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
+    }
 
-    if (KITRH.state == ON)  { zoneWeight += 10; lowTempCall = true; }
-    if (DENRH.state == ON)  { zoneWeight += 10; lowTempCall = true; }
-    if (MBaRH.state == ON)  { zoneWeight += 5;  lowTempCall = true; }
-    if (MBeRH.state == ON)  { zoneWeight += 5;  lowTempCall = true; }
+    // 4. CHECK BOILER STATE (New Logic)
+    var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
+    
+    var boolean boilerIsBusy = (bState == 2 || bState < 0)
 
-    if (zoneWeight > 100) zoneWeight = 100
-    Boiler_Zone_Limit.postUpdate(zoneWeight)
-
-    // 4. CALCULATE FINAL TARGET
-    // -------------------------------------------------------------------------------
+    // 5. CALCULATE FINAL TARGET
     var Number targetTemp = 0.0
     var String demandType = "None"
     
     if (highTempCall) {
         demandType = "High Temp (PID)"
-        
-        // A. Base Curve (Tunable)
         var Number baseTarget = curveIntercept + (curveSlope * outdoorInput)
-        
-        // B. Room PID (Tunable)
-        var Number error = maxErrorHT
+        var Number error = maxErrorHT 
         
         // P-Term
         var Number P_room = Kp_room_val * error
         
-        // I-Term (With Decay) - Tuned for 1 Minute Interval
-        if (error > 0.1) {
-            room_integral_mem = room_integral_mem + (Ki_room_val * error)
-        } else {
-            // Decay (0.92 per minute)
-            room_integral_mem = room_integral_mem * 0.92
+        // I-Term
+        if (boilerIsBusy) {
+            logInfo("Boiler.ODR", "Boiler Busy (State " + bState + "). Freezing PID Integral.")
+        } 
+        else {
+            if (error > 0.1) {
+                room_integral_mem = room_integral_mem + (Ki_room_val * error)
+            } else {
+                room_integral_mem = room_integral_mem * 0.92 // Decay
+            }
         }
         
-        // Anti-Windup
+        // Anti-Windup Clamps
         if (room_integral_mem > 20) room_integral_mem = 20
         if (room_integral_mem < -5) room_integral_mem = -5 
         
         Boiler_Room_Integral.postUpdate(room_integral_mem)
-
         targetTemp = baseTarget + P_room + room_integral_mem
         
-        // Clamps
+        // Temp Clamps
         if (targetTemp > 180) targetTemp = 180
         if (targetTemp < 120) targetTemp = 120
         
     } else if (lowTempCall) {
         demandType = "Low Temp"
-        // Radiant Curve (Fixed for now, or add items if needed)
         var Number baseTarget = 120.0 + (-0.5 * outdoorInput)
-        
         var Number P_room = 2.0 * maxErrorLT
-        
         targetTemp = baseTarget + P_room
         
         if (targetTemp > 120) targetTemp = 120
