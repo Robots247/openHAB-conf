@@ -13,33 +13,31 @@ rule "Initialize Tuning Parameters"
 when
     System started
 then
-    // Initialize Defaults only if NULL (First run or cache clear)
+    // Initialize Defaults
     if (ODR_Slope.state == NULL || ODR_Slope.state == UNDEF) {
         ODR_Slope.postUpdate(-1.1)
-        logInfo("Boiler.Init", "ODR_Slope initialized to default: -1.1")
     }
     if (ODR_Intercept.state == NULL || ODR_Intercept.state == UNDEF) {
         ODR_Intercept.postUpdate(180.0)
-        logInfo("Boiler.Init", "ODR_Intercept initialized to default: 180.0")
     }
+    
+    // Room Feedback Settings
     if (Room_Kp.state == NULL || Room_Kp.state == UNDEF) {
         Room_Kp.postUpdate(4.0)
-        logInfo("Boiler.Init", "Room_Kp initialized to default: 4.0")
     }
     if (Room_Ki.state == NULL || Room_Ki.state == UNDEF) {
         Room_Ki.postUpdate(0.5)
-        logInfo("Boiler.Init", "Room_Ki initialized to default: 0.5")
     }
     
-    // Initialize Boiler PID defaults if missing
-    if (Boiler_Kp.state == NULL || Boiler_Kp.state == UNDEF) {
-        Boiler_Kp.postUpdate(2.5)
-        logInfo("Boiler.Init", "Boiler_Kp initialized to default: 2.5")
-    }
-    if (Boiler_Ki.state == NULL || Boiler_Ki.state == UNDEF) {
-        Boiler_Ki.postUpdate(0.1)
-        logInfo("Boiler.Init", "Boiler_Ki initialized to default: 0.1")
-    }
+    // --- GENTLE BOILER TUNING ---
+    // User requested "Gentle" tuning to prevent pump overrun.
+    // We FORCE update these values now (removed NULL checks).
+    
+    Boiler_Kp.postUpdate(1.5)   // Was 2.5. Slows down the ramp-up.
+    logInfo("Boiler.Init", "Boiler_Kp forced to gentle: 1.5")
+    
+    Boiler_Ki.postUpdate(0.05)  // Was 0.1. Reduces integral windup.
+    logInfo("Boiler.Init", "Boiler_Ki forced to gentle: 0.05")
     
     logInfo("Boiler.Init", "Tuning parameters checked.")
 end
@@ -48,7 +46,7 @@ rule "Calculate Outdoor Reset Target"
 when
     Time cron "0 * * ? * *" // Runs every 1 Minute
 then
-    // 0. FETCH TUNING PARAMETERS (Safe Defaults)
+    // 0. FETCH TUNING PARAMETERS
     val Number curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
     val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 180.0
     val Number Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 4.0
@@ -62,39 +60,35 @@ then
     last_outdoor_smooth = (0.05 * rawOutdoor) + (0.95 * last_outdoor_smooth)
     val Number outdoorInput = last_outdoor_smooth 
 
-    // 2. DETERMINE DEMAND (Null Safe Checks)
-    var boolean highTempCall = false
-    var boolean lowTempCall = false
-    
-    // Check High Temp Zones (Null Safe)
-    if ((LRZV.state == ON) || (GBrZV.state == ON) || (BMTZV.state == ON) || (GAZV.state == ON) || (MRZV.state == ON)) {
-        highTempCall = true
+    // 2. DETERMINE DEMAND
+    // Check Baseboard Zones
+    var boolean baseboardCall = false
+    if ((LRZV.state == ON) || (GBrZV.state == ON) || (BMTZV.state == ON) || (MRZV.state == ON)) {
+        baseboardCall = true
     }
     
-    // Check Low Temp Zones (Null Safe)
+    // Check Low Temp Zones
+    var boolean radiantCall = false
     if ((KITRH.state == ON) || (DENRH.state == ON) || (MBaRH.state == ON) || (MBeRH.state == ON)) {
-        lowTempCall = true
+        radiantCall = true
     }
 
-    // 3. CALCULATE ROOM ERROR (Placeholder / Safety)
-    var Number maxErrorHT = 0.0
-    var Number maxErrorLT = 0.0
+    // 3. CHECK BOILER STATE
+    var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
+    var boolean boilerIsBusy = (bState == 2 || bState < 0)
     
+    var Number maxErrorHT = 0.0
     if (Boiler_Max_Error.state instanceof Number) {
         maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
     }
 
-    // 4. CHECK BOILER STATE (New Logic)
-    var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
-    
-    var boolean boilerIsBusy = (bState == 2 || bState < 0)
-
-    // 5. CALCULATE FINAL TARGET
+    // 4. CALCULATE FINAL TARGET
     var Number targetTemp = 0.0
     var String demandType = "None"
     
-    if (highTempCall) {
-        demandType = "High Temp (PID)"
+    if (baseboardCall) {
+        // PRIORITY 2: Baseboards (ODR Curve + Room Feedback)
+        demandType = "Baseboard (ODR)"
         var Number baseTarget = curveIntercept + (curveSlope * outdoorInput)
         var Number error = maxErrorHT 
         
@@ -102,10 +96,7 @@ then
         var Number P_room = Kp_room_val * error
         
         // I-Term
-        if (boilerIsBusy) {
-            logInfo("Boiler.ODR", "Boiler Busy (State " + bState + "). Freezing PID Integral.")
-        } 
-        else {
+        if (!boilerIsBusy) {
             if (error > 0.1) {
                 room_integral_mem = room_integral_mem + (Ki_room_val * error)
             } else {
@@ -113,33 +104,27 @@ then
             }
         }
         
-        // Anti-Windup Clamps
+        // Anti-Windup
         if (room_integral_mem > 20) room_integral_mem = 20
         if (room_integral_mem < -5) room_integral_mem = -5 
         
-        Boiler_Room_Integral.postUpdate(room_integral_mem)
         targetTemp = baseTarget + P_room + room_integral_mem
         
-        // Temp Clamps
+        // Clamps
         if (targetTemp > 180) targetTemp = 180
-        if (targetTemp < 120) targetTemp = 120
+        if (targetTemp < 125) targetTemp = 125 
         
-    } else if (lowTempCall) {
-        demandType = "Low Temp"
-        var Number baseTarget = 120.0 + (-0.5 * outdoorInput)
-        var Number P_room = 2.0 * maxErrorLT
-        targetTemp = baseTarget + P_room
-        
-        if (targetTemp > 120) targetTemp = 120
-        if (targetTemp < 85) targetTemp = 85
-        
+    } else if (radiantCall) {
+        // PRIORITY 3: Radiant (Fixed Mixing Minimum)
+        demandType = "Radiant Mix (142F)"
+        targetTemp = 142.0
         room_integral_mem = 0.0
-        Boiler_Room_Integral.postUpdate(0)
     } else {
         targetTemp = 0.0
         room_integral_mem = 0.0
     }
 
+    Boiler_Room_Integral.postUpdate(room_integral_mem)
     Boiler_Demand_Type.postUpdate(demandType)
     Boiler_Target_Temp.postUpdate(targetTemp)
 end

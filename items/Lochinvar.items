@@ -262,4 +262,9 @@ Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indic
 //  0 = Standby / Pump Delay / Check
 //  1 = Space Heating (SH)
 //  2 = DHW Heating
+
 Number Boiler_Graph_State "Boiler State Graph [-2 to 2]" <chart> (gLochinvar, gLochinvar_codes)
+// Persistence Variables for Boiler Control
+Number Boiler_Pid_Integral      "PID Integral Memory [%.2f]"    (gBoiler)
+Number Boiler_Limit_Integral    "Limit Integral Memory [%.2f]"  (gBoiler)
+Number Boiler_Last_Outlet_Temp  "Last Outlet Temp [%.1f F]"     (gBoiler)
