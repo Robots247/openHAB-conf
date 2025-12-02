@@ -1,14 +1,18 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// HYBRID LOCHINVAR LOGIC (Smart Headroom Governor)
+// LOCHINVAR BMS MASTER CONTROLLER (Production Release + Debugging)
+// Features: Null-Safe Enable, Startup Bypass, Smart Headroom, Soft Start, WWSD
+//           UPDATED: Demand-Based Enable Logic, Soft-Start Deadband Fix, Gov B Fix
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
-var long last_demand_time = 0  
+var long last_demand_time = 0        // Tracks Off-Delay
+var double last_firing_rate = 0.0    // Tracks Ramp Rate (Soft Start)
+var boolean wwsd_active = false      // Tracks Warm Weather Shutdown State
 
 // -----------------------------------------------------------------------------------
-// RULE 1: HEARTBEAT & WATCHDOG
+// RULE 1: HEARTBEAT & WATCHDOG (Runs every minute)
 // -----------------------------------------------------------------------------------
 rule "Boiler Heartbeat and Mode Enforcement"
 when
@@ -17,6 +21,7 @@ then
     if (Boiler_Test_Repeat.state == ON) return;
     if (System_Maintenance_Mode.state == ON) return;
 
+    // SAFETY CHECK: LOCKOUT
     val int lockoutCode = if(Boiler_Lockout_Code.state instanceof Number) (Boiler_Lockout_Code.state as Number).intValue else 32767
     
     if (lockoutCode != 32767) {
@@ -24,13 +29,25 @@ then
         return;
     }
 
+    // NULL SAFETY CHECK
+    if (Boiler_BMS_ENBLE.state == NULL || Boiler_BMS_ENBLE.state == UNDEF) {
+        return;
+    }
+
     if (Boiler_BMS_ENBLE.state == ON) {
+        // === BMS MODE ===
+        // Always enforce Control Mode 5 (BMS Rate)
         Lochinvar_40001_Control_Mode.sendCommand(5)
+        
+        // Safety: Ensure Physical CFH Relays are OFF
         if (CFH1.state == ON) CFH1.sendCommand(OFF)
         if (CFH2.state == ON) CFH2.sendCommand(OFF)
     } 
     else if (Boiler_BMS_ENBLE.state == OFF) {
+        // === RELAY/LEGACY MODE ===
         Lochinvar_40001_Control_Mode.sendCommand(0)
+        
+        // Force Enable State Update if NULL
         var int currentEn = -1
         if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) currentEn = (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue
         
@@ -43,16 +60,22 @@ then
 end
 
 // -----------------------------------------------------------------------------------
-// RULE 2: MAIN FIRING LOOP
+// RULE 2: MAIN FIRING LOOP (Runs every 5 seconds)
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop"
 when
     Time cron "0/5 * * * * ?"
 then
-    if (Boiler_Test_Repeat.state == ON) return;
+    // DEBUG: Verify Rule Start
+    logInfo("Boiler.Rule2", "Rule 2 Started.")
+
+    if (Boiler_Test_Repeat.state == ON) {
+        logInfo("Boiler.Rule2", "Boiler Test Repeat is ON. Exiting.")
+        return;
+    }
     
     // =======================================================================
-    // 1. FETCH SENSORS
+    // 1. FETCH SENSORS & MEMORY
     // =======================================================================
     var double mem_pid_integral = 0.0
     if (Boiler_Pid_Integral.state instanceof Number) {
@@ -64,6 +87,35 @@ then
     val double outletTemp  = if(Boiler_Outlet_Temp.state instanceof Number) (Boiler_Outlet_Temp.state as Number).doubleValue else 140.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
     
+    // ----------------------------------------
+    // SENSOR FALLBACK & WWSD LOGIC
+    // ----------------------------------------
+    var double effective_outdoor = 32.0 
+    
+    if (Outdoor_Temperature.state instanceof Number) {
+        effective_outdoor = (Outdoor_Temperature.state as Number).doubleValue
+    } 
+    else if (Weather_Current_Temperature.state instanceof Number) {
+        effective_outdoor = (Weather_Current_Temperature.state as Number).doubleValue
+        logWarn("Boiler.Sensor", "Primary Outdoor Sensor FAILED. Using Internet Backup: " + effective_outdoor)
+    } 
+    else {
+        logError("Boiler.Sensor", "CRITICAL: All Outdoor Sources FAILED. Defaulting to 32.0F.")
+    }
+
+    // WWSD (70F ON / 67F OFF)
+    if (effective_outdoor >= 70.0) {
+        if (!wwsd_active) {
+            wwsd_active = true
+            logInfo("Boiler.WWSD", "Warm Weather Shutdown ENABLED (Temp > 70F).")
+        }
+    } else if (effective_outdoor <= 67.0) {
+        if (wwsd_active) {
+            wwsd_active = false
+            logInfo("Boiler.WWSD", "Warm Weather Shutdown DISABLED (Temp < 67F).")
+        }
+    }
+
     // =======================================================================
     // 2. MAINTENANCE MODE INTERCEPT
     // =======================================================================
@@ -71,11 +123,13 @@ then
         if (mem_pid_integral != 0.0) Boiler_Pid_Integral.postUpdate(0)
         Boiler_PID_Output.postUpdate(0)
         Boiler_Final_Command.postUpdate(0)
+        logInfo("Boiler.Rule2", "Maintenance Mode is ON. Exiting.")
         return;
     }
     
     if (Boiler_BMS_ENBLE.state != ON) {
         if (mem_pid_integral != 0.0) Boiler_Pid_Integral.postUpdate(0)
+        logInfo("Boiler.Rule2", "Boiler BMS Enable is OFF. Exiting.")
         return;
     }
 
@@ -84,7 +138,7 @@ then
     var double Ki = 0.05 
     
     // =======================================================================
-    // 3. PUMP ACTUATION
+    // 3. PUMP ACTUATION & CALL DETECTION
     // =======================================================================
     var boolean highTempCall = false
     if (LRZV.state == ON) highTempCall = true
@@ -98,6 +152,11 @@ then
     if (DENRH.state == ON) lowTempCall = true
     if (MBaRH.state == ON) lowTempCall = true
     if (MBeRH.state == ON) lowTempCall = true
+
+    if (wwsd_active) {
+        highTempCall = false
+        lowTempCall = false
+    }
 
     if (highTempCall) { if (SysPump.state != ON) SysPump.sendCommand(ON) } else { if (SysPump.state != OFF) SysPump.sendCommand(OFF) }
     if (lowTempCall) { if (RHP.state != ON) RHP.sendCommand(ON) } else { if (RHP.state != OFF) RHP.sendCommand(OFF) }
@@ -116,6 +175,9 @@ then
     var double severity = 0.0
     var double flowSeverity = 0.0
     
+    // DEBUGGING LOGIC ENTRY
+    logInfo("Boiler.Logic", "HT Call: " + highTempCall + " LT Call: " + lowTempCall + " Target: " + targetTemp + " Block: " + Boiler_Block_Active.state)
+
     if (Boiler_Block_Active.state != ON && (highTempCall || lowTempCall) && targetTemp > 0) {
             
         // ----------------------------------------
@@ -125,6 +187,9 @@ then
         var double P = base_Kp * error
         
         pidRequest = P + mem_pid_integral
+        
+        // DEBUG PID CALCULATION
+        logInfo("Boiler.PID", "Error: " + error + " P: " + P + " I: " + mem_pid_integral + " Request: " + pidRequest)
         
         if (pidRequest > 100.0) pidRequest = 100.0
         if (pidRequest < 0.0) pidRequest = 0.0
@@ -161,28 +226,44 @@ then
             if (sysDelta > dtStart) {
                  flowSeverity = (dtMax - sysDelta) / (dtMax - dtStart)
                  govFlowLimit = flowSeverity * 100.0
-                 if (govFlowLimit < 0.0) govFlowLimit = 0.0
+                 
+                 // FIX: Don't clamp to 0, clamp to Min Fire (20%) to prevent stall
+                 if (govFlowLimit < 20.0) govFlowLimit = 20.0
             }
         }
 
-        // [OPTIMIZED] GOVERNOR C: Pump Speed Follower (Smart Headroom)
-        // Professional Tuning: If we have Thermal Headroom (<165F), we ignore pump speed limits.
-        // We only enforce Flow-Matching when we are approaching the safety limit.
-        
-        if (outletTemp < 165.0) {
-            // SAFE ZONE: We have plenty of room before boiling. Allow 100% fire even if pump is slow.
-            govPumpLimit = 100.0
-        } 
-        else {
-            // DANGER ZONE: Approaching limit. Lock Fire to Flow to prevent flash-boil.
-            if (pumpSpeed > 1.0) {
-                govPumpLimit = pumpSpeed + 15.0
-            } else {
-                govPumpLimit = 25.0 // Startup Allowance
-            }
+        // [GOVERNOR C: PUMP SPEED FOLLOWER (PROPORTIONAL SLIDE)]
+        // 1. Define the Coupled Target (What we limit to in the Danger Zone)
+        var double pump_match_target = 100.0
+        if (pumpSpeed > 1.0) {
+            pump_match_target = pumpSpeed + 15.0
+        } else {
+            pump_match_target = 25.0 // Startup Bypass (Allows fire when pump=0)
         }
+        if (pump_match_target > 100.0) pump_match_target = 100.0
+
+        // 2. Define Transition Zone (Professional Tuning for 180F Target)
+        val double head_start = 165.0  
+        val double head_full  = 175.0  
         
-        if (govPumpLimit > 100.0) govPumpLimit = 100.0
+        // 3. Calculate Limit (Proportional Slide)
+        if (outletTemp < head_start) {
+            govPumpLimit = 100.0
+        }
+        else if (outletTemp > head_full) {
+            govPumpLimit = pump_match_target
+        }
+        else {
+            // Linear Slide Calculation
+            var double numSlide = outletTemp - head_start
+            var double denSlide = head_full - head_start
+            var double ratio = numSlide / denSlide
+            
+            var double span = 100.0 - pump_match_target
+            var double penalty = ratio * span
+            
+            govPumpLimit = 100.0 - penalty
+        }
 
         // ----------------------------------------
         // FINAL ARBITRATION
@@ -194,6 +275,39 @@ then
         if (safeRate > govPumpLimit) safeRate = govPumpLimit
         
         if (safeRate < 0.0) safeRate = 0.0
+        
+        // DEBUG: Governors
+        logInfo("Boiler.Gov", "GovOut: " + govOutletLimit + " GovFlow: " + govFlowLimit + " GovPump: " + govPumpLimit + " SafeRate: " + safeRate)
+        
+        // ----------------------------------------
+        // OVERRIDE FOR STARTUP (If Enable is 1 but Pump is 0)
+        // ----------------------------------------
+        var int desiredEnable = 0
+        if (last_demand_time > 0 && (now.millis - last_demand_time) < 60000) {
+            desiredEnable = 1
+        }
+        if (pidRequest > 10.0) {
+            desiredEnable = 1
+        }
+
+        if (desiredEnable == 1 && pumpSpeed < 1.0 && safeRate < 25.0) {
+             // Force minimum fire to wake up boiler if we commanded Enable
+             safeRate = 25.0
+             logInfo("Boiler.Logic", "Startup Override Active: Forcing 25% Fire")
+        }
+
+        // ----------------------------------------
+        // SOFT START (Rate Limiting)
+        // ----------------------------------------
+        val double max_step = 5.0 // 1% per second
+        
+        // FIX: If starting from 0, set base to Minimum Fire (20%) so we jump over Deadband
+        var double ramp_base = last_firing_rate
+        if (ramp_base < 20.0) ramp_base = 20.0
+        
+        if (safeRate > (ramp_base + max_step)) {
+            safeRate = ramp_base + max_step
+        }
         
         // ----------------------------------------
         // INTEGRAL MANAGEMENT
@@ -229,6 +343,46 @@ then
         
         if (finalRate > 100.0) finalRate = 100.0
         
+        // -----------------------------------------------------------------------
+        // ENABLE LOGIC (APPLY COMMANDS)
+        // -----------------------------------------------------------------------
+        
+        if (finalRate > 0) {
+            last_demand_time = now.millis
+        }
+        
+        // Re-evaluate hold time just in case finalRate refreshed last_demand_time
+        if ((now.millis - last_demand_time) < 60000) {
+            desiredEnable = 1
+        }
+
+        // DEBUGGING ENABLE LOGIC
+        logInfo("Boiler.EnableDebug", "Payload: " + finalRate + ", DesiredEnable: " + desiredEnable + ", PumpSpeed: " + pumpSpeed)
+
+        // REVERT: Send command every cycle regardless of current state (Heartbeat)
+        Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
+        if (desiredEnable == 1) Thread::sleep(100)
+        
+        var int currentRate = -1
+        if (Lochinvar_40003_Rate_Command.state instanceof Number) {
+            currentRate = (Lochinvar_40003_Rate_Command.state as Number).intValue
+        }
+        var int payload = (finalRate).intValue
+        
+        if (currentRate != payload) {
+            var int currentMode = 0
+            if (Lochinvar_40001_Control_Mode.state instanceof Number) {
+                currentMode = (Lochinvar_40001_Control_Mode.state as Number).intValue
+            }
+            
+            // REVERT: Send Mode command if not correct, every cycle check is good
+            if (currentMode != 5 && payload > 0) {
+                 Lochinvar_40001_Control_Mode.sendCommand(5)
+                 Thread::sleep(100) 
+            }
+            Lochinvar_40003_Rate_Command.sendCommand(payload)
+        }
+        
     } 
     else {
         finalRate = 0.0
@@ -236,54 +390,19 @@ then
             mem_pid_integral = 0.0
             update_pid_mem = true
         }
+        
+        // Ensure Enable is OFF if we fall through (e.g. Block Active)
+        Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
+        Lochinvar_40003_Rate_Command.sendCommand(0)
     }
 
     // 5. UPDATE MEMORY
     if (update_pid_mem) Boiler_Pid_Integral.postUpdate(mem_pid_integral)
+    last_firing_rate = finalRate
 
-    // 6. MODBUS COMMAND
+    // 6. MODBUS COMMAND (Backup post update)
     Boiler_Final_Command.postUpdate(finalRate)
-    var int payload = (finalRate).intValue
 
-    // -----------------------------------------------------------------------
-    // ENABLE LOGIC
-    // -----------------------------------------------------------------------
-    if (payload > 0) {
-        last_demand_time = now.millis
-    }
-
-    var boolean holdActive = (now.millis - last_demand_time) < 60000 
-    
-    var int desiredEnable = 0
-    if (payload > 0 || holdActive) {
-        desiredEnable = 1
-    }
-
-    if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
-        var int currentEn = (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue
-        if (currentEn != desiredEnable) {
-             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
-             if (desiredEnable == 1) Thread::sleep(100) 
-        }
-    }
-    
-    var int currentRate = -1
-    if (Lochinvar_40003_Rate_Command.state instanceof Number) {
-        currentRate = (Lochinvar_40003_Rate_Command.state as Number).intValue
-    }
-    
-    if (currentRate != payload) {
-        var int currentMode = 0
-        if (Lochinvar_40001_Control_Mode.state instanceof Number) {
-            currentMode = (Lochinvar_40001_Control_Mode.state as Number).intValue
-        }
-        
-        if (currentMode != 5 && payload > 0) {
-             Lochinvar_40001_Control_Mode.sendCommand(5)
-             Thread::sleep(100) 
-        }
-        Lochinvar_40003_Rate_Command.sendCommand(payload)
-    }
 end
 
 // -----------------------------------------------------------------------------------
