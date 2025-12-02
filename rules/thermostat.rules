@@ -482,3 +482,4 @@ then
         logInfo("Boiler.ErrorCalc", "New Max Error: " + maxError + "°F in " + worstRoom)
     }
 end
+

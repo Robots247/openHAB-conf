@@ -1,7 +1,7 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// HYBRID LOCHINVAR LOGIC (Actuator & Firing Control)
+// HYBRID LOCHINVAR LOGIC (Governor Architecture)
 // ===================================================================================
 
 // -----------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ then
                 Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
             }
         }
-    
+        
         if (Lochinvar_40003_Rate_Command.state instanceof Number) {
             if ((Lochinvar_40003_Rate_Command.state as Number).intValue != 0) {
                 Lochinvar_40003_Rate_Command.sendCommand(0)
@@ -67,27 +67,20 @@ then
     // 1. FETCH SENSORS & MEMORY
     // =======================================================================
     var double mem_pid_integral = 0.0
-    if (Boiler_Pid_Integral.state instanceof Number) mem_pid_integral = (Boiler_Pid_Integral.state as Number).doubleValue
+    if (Boiler_Pid_Integral.state instanceof Number) {
+        mem_pid_integral = (Boiler_Pid_Integral.state as Number).doubleValue
+    }
 
-    var double mem_limit_integral = 0.0
-    if (Boiler_Limit_Integral.state instanceof Number) mem_limit_integral = (Boiler_Limit_Integral.state as Number).doubleValue
-
-    var double mem_last_outlet = 0.0
-    if (Boiler_Last_Outlet_Temp.state instanceof Number) mem_last_outlet = (Boiler_Last_Outlet_Temp.state as Number).doubleValue
-
-    // Fetch Temperatures & Pump Speed
+    // Fetch Temperatures & Pump Speed - Defaulting to safe values if NULL
     val double supplyTemp  = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 140.0
-    val double targetTemp = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
-    val double outletTemp = if(Boiler_Outlet_Temp.state instanceof Number) (Boiler_Outlet_Temp.state as Number).doubleValue else 140.0
-    val double inletTemp  = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 120.0
-    val double pumpSpeed  = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 100.0
-
+    val double targetTemp  = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
+    val double outletTemp  = if(Boiler_Outlet_Temp.state instanceof Number) (Boiler_Outlet_Temp.state as Number).doubleValue else 140.0
+    val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 120.0
+    
     // =======================================================================
     // 2. MAINTENANCE MODE INTERCEPT
     // =======================================================================
     if (System_Maintenance_Mode.state == ON) {
-        // ... (Keep existing maintenance logic here, simplified for brevity in this snippet) ...
-        // Ensure you keep your existing manual control logic block here if you copy/paste!
         if (mem_pid_integral != 0.0) Boiler_Pid_Integral.postUpdate(0)
         Boiler_PID_Output.postUpdate(0)
         Boiler_Final_Command.postUpdate(0)
@@ -100,8 +93,8 @@ then
     }
 
     // GATHER TUNING
-    var double base_Kp = if(Boiler_Kp.state instanceof Number) (Boiler_Kp.state as Number).doubleValue else 1.5
-    var double Ki = if(Boiler_Ki.state instanceof Number) (Boiler_Ki.state as Number).doubleValue else 0.05
+    var double base_Kp = if(Boiler_Kp.state instanceof Number) (Boiler_Kp.state as Number).doubleValue else 3.0
+    var double Ki = if(Boiler_Ki.state instanceof Number) (Boiler_Ki.state as Number).doubleValue else 0.15
     
     // PUMP ACTUATION
     var boolean highTempCall = (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON)
@@ -110,160 +103,139 @@ then
     if (highTempCall) { if (SysPump.state != ON) SysPump.sendCommand(ON) } else { if (SysPump.state != OFF) SysPump.sendCommand(OFF) }
     if (lowTempCall) { if (RHP.state != ON) RHP.sendCommand(ON) } else { if (RHP.state != OFF) RHP.sendCommand(OFF) }
     
-    // 4. FIRING PID
+    // =======================================================================
+    // 4. FIRING ARBITRATION LOGIC (Variables Hoisted for OH2.5 Safety)
+    // =======================================================================
     var double finalRate = 0.0
     var boolean update_pid_mem = false
-    var boolean update_limit_mem = false
     
-    if (Boiler_Block_Active.state != ON) {
-       if ((highTempCall || lowTempCall) && targetTemp > 0) {
+    // Pre-declare ALL calculation variables to avoid Scope/JvmVoid errors
+    var double govOutletLimit = 100.0
+    var double govFlowLimit = 100.0
+    var double pidRequest = 0.0
+    var double safeRate = 0.0
+    var double severity = 0.0
+    var double flowSeverity = 0.0
+    
+    // We only fire if not Blocked AND we have a Target > 0
+    if (Boiler_Block_Active.state != ON && (highTempCall || lowTempCall) && targetTemp > 0) {
             
-            // --- A. MAIN PID LOOP ---
-            var double error = targetTemp - supplyTemp
-            var double P = base_Kp * error
-            
-            // Anti-Windup
-            var boolean systemMaxed = (Boiler_PID_Output.state as Number >= 100.0) && (error > 0)
-            if (!systemMaxed) {
-                mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
-            } 
-            if (mem_pid_integral > 50) mem_pid_integral = 50.0
-            if (mem_pid_integral < -10) mem_pid_integral = -10.0
-            update_pid_mem = true 
-            
-            var double mainOutput = P + mem_pid_integral
-            if (mainOutput > 100) mainOutput = 100.0
-            if (mainOutput < 0) mainOutput = 0.0
-            Boiler_PID_Output.postUpdate(mainOutput)
+        // ----------------------------------------
+        // COMPONENT 1: MAIN PID (The "Driver")
+        // ----------------------------------------
+        var double error = targetTemp - supplyTemp
+        var double P = base_Kp * error
+        
+        // Calculate PID Request
+        pidRequest = P + mem_pid_integral
+        
+        // Clamp PID Request
+        if (pidRequest > 100.0) pidRequest = 100.0
+        if (pidRequest < 0.0) pidRequest = 0.0
+        
+        Boiler_PID_Output.postUpdate(pidRequest)
 
-            // =======================================================================
-            // --- B. LIMIT LOOP (Flow-Aware & Delta-T Protected) ---
-            // =======================================================================
-            var double limitOutput = 100.0
-            
-            // 1. DYNAMIC BRAKING THRESHOLD
-            // "Switch Logic": We brake at 165F (Static) OR (Inlet + 18F), whichever is lower.
-            // This prevents us from pushing the Delta T beyond what the boiler pump wants.
-            var double dynamicThreshold = inletTemp + 18.0
-            var double staticThreshold = 165.0
-            
-            var double safetyThreshold = staticThreshold
-            if (dynamicThreshold < staticThreshold) {
-                safetyThreshold = dynamicThreshold
-            }
-            
-            // 2. GAINS (Gentle)
-            var double limitKp = 4.0   
-            var double limitKd = 60.0
-            var double limitKi = 1.0    
-            
-            // Apply Brakes if Outlet is hot OR if we are exceeding Delta T target
-            if (outletTemp > safetyThreshold) {
-                var double overshoot = outletTemp - safetyThreshold
-                var double limitP = overshoot * limitKp
-                
-                var double rateOfChange = outletTemp - mem_last_outlet
-                var double limitD = rateOfChange * limitKd
-                
-                if (rateOfChange > -0.1) {
-                     mem_limit_integral = mem_limit_integral + (overshoot * limitKi)
-                } else {
-                     mem_limit_integral = mem_limit_integral * 0.95
-                }
-                if (mem_limit_integral > 100) mem_limit_integral = 100.0
-                
-                limitOutput = 100.0 - limitP - mem_limit_integral - (limitD)
-                
-                // Floor Logic (Anti-Stall)
-                if (limitOutput < 10.0 && outletTemp < 181.5) {
-                    limitOutput = 10.0
-                }
-
-                update_limit_mem = true
-                
-                // Hard Ceiling
-                if (outletTemp > 185.0) {
-                     limitOutput = 0.0
-                     logWarn("Boiler.Limit", "CRITICAL: Temp " + outletTemp + " > 185. Killing Output.")
-                }
-            } else {
-                // Release brakes
-                if (mem_limit_integral > 0.1) {
-                    mem_limit_integral = mem_limit_integral - 2.0 
-                    if (mem_limit_integral < 0) mem_limit_integral = 0.0
-                    update_limit_mem = true
-                }
-            }
-             
-            if (mem_last_outlet != outletTemp) Boiler_Last_Outlet_Temp.postUpdate(outletTemp)
-            
-            // --- C. LOW SELECT & FLOW DERATING ---
-            var double rawOutput = mainOutput
-            
-            if (limitOutput < mainOutput) {
-                 rawOutput = limitOutput
-                 // Unwind Main Integral if Limit is active
-                 if (mem_pid_integral > 0) {
-                    mem_pid_integral = mem_pid_integral - (Ki * error) 
-                    update_pid_mem = true
-                 }
-            }
-            
-            // *** NEW: PUMP SPEED INTERLOCK ***
-            // If the boiler slows the pump (to increase DeltaT), we MUST reduce the fire.
-            // We cap the firing rate at the current Pump Speed %.
-            // Example: Pump drops to 30% -> Max Fire becomes 30%.
-            if (rawOutput > pumpSpeed) {
-                rawOutput = pumpSpeed
-                // Also unwind integral aggressively if we are pump-limited
-                if (mem_pid_integral > 0) {
-                    mem_pid_integral = mem_pid_integral * 0.9
-                    update_pid_mem = true
-                }
-                logDebug("Boiler.Flow", "Flow Limit: Rate restricted to " + pumpSpeed + "% due to Pump Speed.")
-            }
-
-            // --- D. FINAL DEADBAND ---
-            if (rawOutput < 15) {
-                if (rawOutput > 8.0) { 
-                    finalRate = 20.0 // Minimum stable fire
-                } else { 
-                    finalRate = 0.0
-                    mem_pid_integral = 0.0
-                    mem_limit_integral = 0.0 
-                    update_pid_mem = true
-                    update_limit_mem = true
-                }
-            } 
-            else {
-                finalRate = rawOutput
-            }
-            if (finalRate > 100) finalRate = 100.0
+        // ----------------------------------------
+        // COMPONENT 2: THE GOVERNORS (The Constraints)
+        // ----------------------------------------
+        
+        // GOVERNOR A: Outlet Temperature Ceiling (170F - 180F)
+        // Use constants for clarity
+        val double outletMax = 180.0
+        val double outletStart = 170.0
+        
+        if (outletTemp > outletStart) {
+            // Explicit OH2.5 Math: Force double precision
+            severity = (outletMax - outletTemp) / (outletMax - outletStart)
+            govOutletLimit = severity * 100.0
         }
+        
+        // GOVERNOR B: Delta T Guard (20F - 30F)
+        val double dtMax = 30.0
+        val double dtStart = 20.0
+        var double sysDelta = outletTemp - supplyTemp
+        
+        if (sysDelta > dtStart) {
+             flowSeverity = (dtMax - sysDelta) / (dtMax - dtStart)
+             govFlowLimit = flowSeverity * 100.0
+        }
+
+        // ----------------------------------------
+        // FINAL ARBITRATION (Lowest Value Wins)
+        // ----------------------------------------
+        safeRate = pidRequest
+        
+        // Apply Outlet Governor
+        if (safeRate > govOutletLimit) safeRate = govOutletLimit
+        
+        // Apply Flow Governor
+        if (safeRate > govFlowLimit) safeRate = govFlowLimit
+        
+        // Sanity Clamp
+        if (safeRate < 0.0) safeRate = 0.0
+        
+        // ----------------------------------------
+        // INTEGRAL MANAGEMENT (Anti-Windup)
+        // ----------------------------------------
+        // Check if Governors are actively limiting the output
+        var boolean governorsActive = (safeRate < pidRequest)
+        
+        if (!governorsActive) {
+            // Standard Integral accumulation
+            mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
+        } 
         else {
-             finalRate = 0.0
-             if (Boiler_Block_Active.state == ON) {
-                mem_pid_integral = 0.0
-                mem_limit_integral = 0.0
-                update_pid_mem = true
-                update_limit_mem = true
+            // Governors Active: Only allow wind-down if we are overshooting (Error < 0)
+            if (error < 0 && mem_pid_integral > 0) {
+                mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error) 
             }
         }
-    } 
+        
+        // Hard Integral Limits
+        if (mem_pid_integral > 50.0) mem_pid_integral = 50.0
+        if (mem_pid_integral < -10.0) mem_pid_integral = -10.0
+        update_pid_mem = true
+
+        // ----------------------------------------
+        // FINAL DEADBAND & OUTPUT
+        // ----------------------------------------
+        if (safeRate < 15.0) {
+            if (safeRate > 8.0) finalRate = 20.0 
+            else { 
+                finalRate = 0.0
+                mem_pid_integral = 0.0
+                update_pid_mem = true
+            }
+        } 
+        else {
+            finalRate = safeRate
+        }
+        
+        if (finalRate > 100.0) finalRate = 100.0
+        
+    } // End Active Check
     else {
+        // No Call or Blocked
         finalRate = 0.0
+        if (Boiler_Block_Active.state == ON) {
+            mem_pid_integral = 0.0
+            update_pid_mem = true
+        }
     }
 
     // 5. UPDATE MEMORY
     if (update_pid_mem) Boiler_Pid_Integral.postUpdate(mem_pid_integral)
-    if (update_limit_mem) Boiler_Limit_Integral.postUpdate(mem_limit_integral)
 
     // 6. MODBUS COMMAND
     Boiler_Final_Command.postUpdate(finalRate)
-    var int payload = finalRate.intValue
-    var int desiredEnable = if (payload > 0) 1 else 0
     
-    // Command Logic
+    // Explicit casting for OH2.5 integer conversion
+    var int payload = (finalRate).intValue
+
+    // Enable Logic
+    var boolean anyCallActive = (highTempCall || lowTempCall)
+    var int desiredEnable = if (payload > 0 || anyCallActive) 1 else 0  
+
     if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
         if ((Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue != desiredEnable) {
              Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
@@ -272,11 +244,15 @@ then
     }
     
     var int currentRate = -1
-    if (Lochinvar_40003_Rate_Command.state instanceof Number) currentRate = (Lochinvar_40003_Rate_Command.state as Number).intValue
+    if (Lochinvar_40003_Rate_Command.state instanceof Number) {
+        currentRate = (Lochinvar_40003_Rate_Command.state as Number).intValue
+    }
     
     if (currentRate != payload) {
         var int currentMode = 0
-        if (Lochinvar_40001_Control_Mode.state instanceof Number) currentMode = (Lochinvar_40001_Control_Mode.state as Number).intValue
+        if (Lochinvar_40001_Control_Mode.state instanceof Number) {
+            currentMode = (Lochinvar_40001_Control_Mode.state as Number).intValue
+        }
         
         if (currentMode != 5 && payload > 0) {
              Lochinvar_40001_Control_Mode.sendCommand(5)

@@ -113,6 +113,12 @@ Items {
     Boiler_Kp : strategy = everyChange
     Boiler_Ki : strategy = everyChange
     Boiler_Kd : strategy = everyChange  
+    Boiler_Limit_Integral : strategy = everyChange
+    Boiler_Pid_Integral : strategy = everyChange
+    Boiler_Inlet_Temp : strategy = everyChange, every15Mins
+    Boiler_Outlet_Temp : strategy = everyChange, every15Mins
+    System_Supply_Temp : strategy = everyChange, every15Mins
+    
 
     
     // Sensors & System
