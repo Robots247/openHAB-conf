@@ -128,7 +128,7 @@ Items {
     gMS_Motion* : strategy = everyChange 
     gMS_Tampers* : strategy = everyChange 
     gMS_Humidity* : strategy = everyChange 
-    gMS_Temps* : strategy = everyChange, every15Mins 
+    gMS_Temps* : strategy = everyChange 
     gMS_Luminances* : strategy = everyChange    
     gMS_UV_LVL* : strategy = everyChange        
     

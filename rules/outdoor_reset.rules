@@ -1,11 +1,10 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// OPTIMIZED OUTDOOR RESET & "WORST-CASE" FEEDBACK LOGIC
+// OPTIMIZED OUTDOOR RESET V3 (Mixing Valve Aware)
 // ===================================================================================
 
-// --- GLOBAL VARIABLES (MUST BE AT THE TOP) ---
-// These allow the system to remember values between rule executions
+// --- GLOBAL VARIABLES ---
 var Number last_outdoor_smooth = 40.0 // Default seed value
 var Number room_integral_mem = 0.0    // Memory for the I-Term
 
@@ -16,12 +15,12 @@ rule "Initialize Tuning Parameters"
 when
     System started
 then
-    // Initialize ODR Defaults
+    // Initialize Baseboard ODR Defaults
     if (ODR_Slope.state == NULL || ODR_Slope.state == UNDEF) {
         ODR_Slope.postUpdate(-1.1)
     }
     if (ODR_Intercept.state == NULL || ODR_Intercept.state == UNDEF) {
-        ODR_Intercept.postUpdate(180.0)
+        ODR_Intercept.postUpdate(160.0)
     }
     
     // Initialize Room Feedback Settings
@@ -29,17 +28,12 @@ then
         Room_Kp.postUpdate(4.0)
     }
     if (Room_Ki.state == NULL || Room_Ki.state == UNDEF) {
-        Room_Ki.postUpdate(0.05) // Updated to gentle default
+        Room_Ki.postUpdate(0.05) 
     }
     
     // --- GENTLE BOILER TUNING ---
-    // Force these values to prevent pump overrun/short cycling
     Boiler_Kp.postUpdate(3.0)
-    logInfo("Boiler.Init", "Boiler_Kp forced to gentle: 3.0")
-    
     Boiler_Ki.postUpdate(0.05)
-    //boiler gentle .05, aggressive .15
-    logInfo("Boiler.Init", "Boiler_Ki forced to gentle: 0.05")
     
     logInfo("Boiler.Init", "Tuning parameters initialized.")
 end
@@ -55,7 +49,7 @@ then
     // 0. FETCH TUNING PARAMETERS & INPUTS
     // ---------------------------------------------------------
     val Number curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
-    val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 180.0
+    val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 160.0
     val Number Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 4.0
     val Number Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
 
@@ -97,17 +91,15 @@ then
     var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
     var boolean boilerIsBusy = (bState == 2 || bState < 0)
     
-    // Room Error
+    // Room Error (Used for Baseboard feedback)
     var Number maxErrorHT = 0.0
     if (Boiler_Max_Error.state instanceof Number) {
         maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
     }
 
-    // --- NEW DEBUGGING BLOCK ---
-    // This logs the exact state of the valves BEFORE the logic runs.
+    // Debugging Log
     logInfo("ODR_Debug", "--- ODR CALC START ---")
     logInfo("ODR_Debug", "INPUTS: Outdoor(Raw)=" + rawOutdoor + " | Outdoor(Smooth)=" + String::format("%.1f", outdoorInput.doubleValue))
-    logInfo("ODR_Debug", "CALLS: Garage=" + garageCall + " | Baseboard=" + baseboardCall + " | Radiant=" + radiantCall)
 
     // ---------------------------------------------------------
     // 3. CALCULATE FINAL TARGET
@@ -117,12 +109,9 @@ then
     
     if (garageCall) {
         // [PRIORITY 1] GARAGE UNIT HEATER
-        demandType = "Garage Heater (180F)"
-        targetTemp = 180.0
-        
-        // Safety: Reset Integral so it doesn't wind up while Garage is driving the boiler
+        demandType = "Garage Heater (160F)"
+        targetTemp = 160.0
         room_integral_mem = 0.0 
-        logInfo("ODR_Debug", "LOGIC: Priority 1 (Garage) Active. ODR Bypassed. Integral Reset.")
         
     } else if (baseboardCall) {
         // [PRIORITY 2] BASEBOARD (ODR Curve + Room Feedback)
@@ -133,53 +122,62 @@ then
         // P-Term
         var Number P_room = Kp_room_val * error
         
-        // I-Term Calculation
+        // I-Term Logic (Only integrate if boiler is responsive)
         var Number projectedTemp = baseTarget + P_room + room_integral_mem
         
         if (!boilerIsBusy) {
             if (error > 0.5) {
-                // Only integrate if not saturated
-                if (projectedTemp < 180) {
-                    var Number old_I = room_integral_mem
+                if (projectedTemp < 160) {
                     room_integral_mem = room_integral_mem + (Ki_room_val * error)
-                    logInfo("ODR_Debug", "INTEGRAL: Increasing (Error " + error + " > 0.5). " + String::format("%.2f", old_I.doubleValue) + " -> " + String::format("%.2f", room_integral_mem.doubleValue))
-                } else {
-                     logInfo("ODR_Debug", "INTEGRAL: Frozen (Target Saturation > 180F)")
                 }
             } else if (error < 0.1) {
-                // Decay
+                // Decay integral when happy
                 room_integral_mem = room_integral_mem * 0.95 
-                logInfo("ODR_Debug", "INTEGRAL: Decaying (Error Satisfied)")
             }
-        } else {
-            logInfo("ODR_Debug", "INTEGRAL: Frozen (Boiler Busy/Blocked)")
         }
         
-        // Anti-Windup Hard Limits
+        // Anti-Windup Limits
         if (room_integral_mem > 20) room_integral_mem = 20
         if (room_integral_mem < -5) room_integral_mem = -5 
        
-        // Calculate Final
         targetTemp = baseTarget + P_room + room_integral_mem
         
-        // Specific Logic Log
-        logInfo("ODR_Debug", "LOGIC: Base(" + String::format("%.1f", baseTarget.doubleValue) + ") + P(" + String::format("%.1f", P_room.doubleValue) + ") + I(" + String::format("%.1f", room_integral_mem.doubleValue) + ") = " + String::format("%.1f", targetTemp.doubleValue))
-        
-        // Final Safety Clamps
-        if (targetTemp > 180) targetTemp = 180
+        // Hard Safety Clamps for Baseboard
+        if (targetTemp > 160) targetTemp = 160
         if (targetTemp < 125) targetTemp = 125 
         
     } else if (radiantCall) {
-        // [PRIORITY 3] RADIANT (Fixed Mixing Minimum)
-        demandType = "Radiant Mix (142F)"
-        targetTemp = 142.0
+        // [PRIORITY 3] RADIANT SUPPLY CURVE
+        // Designed for Manual Mixing Valve overhead.
+        
+        // --- MIXING VALVE FEED CURVE ---
+        // 0F outside  -> 152F Supply (Provides 30F+ overhead for valve)
+        // 70F outside -> 110F Supply (Minimum heat to keep valve stable)
+        // Slope = (152-110) / (0-70) = -0.6
+        
+        val Number rad_Intercept = 152.0
+        val Number rad_Slope = -0.6
+        
+        var Number radTarget = rad_Intercept + (rad_Slope * outdoorInput)
+        
+        // Safety Clamps
+        // Max 160: System safety cap (same as Baseboard)
+        // Min 110: Ensures mixing valve has a delta T to work with
+        if (radTarget > 160) radTarget = 160
+        if (radTarget < 110) radTarget = 110
+        
+        demandType = "Radiant Mix-Feed"
+        targetTemp = radTarget
+        
+        // Reset Baseboard Integral (Don't let it wind up while in Radiant mode)
         room_integral_mem = 0.0
-        logInfo("ODR_Debug", "LOGIC: Priority 3 (Radiant Only). Fixed 142F.")
+        
+        logInfo("ODR_Debug", "LOGIC: Radiant Mix-Feed: " + rad_Intercept + " + (" + rad_Slope + " * " + String::format("%.1f", outdoorInput.doubleValue) + ") = " + String::format("%.1f", targetTemp.doubleValue))
+
     } else {
         // NO DEMAND
         targetTemp = 0.0
         room_integral_mem = 0.0
-        logInfo("ODR_Debug", "LOGIC: No Demand. Target 0.")
     }
 
     // ---------------------------------------------------------
@@ -189,6 +187,5 @@ then
     Boiler_Demand_Type.postUpdate(demandType)
     Boiler_Target_Temp.postUpdate(targetTemp)
     
-    // Final result log
-    logInfo("ODR_Debug", "--- RESULT: " + demandType + " | Target: " + targetTemp + " ---")
+    logInfo("ODR_Debug", "--- RESULT: " + demandType + " | Target: " + String::format("%.1f", targetTemp.doubleValue) + " ---")
 end
