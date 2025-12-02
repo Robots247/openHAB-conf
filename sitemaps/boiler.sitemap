@@ -1,8 +1,7 @@
 sitemap boiler label="Boiler Control Center" {
     
     Frame label="System Status & Safety" {
-        Switch item=Boiler_BMS_ENBLE label="Boiler BMS Logic [MAP(onoff.map):%s]" icon="switch"
-        Text label="Status: OFF = Factory Controls | ON = OpenHAB PID Logic" icon="info"
+        Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
         
         Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="fire"
         Text item=Boiler_Block_Status label="Supervisor State [%s]" icon="lock" valuecolor=["Monitoring"="green", "Overrun Detected"="red", "RESCUE"="orange"]

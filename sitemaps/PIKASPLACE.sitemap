@@ -961,13 +961,15 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                 Switch item=Heating_UpdatePresets label="update preset temps to current settings"
             }
             Frame label="Boiler Control Mode" {
-                Switch item=Boiler_BMS_ENBLE label="Hybrid BMS Logic" icon="network" mappings=[OFF="Legacy (Relays)", ON="BMS (Modbus)"]
+                Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
+
             }
             Frame {
                 Text label="Boiler BMS TUNING" icon="boiler" {
                     Frame label="Boiler Control Overview" {
                         // The main switch to hand over control to the new rule
-                        Switch item=Boiler_BMS_ENBLE label="Hybrid BMS Logic" icon="network" mappings=[OFF="Legacy (Relays)", ON="BMS (Modbus)"]
+                        Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
+
 
                         // Live Feedback of what the rule decided
                         Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="text"

@@ -268,3 +268,5 @@ Number Boiler_Graph_State "Boiler State Graph [-2 to 2]" <chart> (gLochinvar, gL
 Number Boiler_Pid_Integral      "PID Integral Memory [%.2f]"    (gBoiler)
 Number Boiler_Limit_Integral    "Limit Integral Memory [%.2f]"  (gBoiler)
 Number Boiler_Last_Outlet_Temp  "Last Outlet Temp [%.1f F]"     (gBoiler)
+
+Number Boiler_Control_Mode "Boiler Control Mode" <settings>
