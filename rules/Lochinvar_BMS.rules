@@ -6,7 +6,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
-var long last_demand_time = 0        // Tracks Off-Delay
+var long last_demand_time = 0        // Tracks time of last VALID demand (PID > 5%)
 var double last_firing_rate = 0.0    // Tracks Ramp Rate (Soft Start)
 var boolean wwsd_active = false      // Tracks Warm Weather Shutdown State
 var double lastSafeRate = 0.0        // Rate limiter for high limit jumps
@@ -18,8 +18,6 @@ rule "Sync Control Mode to Legacy Switch"
 when
     Item Boiler_Control_Mode changed
 then
-    // This ensures thermostat.rules (which look at Boiler_BMS_ENBLE) 
-    // stay disabled when we are in Mode 1 or Mode 2.
     if (Boiler_Control_Mode.state instanceof Number) {
         var int mode = (Boiler_Control_Mode.state as Number).intValue
         if (mode > 0) {
@@ -35,7 +33,7 @@ when
     System started
 then
     if (Boiler_Control_Mode.state == NULL || Boiler_Control_Mode.state == UNDEF) {
-        Boiler_Control_Mode.postUpdate(0) // Default to Legacy for safety
+        Boiler_Control_Mode.postUpdate(0) 
     }
 end
 
@@ -51,8 +49,6 @@ then
     if (Boiler_Control_Mode.state == NULL || Boiler_Control_Mode.state == UNDEF) return;
 
     val int mode = (Boiler_Control_Mode.state as Number).intValue
-    
-    // SAFETY CHECK: LOCKOUT
     val int lockoutCode = if(Boiler_Lockout_Code.state instanceof Number) (Boiler_Lockout_Code.state as Number).intValue else 32767
     
     if (lockoutCode != 32767) {
@@ -61,22 +57,14 @@ then
     }
 
     if (mode == 1 || mode == 2) {
-        // === BMS MODES (Setpoint OR Flow) ===
-        // Force Control Mode 5 (BMS Enable + Rate/Setpoint Command)
         Lochinvar_40001_Control_Mode.sendCommand(5)
-        
-        // Safety: Ensure Physical CFH Relays are OFF so they don't fight BMS
         if (CFH1.state == ON) CFH1.sendCommand(OFF)
         if (CFH2.state == ON) CFH2.sendCommand(OFF)
     } 
     else {
-        // === LEGACY MODE (Factory Controls) ===
         Lochinvar_40001_Control_Mode.sendCommand(0)
-        
-        // Force Enable State Update if NULL
         var int currentEn = -1
         if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) currentEn = (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue
-        
         if (currentEn != 0) Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
         
         if (Lochinvar_40003_Rate_Command.state instanceof Number) {
@@ -86,42 +74,31 @@ then
 end
 
 // -----------------------------------------------------------------------------------
-// RULE 2: BMS SETPOINT MANAGER (MODE 1) - Runs every 10s
+// RULE 2: BMS SETPOINT MANAGER (MODE 1)
 // -----------------------------------------------------------------------------------
 rule "Boiler Setpoint Manager (Mode 1)"
 when
     Time cron "0/10 * * * * ?"
 then
-    // GUARD: Only run if Mode is 1
     if (Boiler_Control_Mode.state != 1) return;
-
-    // Safety Checks
     if (Boiler_Test_Repeat.state == ON) return;
     if (System_Maintenance_Mode.state == ON) return;
 
-    // 1. FETCH TARGETS
     var double targetTemp = 0.0
     if (Boiler_Target_Temp.state instanceof Number) {
         targetTemp = (Boiler_Target_Temp.state as Number).doubleValue
     }
     
-    var boolean isBlocked = false
-    if (Boiler_Block_Active.state == ON) isBlocked = true
-
-    // 2. SCALING LOGIC (Temp -> %)
-    // Assumes Boiler Menu BMS Type = SETPOINT
+    var boolean isBlocked = (Boiler_Block_Active.state == ON)
     val double boiler_min_setpoint = 70.0
     val double boiler_max_setpoint = 180.0
-    
     var double finalPercent = 0.0
     var int desiredEnable = 0
     
     if (!isBlocked && targetTemp >= boiler_min_setpoint) {
-        // Formula: (Target - Min) / (Max - Min) * 100
         var double numerator = targetTemp - boiler_min_setpoint
         var double denominator = boiler_max_setpoint - boiler_min_setpoint
         if (denominator == 0) denominator = 1.0 
-        
         finalPercent = (numerator / denominator) * 100.0
         
         if (finalPercent > 100.0) finalPercent = 100.0
@@ -132,7 +109,6 @@ then
     }
     else {
         finalPercent = 0.0
-        // Off-Delay
         if (last_demand_time > 0 && (now.millis - last_demand_time) < 60000) {
             desiredEnable = 1
         } else {
@@ -140,22 +116,14 @@ then
         }
     }
 
-    // 3. SEND COMMANDS
-    var int currentEn = -1
-    if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) {
-        currentEn = (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue
-    }
-    
+    var int currentEn = if(Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue else -1
     if (currentEn != desiredEnable) {
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
         Thread::sleep(100)
     }
     
     var int payload = finalPercent.intValue
-    var int currentPayload = -1
-    if (Lochinvar_40003_Rate_Command.state instanceof Number) {
-        currentPayload = (Lochinvar_40003_Rate_Command.state as Number).intValue
-    }
+    var int currentPayload = if(Lochinvar_40003_Rate_Command.state instanceof Number) (Lochinvar_40003_Rate_Command.state as Number).intValue else -1
     
     if (desiredEnable == 1 && currentPayload != payload) {
          Lochinvar_40003_Rate_Command.sendCommand(payload)
@@ -163,7 +131,6 @@ then
     else if (desiredEnable == 0 && currentPayload != 0) {
          Lochinvar_40003_Rate_Command.sendCommand(0)
     }
-    
     Boiler_Final_Command.postUpdate(payload)
 end
 
@@ -174,9 +141,7 @@ rule "Hybrid Boiler PID Loop (Mode 2)"
 when
     Time cron "0/5 * * * * ?"
 then
-    // GUARD: Only run if Mode is 2
     if (Boiler_Control_Mode.state != 2) return;
-
     if (Boiler_Test_Repeat.state == ON) return;
     if (System_Maintenance_Mode.state == ON) {
         Boiler_PID_Output.postUpdate(0)
@@ -185,13 +150,12 @@ then
     
     // 1. FETCH SENSORS & MEMORY
     var double mem_pid_integral = 0.0
-    if (Boiler_Pid_Integral.state instanceof Number) {
-        mem_pid_integral = (Boiler_Pid_Integral.state as Number).doubleValue
-    }
+    if (Boiler_Pid_Integral.state instanceof Number) mem_pid_integral = (Boiler_Pid_Integral.state as Number).doubleValue
 
     val double supplyTemp  = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 140.0
     val double targetTemp  = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
     val double outletTemp  = if(Boiler_Outlet_Temp.state instanceof Number) (Boiler_Outlet_Temp.state as Number).doubleValue else 140.0
+    val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 100.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
     
     // WWSD Check
@@ -234,8 +198,6 @@ then
         Boiler_PID_Output.postUpdate(pidRequest)
 
         // --- COMPONENT 2: GOVERNORS ---
-        
-        // GOV A: Outlet Headroom
         val double outletMax = 185.0
         val double outletStart = 175.0
         if (outletTemp > outletStart) {
@@ -244,7 +206,7 @@ then
             govOutletLimit = severity * 100.0
         }
         
-        // GOV B: Delta T Guard (Only if pump moving > 10%)
+        // Gov B: Delta T Guard
         if (pumpSpeed > 10.0) {
             val double dtMax = 30.0
             val double dtStart = 20.0
@@ -256,8 +218,7 @@ then
             }
         }
 
-        // GOV C: Pump Speed Follower
-        // Note: With pump locked at 10V (100%), this governor will stay at 100% (Open)
+        // Gov C: Pump Speed Follower (Stays 100% if pump locked at 10V)
         var double pump_match_target = 100.0
         if (pumpSpeed > 1.0) pump_match_target = pumpSpeed + 15.0
         else pump_match_target = 25.0
@@ -265,37 +226,26 @@ then
 
         val double head_start = 165.0  
         val double head_full  = 175.0  
-        
-        if (outletTemp < head_start) {
-            govPumpLimit = 100.0
-        }
-        else if (outletTemp > head_full) {
-            govPumpLimit = pump_match_target
-        }
+        if (outletTemp < head_start) govPumpLimit = 100.0
+        else if (outletTemp > head_full) govPumpLimit = pump_match_target
         else {
             var double ratio = (outletTemp - head_start) / (head_full - head_start)
-            var double penalty = ratio * (100.0 - pump_match_target)
-            govPumpLimit = 100.0 - penalty
+            govPumpLimit = 100.0 - (ratio * (100.0 - pump_match_target))
         }
 
         // --- ARBITRATION ---
-        
-        // DEBUG: Governors & PID
-        // Logs the raw PID request vs what each governor is allowing (100 = No restriction)
-        logInfo("Boiler.Debug", "PID: " + pidRequest + "% | GovOut: " + govOutletLimit + "% | GovFlow: " + govFlowLimit + "% | GovPump: " + govPumpLimit + "%")
+        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "%")
 
         var double proposedRate = pidRequest
         if (proposedRate > govOutletLimit) proposedRate = govOutletLimit
         if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
         if (proposedRate > govPumpLimit) proposedRate = govPumpLimit
         
-        // Slew Rate (Smooth Ramp)
+        // Slew Rate
         val double maxRisePerCycle = 2.0 
-        if (proposedRate > lastSafeRate + maxRisePerCycle) {
-            safeRate = lastSafeRate + maxRisePerCycle
-        } else {
-            safeRate = proposedRate
-        }
+        if (proposedRate > lastSafeRate + maxRisePerCycle) safeRate = lastSafeRate + maxRisePerCycle
+        else safeRate = proposedRate
+        
         if (safeRate < 0.0) safeRate = 0.0
         if (safeRate > 100.0) safeRate = 100.0
         lastSafeRate = safeRate
@@ -305,9 +255,7 @@ then
         if (last_demand_time > 0 && (now.millis - last_demand_time) < 60000) desiredEnable = 1
         if (pidRequest > 10.0) desiredEnable = 1
 
-        if (desiredEnable == 1 && pumpSpeed < 1.0 && safeRate < 25.0) {
-             safeRate = 25.0 // Force ignition
-        }
+        if (desiredEnable == 1 && pumpSpeed < 1.0 && safeRate < 25.0) safeRate = 25.0 
 
         // --- SOFT START ---
         var double ramp_base = last_firing_rate
@@ -316,34 +264,66 @@ then
         
         // --- INTEGRAL MGMT ---
         var boolean governorsActive = (safeRate < pidRequest)
-        if (!governorsActive) {
-            mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
-        } 
-        else {
-            // Only accumulate negative I (wind-down) if governors are active
-            if (error < 0 && mem_pid_integral > 0) {
-                mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error) 
-            }
-        }
+        if (!governorsActive) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
+        else if (error < 0 && mem_pid_integral > 0) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error) 
+        
         if (mem_pid_integral > 50.0) mem_pid_integral = 50.0
         if (mem_pid_integral < -10.0) mem_pid_integral = -10.0
         update_pid_mem = true
 
-        // --- DEADBAND ---
-        if (safeRate < 15.0) {
-            if (safeRate > 8.0) finalRate = 20.0 
-            else { 
-                finalRate = 0.0
-                update_pid_mem = true
+        // --- DEADBAND, MIN FIRE & TAILOUT LOGIC ---
+        // ------------------------------------------
+        val double min_fire = 10.0
+        val double cruise_threshold = 12.0 
+        val double cutoff_threshold = 5.0
+        val int shutdown_debounce_ms = 10000 // 10s Ride Through for transient dips
+        
+        // TAILOUT: Only kill if DeltaT is extremely low (< 2.0F)
+        var double boilerDeltaT = outletTemp - inletTemp
+        var boolean tailout = (safeRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
+
+        // 1. Update VALID Demand Timer
+        if (safeRate > cutoff_threshold && !tailout) {
+            last_demand_time = now.millis
+        }
+
+        // 2. Determine Final Rate
+        if (tailout) {
+            finalRate = 0.0
+            update_pid_mem = true 
+            logInfo("Boiler.Tailout", "TAILOUT: Low DeltaT (" + String::format("%.1f", boilerDeltaT) + ") at Min Fire. Force Stop.")
+        }
+        else if (safeRate < cruise_threshold) {
+            // We are in the Low Demand Zone
+            if (safeRate <= cutoff_threshold) {
+                // Demand is effectively zero (or negative)
+                // CHECK DEBOUNCE: Have we been low for less than 10 seconds?
+                if ((now.millis - last_demand_time) < shutdown_debounce_ms) {
+                    finalRate = min_fire // Force Min Fire to bridge the gap
+                } else {
+                    finalRate = 0.0 // Timer expired, kill it
+                    update_pid_mem = true
+                }
+            }
+            else {
+                // Demand is 5-12%: Cruise at Min Fire
+                finalRate = min_fire
             }
         } else {
+            // Normal Modulation (> 12%)
             finalRate = safeRate
         }
+        
         if (finalRate > 100.0) finalRate = 100.0
         
         // --- EXECUTION ---
-        if (finalRate > 0) last_demand_time = now.millis
-        if ((now.millis - last_demand_time) < 60000) desiredEnable = 1
+        
+        // Hard Shutdown Logic: If Rate is 0, Enable MUST be 0 to prevent idling
+        if (finalRate > 0.1) {
+            desiredEnable = 1
+        } else {
+            desiredEnable = 0
+        }
         
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
         if (desiredEnable == 1) Thread::sleep(100)
@@ -353,8 +333,6 @@ then
         
         if (currentRate != payload) {
             var int currentMode = if(Lochinvar_40001_Control_Mode.state instanceof Number) (Lochinvar_40001_Control_Mode.state as Number).intValue else 0
-            
-            // Aggressive Mode Enforcement
             if (currentMode != 5 && payload > 0) {
                  Lochinvar_40001_Control_Mode.sendCommand(5)
                  Thread::sleep(100) 
