@@ -234,7 +234,7 @@ then
         }
 
         // --- ARBITRATION ---
-        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "%")
+        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "%" + " | GovPump: " + govPumpLimit.intValue + "%")
 
         var double proposedRate = pidRequest
         if (proposedRate > govOutletLimit) proposedRate = govOutletLimit

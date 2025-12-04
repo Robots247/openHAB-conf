@@ -222,7 +222,7 @@ sitemap Pikas_Place label="Pika's Place"{
    
 	Frame label="Pumps" {
     	Switch item=RHP 	label="Radiant Heat Pump"	icon="PUMP"
-    	Switch item=Magna1_Pump 	label="System Pump"	icon="PUMP"
+    	Switch item=SysPump 	label="System Pump"	icon="PUMP"
     	}
     	Frame {  	
     	Switch item=CH_Pump 	label="Boiler Pump"	icon="PUMP"

@@ -34,3 +34,5 @@ Switch RecFan "Rec Room Fan" <fan> (gFans, Venting) ["Switchable"] { channel="zw
 Switch MBaFan "Master Bath Fan" <fan> (gFans, Venting) ["Switchable"] { homekit="Fan" }
 Switch BmtBaFan "Basement Bath Fan" <fan> (gFans, Venting) ["Switchable"] { channel="zwave:device:c603a394:node5:switch_binary", homekit="Fan" }
 Switch GuestBaFan "Guest Bath Fan" <fan> (gFans, Venting) ["Switchable"] { homekit="Fan" }
+
+Switch GAFANLOW "Garage Fan Low" <fan> (gFans, Venting) ["Switchable"] { channel="", homekit="Fan" }
