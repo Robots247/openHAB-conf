@@ -3,6 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // PROFESSIONAL OUTDOOR RESET (Max-Select Architecture)
 // Features: Independent Calculation, Max-Select Arbitration, Integral Persistence
+// Updated: Detailed Debugging Added
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -65,31 +66,43 @@ then
         maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
     }
 
-    logInfo("ODR_Debug", "--- ODR CALC START ---")
-    logInfo("ODR_Debug", "INPUTS: Outdoor=" + String::format("%.1f", outdoorInput.doubleValue) + " | MaxRoomError=" + maxErrorHT)
+    logInfo("ODR_Debug", "========================================")
+    logInfo("ODR_Debug", "   OUTDOOR RESET CALCULATION REPORT     ")
+    logInfo("ODR_Debug", "========================================")
+    logInfo("ODR_Debug", "INPUTS: Outdoor(Smooth)=" + String::format("%.1f", outdoorInput.doubleValue) + "F | Raw=" + rawOutdoor)
+    logInfo("ODR_Debug", "CONFIG: Slope=" + curveSlope + " | Intercept=" + curveIntercept)
 
     // ---------------------------------------------------------
     // 1. CALCULATE INDIVIDUAL ZONE REQUIREMENTS
     // ---------------------------------------------------------
     
-    // A. GARAGE REQUIREMENT (Fixed High Temp)
+    // A. GARAGE REQUIREMENT (Steep Comfort Curve)
     var double reqGarage = 0.0
     if (garageCall) {
-        reqGarage = 160.0 // Unit Heater Design Temp
+        val double gar_Intercept = 180.0
+        val double gar_Slope = -0.7 // Steep slope
+        reqGarage = gar_Intercept + (gar_Slope * outdoorInput.doubleValue)
+        
+        // Clamp for comfort (prevent cold blow) and equipment safety
+        if (reqGarage < 145.0) reqGarage = 145.0
+        if (reqGarage > 180.0) reqGarage = 180.0
+        logInfo("ODR_Debug", "GARAGE: Active. Calc=" + String::format("%.1f", reqGarage) + "F (Comfort Curve)")
+    } else {
+        logInfo("ODR_Debug", "GARAGE: Inactive (0.0F)")
     }
 
     // B. BASEBOARD REQUIREMENT (ODR + Room Feedback)
-    // We calculate this EVERY time, even if Baseboard isn't winning, so the Integral tracks properly.
     var double reqBaseboard = 0.0
+    var double baseTarget = 0.0
+    var double P_room = 0.0
     
     if (baseboardCall) {
-        var double baseTarget = curveIntercept.doubleValue + (curveSlope.doubleValue * outdoorInput.doubleValue)
+        baseTarget = curveIntercept.doubleValue + (curveSlope.doubleValue * outdoorInput.doubleValue)
         
         // --- Room Feedback Logic ---
-        var double P_room = Kp_room_val.doubleValue * maxErrorHT.doubleValue
+        P_room = Kp_room_val.doubleValue * maxErrorHT.doubleValue
         
         // Integral Accumulation (Smart Windup)
-        // Only integrate if the boiler isn't already maxed out
         if (!boilerIsBusy) {
             if (maxErrorHT.doubleValue > 0.5) {
                 // If rooms are cold, accumulate boost
@@ -107,32 +120,40 @@ then
         reqBaseboard = baseTarget + P_room + room_integral_mem.doubleValue
         
         // Baseboard Safety Clamps
+        // LOWERED MIN CLAMP TO 110F to maximize condensing in shoulder season
         if (reqBaseboard > 175.0) reqBaseboard = 175.0
-        if (reqBaseboard < 125.0) reqBaseboard = 125.0
+        if (reqBaseboard < 110.0) reqBaseboard = 110.0
+        
+        logInfo("ODR_Debug", "BASEBOARD: Active. MaxError=" + maxErrorHT + "F")
+        logInfo("ODR_Debug", "   Math: Curve(" + String::format("%.1f", baseTarget) + ") + P(" + String::format("%.1f", P_room) + ") + I(" + String::format("%.1f", room_integral_mem.doubleValue) + ") = " + String::format("%.1f", reqBaseboard))
     }
     else {
-        // If Baseboard is OFF, slowly decay memory so next start isn't aggressive
+        // If Baseboard is OFF, slowly decay memory
         room_integral_mem = room_integral_mem * 0.90
+        logInfo("ODR_Debug", "BASEBOARD: Inactive. Memory Decay=" + String::format("%.1f", room_integral_mem.doubleValue))
     }
 
     // C. RADIANT REQUIREMENT (Mix-Feed Curve)
-    // Provides overhead for manual mixing valves.
+    // Caleffi Valve Requirement: Needs ~20F overhead for stability.
+    // Minimum Supply Temp for valve stability is roughly 130F.
     var double reqRadiant = 0.0
     if (radiantCall) {
-        // Feed Curve: 0F->152F, 70F->110F
-        val double rad_Intercept = 152.0
-        val double rad_Slope = -0.6
+        val double rad_Intercept = 140.0 // Increased from 130 to give headroom
+        val double rad_Slope = -0.5      // Shallower slope
         reqRadiant = rad_Intercept + (rad_Slope * outdoorInput.doubleValue)
         
         // Radiant Clamps
+        // CLAMP: 130F Minimum to satisfy Caleffi mixing valve Delta-T requirement
         if (reqRadiant > 160.0) reqRadiant = 160.0
-        if (reqRadiant < 110.0) reqRadiant = 110.0
+        if (reqRadiant < 130.0) reqRadiant = 130.0
+        logInfo("ODR_Debug", "RADIANT: Active. Calc=" + String::format("%.1f", reqRadiant) + "F (Mix Valve Feed - Min 130F)")
+    } else {
+        logInfo("ODR_Debug", "RADIANT: Inactive (0.0F)")
     }
 
     // ---------------------------------------------------------
-    // 2. MAX-SELECT ARBITRATION (Professional Logic)
+    // 2. MAX-SELECT ARBITRATION
     // ---------------------------------------------------------
-    // We select the highest temperature requested by ANY active zone.
     
     var double finalTarget = 0.0
     var String demandSource = "None"
@@ -165,6 +186,6 @@ then
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
     
-    logInfo("ODR_Debug", "REQS: Gar=" + reqGarage + " | BB=" + String::format("%.1f", reqBaseboard) + " | Rad=" + String::format("%.1f", reqRadiant))
-    logInfo("ODR_Debug", "--- highest temp reqired: " + demandSource + " | Target: " + String::format("%.1f", finalTarget) + " ---")
+    logInfo("ODR_Debug", ">>> DECISION: " + demandSource + " WINS. Target=" + String::format("%.1f", finalTarget) + "F <<<")
+    logInfo("ODR_Debug", "========================================")
 end

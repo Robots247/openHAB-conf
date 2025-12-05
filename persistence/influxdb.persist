@@ -40,6 +40,11 @@ Items {
     Boiler_Target_Temp : strategy = everyMinute, everyChange
     Boiler_PID_Output : strategy = everyMinute, everyChange
     Boiler_Final_Command : strategy = everyMinute, everyChange
+
+      // Governors (New)
+    Boiler_Gov_Outlet : strategy = everyMinute, everyChange
+    Boiler_Gov_Flow : strategy = everyMinute, everyChange
+    Boiler_Gov_Pump : strategy = everyMinute, everyChange
     
     // New Math Items (BTU & Flow)
     Boiler_Output_BTU : strategy = everyMinute, everyChange

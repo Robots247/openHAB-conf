@@ -264,6 +264,11 @@ then
         // Select the LOWEST of all requirements (Safety always wins)
         logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "% | GovPump: " + govPumpLimit.intValue + "%")
 
+        // Update Grafana Items
+        Boiler_Gov_Outlet.postUpdate(govOutletLimit)
+        Boiler_Gov_Flow.postUpdate(govFlowLimit)
+        Boiler_Gov_Pump.postUpdate(govPumpLimit)
+
         var double proposedRate = pidRequest
         if (proposedRate > govOutletLimit) proposedRate = govOutletLimit
         if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
