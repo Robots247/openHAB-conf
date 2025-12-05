@@ -1,6 +1,7 @@
 import org.eclipse.smarthome.model.script.ScriptServiceUtil
 val String filename = "thermostat rules"
 var Timer RHP_timer = null
+var Timer SYSPump_timer = null
 
 // =================================================================================
 // RELAY & PUMP LOGIC (LEGACY MODE ONLY)
@@ -72,32 +73,8 @@ then
     }
 end
 
-// CFH3 High-Temp Unit Heater (Bypass)
-rule "Call for High Heat Unit Heater ON"
-when
-    Item GAZV changed from OFF to ON
-then
-    // GUARD: Stop if Maintenance Mode is ON
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if (CFH3.state != ON){
-        CFH3.sendCommand(ON)
-        logInfo("CFH3.rule", "High Temperature Call for heat required by Unit Heaters")
-    }       
-end
-
-rule "Call for High Heat Unit Heater OFF"
-when 
-    Item GAZV changed from ON to OFF
-then
-    // GUARD: Stop if Maintenance Mode is ON
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if (CFH3.state != OFF){
-        CFH3.sendCommand(OFF)
-        logInfo("CFH3.rule", "High Temperature Call for Heat satisfied, Turning off CFH3")
-    }
-end
+// NOTE: CFH3 (Unit Heater) Rules have been moved to gazv_control.rules 
+// to prevent duplicate execution and conflicts.
 
 // --- Pumping Rules ---
 
@@ -128,7 +105,7 @@ then
     if (Boiler_BMS_ENBLE.state == ON) return;
 
     logInfo(filename, "Radiant Heat Activated, Starting 1 minute pump delay")
-    RHP_timer = (createTimer(now.plusMinutes(1))[
+    RHP_timer = (createTimer(now.plusMinutes(2))[
         logInfo(filename, "Delay over, RHP ON")
         RHP.sendCommand(ON) ]
     )
@@ -142,7 +119,7 @@ then
     // GUARD: Stop if Maintenance Mode is ON
     if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
-    if (Boiler_BMS_ENBLE.state == ON) return;
+    //if (Boiler_BMS_ENBLE.state == ON) return;
 
     if(SysPump.state == ON) {
         SysPump.sendCommand(OFF)
@@ -158,10 +135,10 @@ then
     // GUARD: Stop if Maintenance Mode is ON
     if (System_Maintenance_Mode.state == ON) return;
     // GUARD: Stop if BMS Mode is Active
-    if (Boiler_BMS_ENBLE.state == ON) return;
+    //if (Boiler_BMS_ENBLE.state == ON) return;
 
     logInfo(filename, "System Heat Activated, Starting 1 minute pump delay")
-    RHP_timer = (createTimer(now.plusMinutes(1))[
+    SYSPump_timer = (createTimer(now.plusMinutes(1))[
         logInfo(filename, "Delay over, System Pump ON")
         SysPump.sendCommand(ON) ]
     )
@@ -401,6 +378,11 @@ rule "Garage CFH Thermostat"
         Item System_Maintenance_Mode changed to OFF
 
     then
+        // CRITICAL UPDATE: SAFETY CHECK FOR DEAD SENSORS
+        // gazv_control.rules handles dead sensors (NULL) with a failsafe duty cycle.
+        // If we don't return here, the lines below (as Number) will crash and spam errors.
+        if (GAMS_Temp.state == NULL || GAMS_Temp.state == UNDEF) return;
+        
         var temperature = (GAMS_Temp.state as Number).doubleValue
         var setpoint = (GA_Heating_TargetTemp.state as Number).doubleValue
         var hysteresisHigh = (GA_HysteresisHigh.state as Number).doubleValue
@@ -482,4 +464,3 @@ then
         logInfo("Boiler.ErrorCalc", "New Max Error: " + maxError + "°F in " + worstRoom)
     }
 end
-

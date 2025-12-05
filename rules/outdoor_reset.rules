@@ -166,5 +166,5 @@ then
     Boiler_Target_Temp.postUpdate(finalTarget)
     
     logInfo("ODR_Debug", "REQS: Gar=" + reqGarage + " | BB=" + String::format("%.1f", reqBaseboard) + " | Rad=" + String::format("%.1f", reqRadiant))
-    logInfo("ODR_Debug", "--- WINNER: " + demandSource + " | Target: " + String::format("%.1f", finalTarget) + " ---")
+    logInfo("ODR_Debug", "--- highest temp reqired: " + demandSource + " | Target: " + String::format("%.1f", finalTarget) + " ---")
 end

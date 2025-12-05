@@ -189,6 +189,7 @@ then
     if (Boiler_Block_Active.state != ON && callActive && targetTemp > 0) {
             
         // --- COMPONENT 1: PID ---
+        // Measures ERROR against the BUFFER TANK (or System Supply), not Boiler Outlet.
         var double error = targetTemp - supplyTemp
         var double P = base_Kp * error
         pidRequest = P + mem_pid_integral
@@ -197,51 +198,78 @@ then
         if (pidRequest < 0.0) pidRequest = 0.0
         Boiler_PID_Output.postUpdate(pidRequest)
 
-        // --- COMPONENT 2: GOVERNORS ---
-        val double outletMax = 185.0
-        val double outletStart = 175.0
-        if (outletTemp > outletStart) {
-            var double severity = (outletMax - outletTemp) / (outletMax - outletStart)
-            if (severity < 0) severity = 0
-            govOutletLimit = severity * 100.0
-        }
+        // --- COMPONENT 2: CASCADE OVERRIDE (Operating Limit) ---
+        // Professional Strategy: "Modulating Operating Limit"
+        // Objective: Override the Tank Demand to prevent Boiler Safety Trip (190F).
+        // Using "Landing Strip" Logic to maintain 10% fire instead of short-cycling.
         
-        // Gov B: Delta T Guard
-        if (pumpSpeed > 10.0) {
-            val double dtMax = 30.0
-            val double dtStart = 20.0
-            var double sysDelta = outletTemp - supplyTemp
-            if (sysDelta > dtStart) {
-                 var double flowSeverity = (dtMax - sysDelta) / (dtMax - dtStart)
-                 govFlowLimit = flowSeverity * 100.0
-                 if (govFlowLimit < 20.0) govFlowLimit = 20.0
-            }
+        // 1. DEFINE LIMITS
+        val double safetyTrip = 189.5     // BOILER TRIP POINT (Minus 0.5F buffer)
+        val double holdZone = 185.0       // LANDING STRIP (Force 10% Min Fire)
+        val double modulationStart = 180.0 // START BRAKING (Begin reducing from 100%)
+
+        // 2. CALCULATE OVERRIDE
+        // Default: No Limit (Allow 100% from PID)
+        govOutletLimit = 100.0
+
+        if (outletTemp >= safetyTrip) {
+            // CRITICAL: Hard Safety Stop to prevent internal Lockout
+            govOutletLimit = 0.0
+            logWarn("Boiler.Safety", "Approaching High Limit! Forced Shutdown at " + outletTemp)
+        } 
+        else if (outletTemp >= holdZone) {
+            // LANDING STRIP: 185.0F to 189.5F
+            // ACTION: Hold at Minimum Fire (10%)
+            // REASON: Maximizes runtime. Prevents short-cycle lockout.
+            govOutletLimit = 10.0
+        }
+        else if (outletTemp > modulationStart) {
+            // MODULATION BAND: 180.0F to 185.0F
+            // ACTION: Proportional Reduction (100% -> 10%)
+            // REASON: "Soft Landing" to absorb thermal inertia.
+            
+            // Math: Map the 5-degree spread to 90% capacity reduction
+            var double range = holdZone - modulationStart // 5.0 degrees
+            var double offset = outletTemp - modulationStart
+            var double ratio = offset / range 
+            
+            // Linear throttle: 100% down to 10%
+            govOutletLimit = 100.0 - (ratio * 90.0)
+            
+            // Sanity check
+            if (govOutletLimit < 10.0) govOutletLimit = 10.0
         }
 
-        // Gov C: Pump Speed Follower (Stays 100% if pump locked at 10V)
+        // 3. DELTA T MONITOR (Passive Safety Only)
+        // We trust the Lochinvar Internal Pump Controller for efficiency (Target 20F).
+        // We only cut fire if Delta T indicates a mechanical failure (Pump Dead).
+        if ((outletTemp - inletTemp) > 45.0) {
+            govFlowLimit = 0.0
+            logError("Boiler.Pump", "CRITICAL: Delta T > 45F. Possible Pump Failure.")
+        } else {
+            govFlowLimit = 100.0
+        }
+
+        // GOV C: Pump Speed Follower (Legacy Protection)
+        // Kept as backup to ensure we don't fire harder than the pump can clear.
+        // Formula: PumpSpeed + 25%. (e.g., 20% pump allows 45% fire).
+        // This does NOT conflict with the Landing Strip (10% fire).
         var double pump_match_target = 100.0
-        if (pumpSpeed > 1.0) pump_match_target = pumpSpeed + 15.0
-        else pump_match_target = 25.0
+        if (pumpSpeed > 1.0) pump_match_target = pumpSpeed + 25.0
+        else pump_match_target = 35.0
         if (pump_match_target > 100.0) pump_match_target = 100.0
-
-        val double head_start = 165.0  
-        val double head_full  = 175.0  
-        if (outletTemp < head_start) govPumpLimit = 100.0
-        else if (outletTemp > head_full) govPumpLimit = pump_match_target
-        else {
-            var double ratio = (outletTemp - head_start) / (head_full - head_start)
-            govPumpLimit = 100.0 - (ratio * (100.0 - pump_match_target))
-        }
+        govPumpLimit = pump_match_target
 
         // --- ARBITRATION ---
-        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "%" + " | GovPump: " + govPumpLimit.intValue + "%")
+        // Select the LOWEST of all requirements (Safety always wins)
+        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "% | GovPump: " + govPumpLimit.intValue + "%")
 
         var double proposedRate = pidRequest
         if (proposedRate > govOutletLimit) proposedRate = govOutletLimit
         if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
         if (proposedRate > govPumpLimit) proposedRate = govPumpLimit
         
-        // Slew Rate
+        // Slew Rate (Rate Limiter to prevent thermal shock)
         val double maxRisePerCycle = 2.0 
         if (proposedRate > lastSafeRate + maxRisePerCycle) safeRate = lastSafeRate + maxRisePerCycle
         else safeRate = proposedRate
@@ -263,6 +291,7 @@ then
         if (safeRate > (ramp_base + 5.0)) safeRate = ramp_base + 5.0
         
         // --- INTEGRAL MGMT ---
+        // Only accumulate Error if the Governors are NOT holding us back.
         var boolean governorsActive = (safeRate < pidRequest)
         if (!governorsActive) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
         else if (error < 0 && mem_pid_integral > 0) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error) 
@@ -272,13 +301,12 @@ then
         update_pid_mem = true
 
         // --- DEADBAND, MIN FIRE & TAILOUT LOGIC ---
-        // ------------------------------------------
         val double min_fire = 10.0
         val double cruise_threshold = 12.0 
         val double cutoff_threshold = 5.0
-        val int shutdown_debounce_ms = 10000 // 10s Ride Through for transient dips
+        val int shutdown_debounce_ms = 10000 
         
-        // TAILOUT: Only kill if DeltaT is extremely low (< 2.0F)
+        // TAILOUT: Threshold relaxed to 2.0F to prevent false triggers
         var double boilerDeltaT = outletTemp - inletTemp
         var boolean tailout = (safeRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
 
@@ -294,31 +322,24 @@ then
             logInfo("Boiler.Tailout", "TAILOUT: Low DeltaT (" + String::format("%.1f", boilerDeltaT) + ") at Min Fire. Force Stop.")
         }
         else if (safeRate < cruise_threshold) {
-            // We are in the Low Demand Zone
             if (safeRate <= cutoff_threshold) {
-                // Demand is effectively zero (or negative)
-                // CHECK DEBOUNCE: Have we been low for less than 10 seconds?
                 if ((now.millis - last_demand_time) < shutdown_debounce_ms) {
-                    finalRate = min_fire // Force Min Fire to bridge the gap
+                    finalRate = min_fire 
                 } else {
-                    finalRate = 0.0 // Timer expired, kill it
+                    finalRate = 0.0 
                     update_pid_mem = true
                 }
             }
             else {
-                // Demand is 5-12%: Cruise at Min Fire
                 finalRate = min_fire
             }
         } else {
-            // Normal Modulation (> 12%)
             finalRate = safeRate
         }
         
         if (finalRate > 100.0) finalRate = 100.0
         
         // --- EXECUTION ---
-        
-        // Hard Shutdown Logic: If Rate is 0, Enable MUST be 0 to prevent idling
         if (finalRate > 0.1) {
             desiredEnable = 1
         } else {
