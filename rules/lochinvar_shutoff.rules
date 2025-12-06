@@ -51,11 +51,12 @@ then
     var double target = (Boiler_Target_Temp.state as Number).doubleValue
     var double fireRate = if(Boiler_Firing_Rate.state instanceof Number) (Boiler_Firing_Rate.state as Number).doubleValue else 0.0
     var double Boiler_outlet_Temp_val = (Boiler_Outlet_Temp.state as Number).doubleValue
+    
     // Calculate Delta T Real-Time (Supply - Inlet)
-    //updated to calculate real delta t for boiler, not for boilervstank
+    // updated to calculate real delta t for boiler, not for boilervstank
     var double real_delta_t = Boiler_outlet_Temp_val - inlet
     // Update the Item for Visibility
-    //Lochinvar_DeltaT.postUpdate(real_delta_t)
+    Lochinvar_DeltaT.postUpdate(real_delta_t)
 
     // A. ENERGY & EFFICIENCY CALCULATION
     // -------------------------------------------------------------------------------

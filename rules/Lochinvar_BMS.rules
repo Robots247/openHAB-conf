@@ -3,6 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
+// Updated: Added DHW Pause Logic to prevent fighting the internal DHW cycle.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -51,9 +52,17 @@ then
     val int mode = (Boiler_Control_Mode.state as Number).intValue
     val int lockoutCode = if(Boiler_Lockout_Code.state instanceof Number) (Boiler_Lockout_Code.state as Number).intValue else 32767
     
+    // Check DHW Status (19 = DHW Mode)
+    val int statusCode = if(Boiler_Status_Code.state instanceof Number) (Boiler_Status_Code.state as Number).intValue else 0
+    
     if (lockoutCode != 32767) {
         logWarn("Boiler.Safety", "HARD LOCKOUT DETECTED (Code " + lockoutCode + "). BMS Control Paused.")
         return;
+    }
+
+    // Don't mess with config registers if DHW is running
+    if (statusCode == 19) {
+        return; 
     }
 
     if (mode == 1 || mode == 2) {
@@ -84,12 +93,27 @@ then
     if (Boiler_Test_Repeat.state == ON) return;
     if (System_Maintenance_Mode.state == ON) return;
 
+    // DHW CHECK: If Boiler is in DHW Mode (19), Exit Immediately.
+    val int statusCode = if(Boiler_Status_Code.state instanceof Number) (Boiler_Status_Code.state as Number).intValue else 0
+    if (statusCode == 19) {
+        // Ensure Enable is held High so we don't kill the cycle
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1) {
+            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        }
+        return;
+    }
+
     var double targetTemp = 0.0
     if (Boiler_Target_Temp.state instanceof Number) {
         targetTemp = (Boiler_Target_Temp.state as Number).doubleValue
     }
     
     var boolean isBlocked = (Boiler_Block_Active.state == ON)
+    
+    // SCALING FOR MODE 1 (Setpoint via 0-10V input emulation)
+    // If your boiler expects 0-100% to represent 70F-180F, use this.
+    // If your boiler expects direct Temperature integer (e.g. 140), remove scaling.
+    // DEFAULTING TO SCALING based on your description of "BMS Type = Power/Setpoint"
     val double boiler_min_setpoint = 70.0
     val double boiler_max_setpoint = 180.0
     var double finalPercent = 0.0
@@ -148,6 +172,18 @@ then
         return;
     }
     
+    // 1. CHECK DHW STATUS (Status Code 19 = DHW)
+    val int statusCode = if(Boiler_Status_Code.state instanceof Number) (Boiler_Status_Code.state as Number).intValue else 0
+    
+    if (statusCode == 19) {
+        // DHW ACTIVE: Keep Enable High, Pause Logic
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1) {
+            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        }
+        logInfo("Boiler.DHW", "DHW Active (Code 19). BMS Paused.")
+        return;
+    }
+
     // 1. FETCH SENSORS & MEMORY
     var double mem_pid_integral = 0.0
     if (Boiler_Pid_Integral.state instanceof Number) mem_pid_integral = (Boiler_Pid_Integral.state as Number).doubleValue
@@ -189,7 +225,6 @@ then
     if (Boiler_Block_Active.state != ON && callActive && targetTemp > 0) {
             
         // --- COMPONENT 1: PID ---
-        // Measures ERROR against the BUFFER TANK (or System Supply), not Boiler Outlet.
         var double error = targetTemp - supplyTemp
         var double P = base_Kp * error
         pidRequest = P + mem_pid_integral
@@ -199,17 +234,12 @@ then
         Boiler_PID_Output.postUpdate(pidRequest)
 
         // --- COMPONENT 2: CASCADE OVERRIDE (Operating Limit) ---
-        // Professional Strategy: "Modulating Operating Limit"
-        // Objective: Override the Tank Demand to prevent Boiler Safety Trip (190F).
-        // Using "Landing Strip" Logic to maintain 10% fire instead of short-cycling.
-        
         // 1. DEFINE LIMITS
         val double safetyTrip = 189.5     // BOILER TRIP POINT (Minus 0.5F buffer)
         val double holdZone = 185.0       // LANDING STRIP (Force 10% Min Fire)
         val double modulationStart = 180.0 // START BRAKING (Begin reducing from 100%)
 
         // 2. CALCULATE OVERRIDE
-        // Default: No Limit (Allow 100% from PID)
         govOutletLimit = 100.0
 
         if (outletTemp >= safetyTrip) {
@@ -218,31 +248,19 @@ then
             logWarn("Boiler.Safety", "Approaching High Limit! Forced Shutdown at " + outletTemp)
         } 
         else if (outletTemp >= holdZone) {
-            // LANDING STRIP: 185.0F to 189.5F
-            // ACTION: Hold at Minimum Fire (10%)
-            // REASON: Maximizes runtime. Prevents short-cycle lockout.
+            // LANDING STRIP: Hold at Minimum Fire (10%)
             govOutletLimit = 10.0
         }
         else if (outletTemp > modulationStart) {
-            // MODULATION BAND: 180.0F to 185.0F
-            // ACTION: Proportional Reduction (100% -> 10%)
-            // REASON: "Soft Landing" to absorb thermal inertia.
-            
-            // Math: Map the 5-degree spread to 90% capacity reduction
+            // MODULATION BAND: Proportional Reduction
             var double range = holdZone - modulationStart // 5.0 degrees
             var double offset = outletTemp - modulationStart
             var double ratio = offset / range 
-            
-            // Linear throttle: 100% down to 10%
             govOutletLimit = 100.0 - (ratio * 90.0)
-            
-            // Sanity check
             if (govOutletLimit < 10.0) govOutletLimit = 10.0
         }
 
         // 3. DELTA T MONITOR (Passive Safety Only)
-        // We trust the Lochinvar Internal Pump Controller for efficiency (Target 20F).
-        // We only cut fire if Delta T indicates a mechanical failure (Pump Dead).
         if ((outletTemp - inletTemp) > 45.0) {
             govFlowLimit = 0.0
             logError("Boiler.Pump", "CRITICAL: Delta T > 45F. Possible Pump Failure.")
@@ -250,10 +268,7 @@ then
             govFlowLimit = 100.0
         }
 
-        // GOV C: Pump Speed Follower (Legacy Protection)
-        // Kept as backup to ensure we don't fire harder than the pump can clear.
-        // Formula: PumpSpeed + 25%. (e.g., 20% pump allows 45% fire).
-        // This does NOT conflict with the Landing Strip (10% fire).
+        // GOV C: Pump Speed Follower
         var double pump_match_target = 100.0
         if (pumpSpeed > 1.0) pump_match_target = pumpSpeed + 25.0
         else pump_match_target = 35.0
@@ -261,7 +276,6 @@ then
         govPumpLimit = pump_match_target
 
         // --- ARBITRATION ---
-        // Select the LOWEST of all requirements (Safety always wins)
         logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "% | GovPump: " + govPumpLimit.intValue + "%")
 
         // Update Grafana Items
@@ -274,7 +288,7 @@ then
         if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
         if (proposedRate > govPumpLimit) proposedRate = govPumpLimit
         
-        // Slew Rate (Rate Limiter to prevent thermal shock)
+        // Slew Rate
         val double maxRisePerCycle = 2.0 
         if (proposedRate > lastSafeRate + maxRisePerCycle) safeRate = lastSafeRate + maxRisePerCycle
         else safeRate = proposedRate
@@ -311,7 +325,7 @@ then
         val double cutoff_threshold = 5.0
         val int shutdown_debounce_ms = 10000 
         
-        // TAILOUT: Threshold relaxed to 2.0F to prevent false triggers
+        // TAILOUT
         var double boilerDeltaT = outletTemp - inletTemp
         var boolean tailout = (safeRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
 
