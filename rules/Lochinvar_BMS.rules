@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updated: Added DHW Pause Logic to prevent fighting the internal DHW cycle.
+// Updated: Delta-T Policing, Energy Integration, Active Governor Tracking
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -11,6 +11,11 @@ var long last_demand_time = 0        // Tracks time of last VALID demand (PID > 
 var double last_firing_rate = 0.0    // Tracks Ramp Rate (Soft Start)
 var boolean wwsd_active = false      // Tracks Warm Weather Shutdown State
 var double lastSafeRate = 0.0        // Rate limiter for high limit jumps
+
+// NEW TIMERS
+var long safety_trip_start_time = 0  // For High Limit Ride Through
+var long wwsd_timer_start = 0        // For WWSD Hysteresis (1 Hour)
+var long last_dhw_end_time = 0      // Tracks when DHW cycle finished
 
 // -----------------------------------------------------------------------------------
 // RULE 0: SYNC LEGACY SWITCH (Compatibility Bridge)
@@ -110,10 +115,7 @@ then
     
     var boolean isBlocked = (Boiler_Block_Active.state == ON)
     
-    // SCALING FOR MODE 1 (Setpoint via 0-10V input emulation)
-    // If your boiler expects 0-100% to represent 70F-180F, use this.
-    // If your boiler expects direct Temperature integer (e.g. 140), remove scaling.
-    // DEFAULTING TO SCALING based on your description of "BMS Type = Power/Setpoint"
+    // SCALING FOR MODE 1 (Setpoint)
     val double boiler_min_setpoint = 70.0
     val double boiler_max_setpoint = 180.0
     var double finalPercent = 0.0
@@ -175,10 +177,15 @@ then
     // 1. CHECK DHW STATUS (Status Code 19 = DHW)
     val int statusCode = if(Boiler_Status_Code.state instanceof Number) (Boiler_Status_Code.state as Number).intValue else 0
     
+    // TRACK DHW TRANSITION
     if (statusCode == 19) {
-        // DHW ACTIVE: Keep Enable High, Pause Logic
+        last_dhw_end_time = now.millis
+        
         if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1) {
             Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        }
+        if (Lochinvar_40003_Rate_Command.state != 100) {
+            Lochinvar_40003_Rate_Command.sendCommand(100)
         }
         logInfo("Boiler.DHW", "DHW Active (Code 19). BMS Paused.")
         return;
@@ -194,13 +201,47 @@ then
     val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 100.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
     
-    // WWSD Check
+    // --- POST-DHW CHILL OUT (IDLE AT 10%) ---
+    // If DHW just finished (< 90 seconds ago), hold at 10% to prevent shutdown logic.
+    if ((now.millis - last_dhw_end_time) < 90000) {
+        logInfo("Boiler.DHW", "Post-DHW Chill Out Active. Holding Rate at 10%.")
+        
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1) {
+            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        }
+        
+        // Force Rate to 10% (Min Fire) to keep the flame and pump alive
+        if (Lochinvar_40003_Rate_Command.state != 10) {
+            Lochinvar_40003_Rate_Command.sendCommand(10)
+        }
+        return;
+    }
+
+    // --- UPDATED WWSD LOGIC ---
     var double effective_outdoor = 32.0 
     if (Outdoor_Temperature.state instanceof Number) effective_outdoor = (Outdoor_Temperature.state as Number).doubleValue
     else if (Weather_Current_Temperature.state instanceof Number) effective_outdoor = (Weather_Current_Temperature.state as Number).doubleValue
 
-    if (effective_outdoor >= 70.0 && !wwsd_active) wwsd_active = true
-    else if (effective_outdoor <= 67.0 && wwsd_active) wwsd_active = false
+    var int hour = now.getHourOfDay
+    var boolean sun_block_active = (hour >= 16 && hour < 18)
+
+    if (!sun_block_active) {
+        if (effective_outdoor >= 70.0) {
+            if (wwsd_timer_start == 0) wwsd_timer_start = now.millis
+            if ((now.millis - wwsd_timer_start) > 3600000) {
+                if (!wwsd_active) {
+                    wwsd_active = true
+                    logInfo("Boiler.WWSD", "WWSD Activated (1 Hour Sustained Warmth)")
+                }
+            }
+        } 
+        else if (effective_outdoor <= 67.0) {
+            wwsd_active = false
+            wwsd_timer_start = 0
+        }
+    } else {
+        if (effective_outdoor <= 67.0) wwsd_active = false
+    }
 
     var double base_Kp = 3.0
     if (Boiler_Kp.state instanceof Number) base_Kp = (Boiler_Kp.state as Number).doubleValue
@@ -233,37 +274,45 @@ then
         if (pidRequest < 0.0) pidRequest = 0.0
         Boiler_PID_Output.postUpdate(pidRequest)
 
-        // --- COMPONENT 2: CASCADE OVERRIDE (Operating Limit) ---
-        // 1. DEFINE LIMITS
-        val double safetyTrip = 189.5     // BOILER TRIP POINT (Minus 0.5F buffer)
-        val double holdZone = 185.0       // LANDING STRIP (Force 10% Min Fire)
-        val double modulationStart = 180.0 // START BRAKING (Begin reducing from 100%)
+        // --- COMPONENT 2: CASCADE OVERRIDE (High Limit Governor) ---
+        val double safetyTrip = 188.0     // LOWERED TRIP POINT (Safety Buffer)
+        val double modulationStart = 170.0 
 
         // 2. CALCULATE OVERRIDE
         govOutletLimit = 100.0
 
         if (outletTemp >= safetyTrip) {
-            // CRITICAL: Hard Safety Stop to prevent internal Lockout
-            govOutletLimit = 0.0
-            logWarn("Boiler.Safety", "Approaching High Limit! Forced Shutdown at " + outletTemp)
+            if (safety_trip_start_time == 0) safety_trip_start_time = now.millis
+            if ((now.millis - safety_trip_start_time) > 5000) {
+                govOutletLimit = 0.0
+                logWarn("Boiler.Safety", "Approaching High Limit! Forced Shutdown at " + outletTemp)
+            } else {
+                govOutletLimit = 0.0 
+            }
         } 
-        else if (outletTemp >= holdZone) {
-            // LANDING STRIP: Hold at Minimum Fire (10%)
-            govOutletLimit = 10.0
-        }
-        else if (outletTemp > modulationStart) {
-            // MODULATION BAND: Proportional Reduction
-            var double range = holdZone - modulationStart // 5.0 degrees
-            var double offset = outletTemp - modulationStart
-            var double ratio = offset / range 
-            govOutletLimit = 100.0 - (ratio * 90.0)
-            if (govOutletLimit < 10.0) govOutletLimit = 10.0
+        else {
+            safety_trip_start_time = 0
+            if (outletTemp > modulationStart) {
+                var double range = safetyTrip - modulationStart // 18.0 degrees
+                var double offset = outletTemp - modulationStart
+                var double ratio = offset / range 
+                govOutletLimit = 100.0 - (ratio * 100.0)
+                if (govOutletLimit < 0.0) govOutletLimit = 0.0
+            }
         }
 
-        // 3. DELTA T MONITOR (Passive Safety Only)
-        if ((outletTemp - inletTemp) > 45.0) {
-            govFlowLimit = 0.0
-            logError("Boiler.Pump", "CRITICAL: Delta T > 45F. Possible Pump Failure.")
+        // 3. DELTA T MONITOR (Passive Safety)
+        // NEW: Active Delta T Policing (Pro BMS Feature)
+        // If Delta T < 10F, we throttle the rate proportionally.
+        // Math: DT 10F = 100% limit, DT 5F = 50% limit, DT 2F = 20% limit.
+        var double boilerDeltaT = outletTemp - inletTemp
+        
+        if (boilerDeltaT < 10.0 && boilerDeltaT > 0.0) {
+            // Throttle logic: (DT / 10) * 100
+            // Example: DT = 5F -> 50% Limit
+            govFlowLimit = (boilerDeltaT / 10.0) * 100.0
+            if (govFlowLimit < 20.0) govFlowLimit = 20.0 // Don't strangle it completely, let min fire handle it
+            logInfo("Boiler.Gov", "Delta-T Governor Active. Limiting to " + govFlowLimit.intValue + "%")
         } else {
             govFlowLimit = 100.0
         }
@@ -276,9 +325,9 @@ then
         govPumpLimit = pump_match_target
 
         // --- ARBITRATION ---
-        logInfo("Boiler.Debug", "PID: " + String::format("%.1f", pidRequest) + "% | GovOut: " + govOutletLimit.intValue + "% | GovFlow: " + govFlowLimit.intValue + "% | GovPump: " + govPumpLimit.intValue + "%")
-
-        // Update Grafana Items
+        var double externalLimit = 100.0
+        if (Boiler_Zone_Limit.state instanceof Number) externalLimit = (Boiler_Zone_Limit.state as Number).doubleValue
+        
         Boiler_Gov_Outlet.postUpdate(govOutletLimit)
         Boiler_Gov_Flow.postUpdate(govFlowLimit)
         Boiler_Gov_Pump.postUpdate(govPumpLimit)
@@ -287,7 +336,22 @@ then
         if (proposedRate > govOutletLimit) proposedRate = govOutletLimit
         if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
         if (proposedRate > govPumpLimit) proposedRate = govPumpLimit
+        if (proposedRate > externalLimit) proposedRate = externalLimit 
         
+        // DIAGNOSTIC LOGGING
+        logInfo("Boiler.Diagnostic", 
+            "| Tgt:" + String::format("%.1f", targetTemp) + 
+            " | Sup:" + String::format("%.1f", supplyTemp) + 
+            " | Err:" + String::format("%.1f", error) + 
+            " | P:" + String::format("%.1f", P) + 
+            " | I:" + String::format("%.1f", mem_pid_integral) + 
+            " | PID:" + String::format("%.1f", pidRequest) + 
+            " | Out:" + String::format("%.1f", outletTemp) + 
+            " | Gov:" + String::format("%.1f", govOutletLimit) + 
+            " | DT_Gov:" + String::format("%.1f", govFlowLimit) +
+            " | Final:" + String::format("%.1f", proposedRate)
+        )
+
         // Slew Rate
         val double maxRisePerCycle = 2.0 
         if (proposedRate > lastSafeRate + maxRisePerCycle) safeRate = lastSafeRate + maxRisePerCycle
@@ -309,11 +373,23 @@ then
         if (ramp_base < 20.0) ramp_base = 20.0
         if (safeRate > (ramp_base + 5.0)) safeRate = ramp_base + 5.0
         
-        // --- INTEGRAL MGMT ---
-        // Only accumulate Error if the Governors are NOT holding us back.
+        // --- INTEGRAL MGMT (ACTIVE GOVERNOR TRACKING) ---
+        var boolean startup_freeze = (outletTemp < inletTemp + 2.0)
         var boolean governorsActive = (safeRate < pidRequest)
-        if (!governorsActive) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
-        else if (error < 0 && mem_pid_integral > 0) mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error) 
+        
+        if (!startup_freeze) {
+            if (!governorsActive) {
+                // Standard Integration
+                mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
+            } 
+            else {
+                // GOVERNOR ACTIVE: Anti-Windup
+                // Back-Calculation to track the limit
+                var double tracked_I = safeRate - P
+                mem_pid_integral = (mem_pid_integral * 0.5) + (tracked_I * 0.5)
+                logInfo("Boiler.PID", "Governor Active. Tracking I-Term down to " + String::format("%.1f", mem_pid_integral))
+            }
+        }
         
         if (mem_pid_integral > 50.0) mem_pid_integral = 50.0
         if (mem_pid_integral < -10.0) mem_pid_integral = -10.0
@@ -326,7 +402,7 @@ then
         val int shutdown_debounce_ms = 10000 
         
         // TAILOUT
-        var double boilerDeltaT = outletTemp - inletTemp
+        // Logic: If Rate is low (<12%) AND Delta T is tiny (< 2F), we are done.
         var boolean tailout = (safeRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
 
         // 1. Update VALID Demand Timer
