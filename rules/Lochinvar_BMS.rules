@@ -1,16 +1,16 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// LOCHINVAR UNIFIED MASTER CONTROLLER
+// LOCHINVAR UNIFIED MASTER CONTROLLER - PROFESSIONAL EDITION
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updated: Delta-T Policing, Energy Integration, Active Governor Tracking
+// Updates: Alpha-Smoothing, Integral Freeze, Delta-T Policing
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
 var long last_demand_time = 0        // Tracks time of last VALID demand (PID > 5%)
 var double last_firing_rate = 0.0    // Tracks Ramp Rate (Soft Start)
 var boolean wwsd_active = false      // Tracks Warm Weather Shutdown State
-var double lastSafeRate = 0.0        // Rate limiter for high limit jumps
+var double lastSafeRate = 0.0        // Rate limiter for high limit jumps (Legacy var, kept for safety)
 
 // NEW TIMERS
 var long safety_trip_start_time = 0  // For High Limit Ride Through
@@ -253,20 +253,23 @@ then
     if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) callActive = true
     if (wwsd_active) callActive = false
 
-    // 3. FIRING ARBITRATION
-    var double finalRate = 0.0
+    // 3. PID & GOVERNOR PRE-CALCULATION
     var boolean update_pid_mem = false
-    
     var double govOutletLimit = 100.0
     var double govFlowLimit = 100.0
     var double govPumpLimit = 100.0 
     var double pidRequest = 0.0
-    var double safeRate = 0.0
+    var double error = 0.0
     
+    // DEFINITIONS (Moved up for accessibility)
+    val double min_fire = 10.0
+    val double cruise_threshold = 12.0
+    val double cutoff_threshold = 5.0
+
     if (Boiler_Block_Active.state != ON && callActive && targetTemp > 0) {
             
         // --- COMPONENT 1: PID ---
-        var double error = targetTemp - supplyTemp
+        error = targetTemp - supplyTemp
         var double P = base_Kp * error
         pidRequest = P + mem_pid_integral
         
@@ -275,12 +278,10 @@ then
         Boiler_PID_Output.postUpdate(pidRequest)
 
         // --- COMPONENT 2: CASCADE OVERRIDE (High Limit Governor) ---
-        val double safetyTrip = 188.0     // LOWERED TRIP POINT (Safety Buffer)
-        val double modulationStart = 170.0 
+        val double safetyTrip = 188.0     // Safety Trip Point
+        val double modulationStart = 170.0 // Start modulating down here
 
         // 2. CALCULATE OVERRIDE
-        govOutletLimit = 100.0
-
         if (outletTemp >= safetyTrip) {
             if (safety_trip_start_time == 0) safety_trip_start_time = now.millis
             if ((now.millis - safety_trip_start_time) > 5000) {
@@ -302,16 +303,15 @@ then
         }
 
         // 3. DELTA T MONITOR (Passive Safety)
-        // NEW: Active Delta T Policing (Pro BMS Feature)
+        // Active Delta T Policing (Pro BMS Feature)
         // If Delta T < 10F, we throttle the rate proportionally.
-        // Math: DT 10F = 100% limit, DT 5F = 50% limit, DT 2F = 20% limit.
         var double boilerDeltaT = outletTemp - inletTemp
         
         if (boilerDeltaT < 10.0 && boilerDeltaT > 0.0) {
             // Throttle logic: (DT / 10) * 100
             // Example: DT = 5F -> 50% Limit
             govFlowLimit = (boilerDeltaT / 10.0) * 100.0
-            if (govFlowLimit < 20.0) govFlowLimit = 20.0 // Don't strangle it completely, let min fire handle it
+            if (govFlowLimit < 20.0) govFlowLimit = 20.0 
             logInfo("Boiler.Gov", "Delta-T Governor Active. Limiting to " + govFlowLimit.intValue + "%")
         } else {
             govFlowLimit = 100.0
@@ -324,151 +324,175 @@ then
         if (pump_match_target > 100.0) pump_match_target = 100.0
         govPumpLimit = pump_match_target
 
-        // --- ARBITRATION ---
-        var double externalLimit = 100.0
-        if (Boiler_Zone_Limit.state instanceof Number) externalLimit = (Boiler_Zone_Limit.state as Number).doubleValue
-        
+        // --- UPDATE GOV ITEMS ---
         Boiler_Gov_Outlet.postUpdate(govOutletLimit)
         Boiler_Gov_Flow.postUpdate(govFlowLimit)
         Boiler_Gov_Pump.postUpdate(govPumpLimit)
 
-        var double proposedRate = pidRequest
-        if (proposedRate > govOutletLimit) proposedRate = govOutletLimit
-        if (proposedRate > govFlowLimit) proposedRate = govFlowLimit
-        if (proposedRate > govPumpLimit) proposedRate = govPumpLimit
-        if (proposedRate > externalLimit) proposedRate = externalLimit 
+        // ===============================================================================
+        // PROFESSIONAL ARBITRATION & SMOOTHING (Replaces Simple Logic)
+        // ===============================================================================
         
-        // DIAGNOSTIC LOGGING
-        logInfo("Boiler.Diagnostic", 
-            "| Tgt:" + String::format("%.1f", targetTemp) + 
-            " | Sup:" + String::format("%.1f", supplyTemp) + 
-            " | Err:" + String::format("%.1f", error) + 
-            " | P:" + String::format("%.1f", P) + 
-            " | I:" + String::format("%.1f", mem_pid_integral) + 
-            " | PID:" + String::format("%.1f", pidRequest) + 
-            " | Out:" + String::format("%.1f", outletTemp) + 
-            " | Gov:" + String::format("%.1f", govOutletLimit) + 
-            " | DT_Gov:" + String::format("%.1f", govFlowLimit) +
-            " | Final:" + String::format("%.1f", proposedRate)
-        )
+        // 1. RAW ARBITRATION (Who wins?)
+        var double rawProposedRate = pidRequest
+        var String limitingFactor = "PID"
 
-        // Slew Rate
-        val double maxRisePerCycle = 2.0 
-        if (proposedRate > lastSafeRate + maxRisePerCycle) safeRate = lastSafeRate + maxRisePerCycle
-        else safeRate = proposedRate
+        // Check Governors
+        if (rawProposedRate > govOutletLimit) {
+            rawProposedRate = govOutletLimit
+            limitingFactor = "HighLimit_Gov"
+        }
+        // Only apply Flow/Pump limits if they are actually restrictive (avoid noise)
+        if (rawProposedRate > govFlowLimit && govFlowLimit < 99.0) {
+            rawProposedRate = govFlowLimit
+            limitingFactor = "DeltaT_Gov"
+        }
         
-        if (safeRate < 0.0) safeRate = 0.0
-        if (safeRate > 100.0) safeRate = 100.0
-        lastSafeRate = safeRate
-        
-        // --- STARTUP OVERRIDE ---
-        var int desiredEnable = 0
-        if (last_demand_time > 0 && (now.millis - last_demand_time) < 60000) desiredEnable = 1
-        if (pidRequest > 10.0) desiredEnable = 1
+        // External Limits (Zone/Maintenance)
+        var double externalLimit = 100.0
+        if (Boiler_Zone_Limit.state instanceof Number) externalLimit = (Boiler_Zone_Limit.state as Number).doubleValue
+        if (rawProposedRate > externalLimit) {
+            rawProposedRate = externalLimit
+            limitingFactor = "Zone_Limit"
+        }
 
-        if (desiredEnable == 1 && pumpSpeed < 1.0 && safeRate < 25.0) safeRate = 25.0 
-
-        // --- SOFT START ---
-        var double ramp_base = last_firing_rate
-        if (ramp_base < 20.0) ramp_base = 20.0
-        if (safeRate > (ramp_base + 5.0)) safeRate = ramp_base + 5.0
-        
-        // --- INTEGRAL MGMT (ACTIVE GOVERNOR TRACKING) ---
+        // 2. INTEGRAL MANAGEMENT (Anti-Windup "Smart Freeze")
+        // If we are being governed (limited) by safety, we MUST freeze the PID Integral.
+        var boolean governorsActive = (rawProposedRate < pidRequest)
         var boolean startup_freeze = (outletTemp < inletTemp + 2.0)
-        var boolean governorsActive = (safeRate < pidRequest)
-        
+
         if (!startup_freeze) {
             if (!governorsActive) {
-                // Standard Integration
+                // STANDARD OPERATION: Integrate normally
                 mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
             } 
             else {
-                // GOVERNOR ACTIVE: Anti-Windup
-                // Back-Calculation to track the limit
-                var double tracked_I = safeRate - P
-                mem_pid_integral = (mem_pid_integral * 0.5) + (tracked_I * 0.5)
-                logInfo("Boiler.PID", "Governor Active. Tracking I-Term down to " + String::format("%.1f", mem_pid_integral))
+                // GOVERNOR ACTIVE: 
+                // Commercial Standard: "Freeze and Decay". 
+                // If Error is negative (Overshoot), allow I-term to drop. Otherwise freeze.
+                if (error < 0) {
+                     mem_pid_integral = mem_pid_integral + ((Ki * 0.5) * error)
+                }
+                logDebug("Boiler.PID", "Governor Active (" + limitingFactor + "). Freezing I-Term at " + String::format("%.1f", mem_pid_integral))
             }
         }
         
+        // Safety Clamps for Integral
         if (mem_pid_integral > 50.0) mem_pid_integral = 50.0
         if (mem_pid_integral < -10.0) mem_pid_integral = -10.0
         update_pid_mem = true
 
-        // --- DEADBAND, MIN FIRE & TAILOUT LOGIC ---
-        val double min_fire = 10.0
-        val double cruise_threshold = 12.0 
-        val double cutoff_threshold = 5.0
-        val int shutdown_debounce_ms = 10000 
-        
-        // TAILOUT
-        // Logic: If Rate is low (<12%) AND Delta T is tiny (< 2F), we are done.
-        var boolean tailout = (safeRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
+        // 3. OUTPUT SMOOTHING (The "Rolls Royce" Filter)
+        // Weighted Moving Average: alpha = 0.20 means 20% New, 80% Old.
+        // This eliminates gas valve "jitter".
+        val double alpha = 0.20 
+        var double smoothedRate = 0.0
 
-        // 1. Update VALID Demand Timer
-        if (safeRate > cutoff_threshold && !tailout) {
+        // STARTUP JUMP: If we are OFF and want to start, bypass smoothing to prevent Deadband Trap
+        // If last rate was 0, and we want > 10%, jump to 25% instantly to guarantee ignition
+        if (last_firing_rate < 1.0 && rawProposedRate > min_fire) {
+             smoothedRate = 25.0
+             limitingFactor = "Ignition_Jump"
+        } 
+        else {
+             smoothedRate = (alpha * rawProposedRate) + ((1.0 - alpha) * last_firing_rate)
+             
+             // Slew Rate Limiter (Mechanical Protection)
+             val double maxRise = 2.0
+             val double maxFall = 5.0 
+             
+             if (smoothedRate > last_firing_rate + maxRise) smoothedRate = last_firing_rate + maxRise
+             if (smoothedRate < last_firing_rate - maxFall) smoothedRate = last_firing_rate - maxFall
+        }
+
+        // Absolute Clamps
+        if (smoothedRate < 0.0) smoothedRate = 0.0
+        if (smoothedRate > 100.0) smoothedRate = 100.0
+
+        // 4. DEADBAND & CUTOFF
+        var double finalRate = 0.0
+        
+        // TAILOUT Logic
+        var boolean tailout = (smoothedRate < cruise_threshold && boilerDeltaT < 2.0 && pumpSpeed > 10.0)
+
+        // Demand Timer Update
+        if (smoothedRate > cutoff_threshold && !tailout) {
             last_demand_time = now.millis
         }
 
-        // 2. Determine Final Rate
         if (tailout) {
             finalRate = 0.0
-            update_pid_mem = true 
-            logInfo("Boiler.Tailout", "TAILOUT: Low DeltaT (" + String::format("%.1f", boilerDeltaT) + ") at Min Fire. Force Stop.")
+            logInfo("Boiler.Tailout", "TAILOUT: Low DeltaT (" + String::format("%.1f", boilerDeltaT) + ") at Min Fire. Saving Gas.")
         }
-        else if (safeRate < cruise_threshold) {
-            if (safeRate <= cutoff_threshold) {
-                if ((now.millis - last_demand_time) < shutdown_debounce_ms) {
-                    finalRate = min_fire 
-                } else {
-                    finalRate = 0.0 
-                    update_pid_mem = true
-                }
-            }
-            else {
-                finalRate = min_fire
-            }
+        else if (smoothedRate < cruise_threshold) {
+             if (smoothedRate > cutoff_threshold) {
+                 // Check debounce - if we just started, hold min fire
+                 if ((now.millis - last_demand_time) < 10000) {
+                     finalRate = min_fire 
+                 } else {
+                     finalRate = 0.0 
+                 }
+             } else {
+                 finalRate = 0.0 // Shut down
+             }
         } else {
-            finalRate = safeRate
+            finalRate = smoothedRate
         }
-        
-        if (finalRate > 100.0) finalRate = 100.0
-        
-        // --- EXECUTION ---
-        if (finalRate > 0.1) {
-            desiredEnable = 1
-        } else {
-            desiredEnable = 0
+
+        // 5. DIAGNOSTIC LOGGING (Factory Style)
+        // Only log if active
+        if (finalRate > 0 || last_firing_rate > 0) {
+             logInfo("Boiler.Diagnostic", 
+                "Tgt:" + String::format("%.1f", targetTemp) + 
+                "|Sup:" + String::format("%.1f", supplyTemp) + 
+                "|Out:" + String::format("%.1f", outletTemp) + 
+                "|PID:" + String::format("%.1f", pidRequest) + 
+                "|GovLim:" + String::format("%.1f", govOutletLimit) + 
+                "|FINAL:" + String::format("%.1f", finalRate) +
+                "|State:" + limitingFactor
+            )
         }
+
+        // 6. EXECUTION
+        // Note: We use min_fire as threshold for Enable, but check smoothedRate to catch the Ignition Jump
+        var int desiredEnable = if (finalRate >= min_fire || (smoothedRate > cutoff_threshold)) 1 else 0
         
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
         if (desiredEnable == 1) Thread::sleep(100)
         
-        var int payload = (finalRate).intValue
+        var int payload = finalRate.intValue
         var int currentRate = if(Lochinvar_40003_Rate_Command.state instanceof Number) (Lochinvar_40003_Rate_Command.state as Number).intValue else -1
         
-        if (currentRate != payload) {
-            var int currentMode = if(Lochinvar_40001_Control_Mode.state instanceof Number) (Lochinvar_40001_Control_Mode.state as Number).intValue else 0
-            if (currentMode != 5 && payload > 0) {
-                 Lochinvar_40001_Control_Mode.sendCommand(5)
-                 Thread::sleep(100) 
+        // Force update if Enable is HIGH, OR if we need to zero it out
+        if (desiredEnable == 1 || (desiredEnable == 0 && currentRate > 0)) {
+            if (currentRate != payload) {
+                var int currentMode = if(Lochinvar_40001_Control_Mode.state instanceof Number) (Lochinvar_40001_Control_Mode.state as Number).intValue else 0
+                if (currentMode != 5 && payload > 0) {
+                     Lochinvar_40001_Control_Mode.sendCommand(5) // Force BMS Mode
+                     Thread::sleep(100) 
+                }
+                Lochinvar_40003_Rate_Command.sendCommand(payload)
             }
-            Lochinvar_40003_Rate_Command.sendCommand(payload)
         }
+        
+        // Update History
+        last_firing_rate = finalRate
+        Boiler_Final_Command.postUpdate(finalRate)
+
     } 
     else {
-        finalRate = 0.0
+        // System OFF / Blocked / No Call
         if (Boiler_Block_Active.state == ON) {
             mem_pid_integral = 0.0
             update_pid_mem = true
         }
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
         Lochinvar_40003_Rate_Command.sendCommand(0)
+        last_firing_rate = 0.0
+        Boiler_Final_Command.postUpdate(0)
     }
 
     if (update_pid_mem) Boiler_Pid_Integral.postUpdate(mem_pid_integral)
-    last_firing_rate = finalRate
-    Boiler_Final_Command.postUpdate(finalRate)
 end
 
 // -----------------------------------------------------------------------------------
