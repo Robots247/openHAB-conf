@@ -1,426 +1,263 @@
-var Timer timerGAZV = null
-var Timer timerDutyCycle = null // For failsafe cycling
+import org.eclipse.smarthome.model.script.ScriptServiceUtil
 
-// BMS MONITORING VARIABLES
+// ===================================================================================
+// COMMERCIAL UNIT HEATER CONTROLLER (Garage)
+// Features: Timer-Based Fan Sync, Freeze Guard, Performance Monitor
+// Updates: Added Watchdog Enforcer (State Reconciliation)
+// ===================================================================================
+
+// --- TIMERS & STATE ---
+var Timer timerFanDelay = null
 var Timer timerPerformance = null
-var Number tempStart = null
-
-// MANUAL OVERRIDE VARIABLE
-var Timer timerManualOverride = null
-// RECOVERY VARIABLE
 var Timer timerFreezeRecovery = null
+var Timer timerManualOverride = null
+var Timer timerDutyCycle = null // Failsafe cycling
 
-rule "GAZV Initialization"
+// --- CONFIGURATION ---
+// Fan Delays (in Minutes)
+val int FAN_ON_DELAY_MIN = 2 
+val int FAN_OFF_DELAY_MIN = 2
+
+// ===================================================================================
+// RULE 1: INITIALIZATION
+// ===================================================================================
+rule "Garage Heater Init"
 when
     System started
 then
-    createTimer(now.plusSeconds(5), [|
-        if (GAZV.state == NULL || GAZV.state == UNDEF) {
-            GAtest1.sendCommand(OFF)
-        } 
-        else if (GAtest1.state == NULL || GAtest1.state == UNDEF) {
-            GAtest1.sendCommand(GAZV.state as OnOffType)
-        }
+    createTimer(now.plusSeconds(10), [|
+        if (GAtest1.state == NULL) GAtest1.sendCommand(OFF)
+        // Ensure Boiler Call is synced
+        if (GAZV.state == ON && CFH3.state != ON) CFH3.sendCommand(ON)
+        logInfo("Garage.Init", "Garage Heater Control Initialized.")
     ])
 end
 
-rule "GAZV Delayed Sync (Fan Control)"
+// ===================================================================================
+// RULE 2: FAN CONTROL (TIMER BASED "DELAYED SYNC")
+// ===================================================================================
+rule "Garage Fan Logic (Timer Sync)"
 when
     Item GAZV changed
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    /* TODO: FUTURE UPGRADE - Garage Door Interlock
-       OBJECTIVE: Prevent heating the neighborhood if the main garage door is open.
-       LOGIC TO IMPLEMENT:
-       if (GarageDoor_Contact.state == OPEN) {
-           logWarn("GAZV_Rules", "Garage Door is OPEN. Cancelling Heat Call.")
-           // Force Valve OFF if it tried to open
-           if (GAZV.state == ON) GAZV.sendCommand(OFF)
-           return;
-       }
-    */
-
-    if (timerGAZV !== null) {
-        timerGAZV.cancel()
-        timerGAZV = null
+    // Clear any existing fan timer to prevent overlap
+    if (timerFanDelay !== null) {
+        timerFanDelay.cancel()
+        timerFanDelay = null
     }
 
-    // ON DELAY: 
-    // TODO: FUTURE UPGRADE - Install a strap-on temperature sensor (Aquastat) to the supply pipe.
-    // LOGIC: Remove the timer below and replace with:
-    // if (SupplyPipe_Temp.state > 110) { GAtest1.sendCommand(ON) }
-    // This ensures the fan only runs when the water is physically hot, preventing cold air blow.
-    if (previousState == OFF && newState == ON) {
-        // Set to 2 minutes for now to ensure water is hot (prevent cold blow)
-        timerGAZV = createTimer(now.plusMinutes(2), [|
-            GAtest1.sendCommand(ON)
-            timerGAZV = null
-        ])
-    } 
-    // OFF DELAY: Wait 2 minutes to strip remaining heat off the coil (Efficiency)
-    else if (previousState == ON && newState == OFF) {
-        timerGAZV = createTimer(now.plusMinutes(2), [|
+    // 1. CALL START (Valve Opens) -> WAIT FOR HEAT
+    if (GAZV.state == ON) {
+        
+        // Trigger Boiler Call
+        if (CFH3.state != ON) {
+            CFH3.sendCommand(ON)
+            logInfo("Garage.Boiler", "Unit Heater Call: Triggering CFH3 (Boiler).")
+        }
+
+        // If Fan is already ON, leave it. If OFF, start the delay.
+        if (GAtest1.state != ON) {
+            logInfo("Garage.Fan", "Heat Call Start. Waiting " + FAN_ON_DELAY_MIN + "m for coil to heat.")
+            timerFanDelay = createTimer(now.plusMinutes(FAN_ON_DELAY_MIN), [|
+                if (GAZV.state == ON) {
+                    GAtest1.sendCommand(ON)
+                    logInfo("Garage.Fan", "Fan START: Delay Complete (Coil Ready).")
+                }
+                timerFanDelay = null
+            ])
+        } else {
+            logInfo("Garage.Fan", "Heat Call Start. Fan already ON (Ignoring Delay).")
+        }
+    }
+
+    // 2. CALL END (Valve Closes) -> SCAVENGE HEAT
+    else if (GAZV.state == OFF) {
+        
+        // Clear Boiler Call
+        if (CFH3.state != OFF) {
+            CFH3.sendCommand(OFF)
+            logInfo("Garage.Boiler", "Unit Heater Satisfied: Clearing CFH3.")
+        }
+
+        // If Fan is ON, keep it running to scavenge heat
+        if (GAtest1.state == ON) {
+            logInfo("Garage.Fan", "Heat Call End. Scavenging for " + FAN_OFF_DELAY_MIN + "m.")
+            timerFanDelay = createTimer(now.plusMinutes(FAN_OFF_DELAY_MIN), [|
+                if (GAZV.state == OFF) {
+                    GAtest1.sendCommand(OFF)
+                    logInfo("Garage.Fan", "Fan STOP: Scavenge Complete.")
+                }
+                timerFanDelay = null
+            ])
+        } else {
+            // Fan was already off (short cycle), ensure it stays off
             GAtest1.sendCommand(OFF)
-            timerGAZV = null
-        ])
+            logInfo("Garage.Fan", "Heat Call End. Fan already OFF.")
+        }
     }
 end
 
-rule "GAtest1 Manual Control"
+// ===================================================================================
+// RULE 3: MANUAL FAN OVERRIDE SYNC
+// ===================================================================================
+rule "Garage Manual Fan Control"
 when
     Item GAtest1 changed
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    // Manual Fan Override Logic
+    // If User turns FAN ON, force Valve ON (Heat)
     if (GAtest1.state == ON && GAZV.state != ON) {
-        GAZV.sendCommand(ON)
+        if (timerFanDelay === null) {
+            logInfo("Garage.Manual", "Manual Fan ON detected. Forcing Valve ON.")
+            GAZV.sendCommand(ON)
+        }
     }
+    // If User turns FAN OFF, force Valve OFF
     else if (GAtest1.state == OFF && GAZV.state != OFF) {
-        GAZV.sendCommand(OFF)
-    }
-end
-
-rule "Freeze Protection Manual Override Detection"
-when
-    Item GAZV changed to OFF or
-    Item GAtest1 changed to OFF
-then
-    if (System_Maintenance_Mode.state == ON) return;
-    
-    // Check if we are in Freeze Protection territory (< 40F)
-    // If the user turns off the heater while it is freezing, we assume they want it OFF for a bit.
-    val Number freezeTempThreshold = 40.0
-    
-    if (GAMS_Temp.state instanceof Number) {
-        if ((GAMS_Temp.state as Number).doubleValue < freezeTempThreshold) {
-            logInfo("Garage_Freeze", "Manual OFF detected during Freeze Risk (< 40F). Suppressing Freeze Protection for 30 minutes.")
-            
-            if (timerManualOverride !== null) {
-                timerManualOverride.cancel()
-            }
-            
-            timerManualOverride = createTimer(now.plusMinutes(30), [|
-                timerManualOverride = null
-                logInfo("Garage_Freeze", "Manual Override Timer Expired. Resuming Freeze Protection Monitoring.")
-            ])
+        if (timerFanDelay === null) {
+            logInfo("Garage.Manual", "Manual Fan OFF detected. Forcing Valve OFF.")
+            GAZV.sendCommand(OFF)
         }
     }
 end
 
-rule "Garage Freeze Protection & Failsafe"
+// =================================================================================
+// RULE 4: FREEZE PROTECTION & WATCHDOG (PROFESSIONAL GRADE)
+// =================================================================================
+// UPDATED: Now triggered by Time Cron (Watchdog) in addition to changes.
+rule "Garage Freeze Guard & Watchdog"
 when
     Item GAMS_Temp changed or
     Item Outdoor_Temperature changed or
-    Time cron "0 0/15 * * * ?" 
+    Time cron "0 0/15 * * * ?" // Runs every 15 minutes to reconcile state
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    /*
-       TODO: FUTURE UPGRADE - Garage Door Logic in Freeze Mode
-       RECOMMENDED LOGIC (Option B):
-       if (GarageDoor_Contact.state == OPEN) {
-           logError("Garage_Freeze", "CRITICAL: FREEZE RISK + DOOR OPEN. HEATING DISABLED.")
-           return;
-       }
-    */
-
-    // ENGINEERING ADJUSTMENT: Increased safety margin to 40F
-    val Number freezeTempThreshold = 40.0 
-    val Number outdoorSevereCold = 20.0
-    val Number minSafeSetpoint = 41.0
-    // NEW: Critical Threshold to ignore manual override
-    val Number criticalFreezeThreshold = 32.0
+    // THRESHOLDS (Deadband)
+    val double FREEZE_ON  = 38.0 
+    val double FREEZE_OFF = 42.0 
+    val double CRITICAL_F = 32.0 
     
-    var boolean freezeRiskDetected = false
-    var boolean sensorIsDead = false
-    var String logReason = ""
+    var double garageTemp = 100.0
+    if (GAMS_Temp.state instanceof Number) garageTemp = (GAMS_Temp.state as Number).doubleValue
+    
+    var boolean sensorDead = (GAMS_Temp.state == NULL || GAMS_Temp.state == UNDEF)
+    if (!sensorDead && GAMS_Temp.lastUpdate !== null && GAMS_Temp.lastUpdate.isBefore(now.minusHours(1))) sensorDead = true
 
-    // 1. Check Internal Temp
-    if (GAMS_Temp.state instanceof Number) {
-        if ((GAMS_Temp.state as Number).doubleValue < freezeTempThreshold) {
-            freezeRiskDetected = true
-            logReason = "Garage Temp < 40F"
-        }
-    }
-
-    // 2. Check Sensor Health
-    if (GAMS_Temp.state == NULL || GAMS_Temp.state == UNDEF) {
-        sensorIsDead = true
-    } else if (GAMS_Temp.lastUpdate !== null && GAMS_Temp.lastUpdate.isBefore(now.minusHours(1))) {
-        sensorIsDead = true
-    }
-
-    // 3. Failsafe Logic (Dead Sensor)
-    if (!freezeRiskDetected && Outdoor_Temperature.state instanceof Number) {
-        if ((Outdoor_Temperature.state as Number).doubleValue < outdoorSevereCold) {
-             if (sensorIsDead) {
-                 logReason = "Outdoor < 20F & Sensor Dead"
-                 freezeRiskDetected = true
-             }
-        }
-    }
-
-    // 4. ACTUATION
-    if (freezeRiskDetected) {
-        // CANCEL RECOVERY if active (Conditions worsened)
-        if (timerFreezeRecovery !== null) {
-            timerFreezeRecovery.cancel()
-            timerFreezeRecovery = null
+    // 1. FREEZE DETECTED
+    if (garageTemp < FREEZE_ON || (sensorDead && (Outdoor_Temperature.state as Number).doubleValue < 20.0)) {
+        
+        // CHECK OVERRIDE
+        if (timerManualOverride !== null && garageTemp > CRITICAL_F) {
+            return
         }
 
-        // --- MANUAL OVERRIDE CHECK ---
-        // Check if override is active, BUT ignore override if temp is critically low (<= 32F)
-        var boolean isCritical = false
-        if (GAMS_Temp.state instanceof Number && (GAMS_Temp.state as Number).doubleValue <= criticalFreezeThreshold) {
-            isCritical = true
-        }
-
-        if (timerManualOverride !== null && !isCritical) {
-            logInfo("Garage_Freeze", "Freeze Protection Active but SUPPRESSED by Manual Override (30 min timer). Temp > 32F.")
-            return; // Skip turning ON
+        // ACTION: FORCE HEAT (Watchdog ensures this happens even if missed first time)
+        if (GAZV.state != ON) {
+            logWarn("Garage.Watchdog", "FREEZE RISK DETECTED: Temp " + garageTemp + "F. Forcing Heat ON.")
+            
+            if (vGA_Heating_OFF_Override.state != ON) vGA_Heating_OFF_Override.sendCommand(ON)
+            
+            if (GA_Heating_TargetTemp.state == NULL || (GA_Heating_TargetTemp.state as Number).doubleValue < 45.0) {
+                GA_Heating_TargetTemp.sendCommand(45.0)
+            }
+            
+            // Direct Valve Control
+            GAZV.sendCommand(ON)
         }
         
-        if (isCritical && timerManualOverride !== null) {
-            logWarn("Garage_Freeze", "CRITICAL FREEZE (<= 32F): Ignoring Manual Override Timer. Forcing GAZV ON.")
+        // WATCHDOG: Ensure Boiler is Firing if Valve is Open
+        if (GAZV.state == ON && CFH3.state != ON) {
+             logWarn("Garage.Watchdog", "Valve OPEN but Boiler Call (CFH3) OFF. Forcing CFH3 ON.")
+             CFH3.sendCommand(ON)
         }
-        // -----------------------------
-
-        // Force Overrides
-        if (vGA_Heating_OFF_Override.state != ON) vGA_Heating_OFF_Override.sendCommand(ON)
         
-        // Enforce Minimum Safe Setpoint (41F)
-        if (GA_Heating_TargetTemp.state == NULL || (GA_Heating_TargetTemp.state as Number).doubleValue < minSafeSetpoint) {
-            logInfo("Garage_Freeze", "Freeze Protection: Forcing Setpoint to " + minSafeSetpoint)
-            GA_Heating_TargetTemp.sendCommand(minSafeSetpoint)
+        // If Sensor Dead, cycle blindly
+        if (sensorDead && timerDutyCycle === null) {
+             logWarn("Garage.Safety", "SENSOR FAILURE: Entering 50% Duty Cycle Failsafe.")
+             timerDutyCycle = createTimer(now.plusMinutes(15), [|
+                 if (GAZV.state == ON) {
+                     GAZV.sendCommand(OFF)
+                     logInfo("Garage.Failsafe", "Duty Cycle: OFF (15m)")
+                 } else {
+                     GAZV.sendCommand(ON)
+                     logInfo("Garage.Failsafe", "Duty Cycle: ON (15m)")
+                 }
+                 timerDutyCycle.reschedule(now.plusMinutes(15))
+             ])
         }
-
-        // FAILSAFE HANDLING
-        if (sensorIsDead) {
-            // Duty Cycle: 15min ON / 15min OFF
-            if (timerDutyCycle === null) {
-                logWarn("Garage_Freeze", "FAILSAFE MODE: Sensor Dead. Starting 15min ON / 15min OFF cycle.")
-                GAZV.sendCommand(ON)
-                timerDutyCycle = createTimer(now.plusMinutes(15), [|
-                    GAZV.sendCommand(OFF)
-                    timerDutyCycle = null
-                ])
-            }
-        } else {
-            // Normal Freeze Protection (Force ON)
-            if (GAZV.state != ON) {
-                logInfo("Garage_Freeze", "Freeze Protection Engaged: " + logReason)
-                GAZV.sendCommand(ON)
-            }
-            if (timerDutyCycle !== null) {
-                timerDutyCycle.cancel()
-                timerDutyCycle = null
-            }
-        }
-    } 
-    else {
-        // 5. RECOVERY
+    }
+    // 2. FREEZE RECOVERY (Hysteresis)
+    else if (garageTemp > FREEZE_OFF) {
+        
         if (timerDutyCycle !== null) {
             timerDutyCycle.cancel()
             timerDutyCycle = null
-        }
-
-        // --- NEW: Safe Condition Recovery Timer (Off-Delay) ---
-        // Requirement: Temp > 40F AND Outdoor > 32F
-        // We use a timer to ensure conditions are stable before turning off the override flag.
-        
-        var boolean isSafe = false
-        if (GAMS_Temp.state instanceof Number && Outdoor_Temperature.state instanceof Number) {
-            val Double currentTemp = (GAMS_Temp.state as Number).doubleValue
-            val Double outdoorTemp = (Outdoor_Temperature.state as Number).doubleValue
-            
-            // "Safe" = Inside > 40F (Threshold) AND Outside > 32F (Freezing)
-            if (currentTemp >= freezeTempThreshold && outdoorTemp > 32.0) {
-                isSafe = true
-            }
-        }
-
-        if (isSafe && vGA_Heating_OFF_Override.state == ON) {
-            if (timerFreezeRecovery === null) {
-                logInfo("Garage_Freeze", "Conditions Safe (Inside > 40F, Outside > 32F). Starting 30min timer to reset Override.")
-                timerFreezeRecovery = createTimer(now.plusMinutes(30), [|
-                    vGA_Heating_OFF_Override.sendCommand(OFF)
-                    logInfo("Garage_Freeze", "Freeze Override Reset to OFF (Safe Condition Confirmed).")
-                    timerFreezeRecovery = null
-                ])
-            }
-        } 
-        else if (!isSafe && timerFreezeRecovery !== null) {
-            // If conditions dip back into unsafe/marginal during the wait, cancel the reset
-            timerFreezeRecovery.cancel()
-            timerFreezeRecovery = null
-            logInfo("Garage_Freeze", "Safe Condition Recovery Aborted (Conditions Unstable).")
-        }
-        // If Override is already OFF, ensure timer is cleared
-        else if (vGA_Heating_OFF_Override.state != ON && timerFreezeRecovery !== null) {
-            timerFreezeRecovery.cancel()
-            timerFreezeRecovery = null
+            logInfo("Garage.Safety", "Sensor Restored/Safe. Cancelling Failsafe Cycle.")
         }
         
-        // Cleanup if sensor is dead but outside is safe (Existing Logic)
-        if (sensorIsDead && Outdoor_Temperature.state instanceof Number) {
-            if ((Outdoor_Temperature.state as Number).doubleValue >= outdoorSevereCold && GAZV.state == ON) {
-                GAZV.sendCommand(OFF)
-            }
-        }
-    }
-end
-
-// BMS FEATURE 1: Performance Monitor (Proof of Run)
-rule "Garage Heating Performance Monitor"
-when
-    Item GAZV changed
-then
-    if (GAZV.state == ON) {
-        // Capture starting temperature
-        if (GAMS_Temp.state instanceof Number) {
-            tempStart = (GAMS_Temp.state as Number).doubleValue
-            
-            // Start Performance Timer (e.g. 30 Minutes)
-            // If temp hasn't risen in 30 mins, we have a mechanical failure (Pump, Boiler, or Valve)
-            timerPerformance = createTimer(now.plusMinutes(30), [|
-                var Number currentTemp = (GAMS_Temp.state as Number).doubleValue
-                
-                // Check Delta (Has it risen by at least 1 degree?)
-                if (currentTemp <= tempStart + 1.0) {
-                     logError("GAZV_Monitor", "ALARM: Garage Heater Active for 30mins but Temperature did not rise! Possible boiler/pump failure.")
-                     
-                     // TODO: FUTURE DEVELOPMENT - SMS ALARMING
-                     // Implement Twilio binding or OpenHAB Cloud Notification
-                     // Logic: sendBroadcastNotification("CRITICAL: Garage Heat Failure")
-                     // Logic: sendSMS("970-389-4788", "Garage Heat Failure")
-                }
-                timerPerformance = null
-            ])
-        }
-    } else {
-        // Heater turned off, cancel the monitor
-        if (timerPerformance !== null) {
-            timerPerformance.cancel()
-            timerPerformance = null
+        // WATCHDOG: Ensure Boiler Turns OFF if Valve Closes
+        if (GAZV.state == OFF && CFH3.state == ON) {
+             // Only turn off if Fan is also OFF (to allow scavenge)
+             if (GAtest1.state == OFF) {
+                 logWarn("Garage.Watchdog", "Valve CLOSED but Boiler Call (CFH3) ON. Forcing CFH3 OFF.")
+                 CFH3.sendCommand(OFF)
+             }
         }
     }
 end
 
 // =================================================================================
-// CFH3 LOGIC (UNIT HEATER CALL FOR HEAT)
+// RULE 5: MANUAL OVERRIDE LOGIC
 // =================================================================================
-// Added logic to trigger boiler Call For Heat (CFH3) when Garage Valve opens.
-
-rule "Call for High Heat Unit Heater ON"
+rule "Garage Manual Override Handler"
 when
-    Item GAZV changed from OFF to ON
+    Item GAZV changed to OFF
 then
-    // GUARD: Stop if Maintenance Mode is ON
-    if (System_Maintenance_Mode.state == ON) return;
-    // GUARD: Stop if BMS Mode is Active
-    if (Boiler_BMS_ENBLE.state == ON) return;
-
-    if (CFH3.state != ON){
-        CFH3.sendCommand(ON)
-        logInfo("CFH3.rule", "High Temperature Call for heat required by Unit Heaters")
-    }       
-end
-
-rule "Call for High Heat Unit Heater OFF"
-when 
-    Item GAZV changed from ON to OFF
-then
-    // GUARD: Stop if Maintenance Mode is ON
-    if (System_Maintenance_Mode.state == ON) return;
-    // GUARD: Stop if BMS Mode is Active
-    if (Boiler_BMS_ENBLE.state == ON) return;
-
-    if (CFH3.state != OFF){
-        CFH3.sendCommand(OFF)
-        logInfo("CFH3.rule", "High Temperature Call for Heat satisfied, Turning off CFH3")
-    }
-end
-
-// ENGINEERING ADDITION: Weekly Valve Exerciser (Summer Only)
-rule "Weekly Valve Exercise"
-when
-    Time cron "0 0 12 ? * MON" // Mondays at Noon
-then
-    // Only run if Outdoor Temp is > 70F (Summer Mode)
-    if (Outdoor_Temperature.state instanceof Number && (Outdoor_Temperature.state as Number).doubleValue > 70) {
-        logInfo("Maintenance_Rules", "Summer Maintenance: Exercising ALL Zone Valves (Outdoor > 70F).")
+    // If user turns heat OFF while it's freezing, give them 30 mins
+    if (GAMS_Temp.state instanceof Number && (GAMS_Temp.state as Number).doubleValue < 40.0) {
+        if (timerManualOverride !== null) timerManualOverride.cancel()
         
-        // List of all valves to exercise (Garage, High Temp, Radiant)
-        val valves = newArrayList(
-            GAZV,   // Garage
-            RHZV,   // Radiant Pump Trigger/Group
-            LRZV,   // Living Room
-            GBrZV,  // Guest Bedroom
-            MRZV,   // Mud Room
-            BMTZV,  // Basement
-            DENRH,  // Den Radiant
-            MBaRH,  // Master Bath Radiant
-            MBeRH   // Master Bed Radiant
-        )
-
-        valves.forEach[ valve |
-            if (valve.state != ON) {
-                valve.sendCommand(ON)
-            }
-        ]
-
-        // Close them all after 1 minute
-        createTimer(now.plusMinutes(1), [|
-            valves.forEach[ valve |
-                valve.sendCommand(OFF)
-            ]
-            logInfo("Maintenance_Rules", "Summer Maintenance: Valve exercise complete.")
+        logInfo("Garage.Safety", "Manual OFF detected during cold (" + GAMS_Temp.state + "F). Pausing Freeze Guard for 30 min.")
+        timerManualOverride = createTimer(now.plusMinutes(30), [|
+            timerManualOverride = null
+            logInfo("Garage.Safety", "Manual Override Expired. Re-enabling Freeze Guard.")
         ])
     }
 end
 
-/* =================================================================================
-   TODO: FUTURE BMS IMPLEMENTATION PLANS
-   =================================================================================
+// =================================================================================
+// RULE 6: PERFORMANCE MONITOR
+// =================================================================================
+rule "Garage Performance Monitor"
+when
+    Item GAZV changed to ON
+then
+    if (GAMS_Temp.state instanceof Number) {
+        val double startTemp = (GAMS_Temp.state as Number).doubleValue
+        logInfo("Garage.Monitor", "Performance Monitor Started. Start Temp: " + startTemp + "F")
+        
+        if (timerPerformance !== null) timerPerformance.cancel()
+        timerPerformance = createTimer(now.plusMinutes(30), [|
+            val double endTemp = (GAMS_Temp.state as Number).doubleValue
+            // If temp hasn't risen by 1 degree in 30 mins -> ALARM
+            if (endTemp <= startTemp + 1.0) {
+                logError("Garage.Monitor", "FAILURE DETECTED: Unit Heater running 30m with no temp rise! (Start:" + startTemp + " End:" + endTemp + ")")
+            } else {
+                logInfo("Garage.Monitor", "Performance Check Passed. Rose " + (endTemp - startTemp) + "F in 30m.")
+            }
+            timerPerformance = null
+        ])
+    }
+end
 
-   2. TOTAL SYSTEM RUNTIME & CYCLE COUNTS (SYSTEM WIDE)
-      -----------------------------------------------------------------------------
-      OBJECTIVE: Implement predictive maintenance tracking across entire HVAC system.
-      REQUIREMENTS:
-        - Items: Create [ItemName]_Runtime_Hours and [ItemName]_Cycle_Count for every valve/pump.
-        - Persistence: Configure MapDB (restoreOnStartup) or InfluxDB to save counts across reboots.
-        - Logic: 
-             rule "Track Runtime"
-             when Item [AnyValve] changed
-             then
-                 if (newState == ON) { 
-                    [Item]_Cycle_Count.postUpdate([Item]_Cycle_Count.state + 1)
-                    // Start timing
-                 }
-                 if (newState == OFF) {
-                    // Stop timing, add to [Item]_Runtime_Hours
-                 }
-             end
-      - MAINTENANCE: Trigger "Service Due" alarm when Runtime > 2000 Hours.
-
-   3. ALARM CLASSIFICATION SYSTEM
-      -----------------------------------------------------------------------------
-      OBJECTIVE: Prioritize notifications based on severity.
-      REQUIREMENTS:
-        - Define Alarm Classes:
-          * CLASS A (CRITICAL): Freeze Risk, Pump Fail, Leak Detect -> SMS + Voice Call
-          * CLASS B (WARNING): Filter Dirty, Efficiency Drop, Sensor Stale -> Email Report
-          * CLASS C (INFO): Mode Changes, Valve Exercising -> Log file only
-        - Implementation: Create a centralized "Alarm Handler" rule that accepts alarm input 
-          and routes it to the correct output (Log vs Text vs Email).
-
-   4. GARAGE DOOR INTERLOCK
-      -----------------------------------------------------------------------------
-      OBJECTIVE: Disable Heating if Garage Door is left open to save energy.
-      REQUIREMENTS:
-        - Item: Contact Sensor on Main Garage Door (e.g. GarageDoor_Contact).
-        - Logic: If Contact == OPEN, block GAZV ON commands.
-        - Alarm: If Temp < 40F AND Door == OPEN, Trigger Critical Alarm (Class A).
-*/
+rule "Garage Performance Stop"
+when Item GAZV changed to OFF then
+    if (timerPerformance !== null) {
+        timerPerformance.cancel()
+        timerPerformance = null
+    }
+end

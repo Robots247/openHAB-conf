@@ -3,8 +3,8 @@ import java.util.Map
 
 // ===================================================================================
 // PROFESSIONAL THERMOSTAT ENGINE (Universal State Machine)
-// Architecture: Group-Based Triggers, Centralized Logic, Dynamic Actuation
-// Updates: Fully Compatible with 'heating_mode.items' naming conventions
+// Architecture: Group-Based Triggers + Periodic Watchdog
+// Updates: Added "Watchdog Enforcer" to prevent frozen zones
 // Compatibility: OpenHAB 2.5 (Eclipse Smarthome)
 // ===================================================================================
 
@@ -34,21 +34,20 @@ val Map<String, String> roomActuators = newHashMap(
 )
 
 // 2. SENSORS (Room Prefix -> Temp Sensor Item)
-// Maps the diverse naming conventions in your Items file to the standard Prefixes
 val Map<String, String> roomSensors = newHashMap(
-    "DEN" -> "Den_TstatTemp",      // Note: "Den" vs "DEN" handled here
+    "DEN" -> "Den_TstatTemp",      
     "MBa" -> "MBa_Tstat_Temp",
     "MBe" -> "MBe_Tstat_Temp",
     "LR"  -> "LR_Tstat_Temp",
     "GBr" -> "GBr_Tstat_Temp",
     "MR"  -> "MR_Tstat_Temp",
-    "BMT" -> "BMT_Tstat_Temp",     // Assumes Main BMT Tstat. Switch to BMTBr_Tstat_Temp if needed.
+    "BMT" -> "BMT_Tstat_Temp",     
     "GA"  -> "GA_Tstat_Temp",
-    "KIT" -> "KITMS_Temp"          // Kitchen is usually slave, but good to have mapped
+    "KIT" -> "KITMS_Temp"          
 )
 
 // =================================================================================
-// RULE 1: UNIVERSAL THERMOSTAT LOGIC
+// RULE 1: UNIVERSAL ZONE MANAGER (Event Driven)
 // =================================================================================
 rule "Universal Zone Manager"
 when
@@ -58,60 +57,69 @@ when
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    // 1. IDENTIFY ROOM PREFIX
+    // 1. IDENTIFY ROOM & ITEMS
     val String triggerName = triggeringItem.name
     var String roomPrefix = ""
 
-    // Strategy: Strip suffixes to find the "Root" name
     if (triggerName.contains("Heating_TargetTemp")) {
         roomPrefix = triggerName.split("_").get(0)
-    } 
-    else {
-        // Handle the diverse Sensor naming conventions
-        if (triggerName.contains("_Tstat_Temp")) {
-            roomPrefix = triggerName.replace("_Tstat_Temp", "")
-        } 
-        else if (triggerName.contains("_TstatTemp")) {
-            roomPrefix = triggerName.replace("_TstatTemp", "")
-        }
-        else if (triggerName.contains("MS_Temp")) {
-            roomPrefix = triggerName.replace("MS_Temp", "")
-        }
+    } else {
+        if (triggerName.contains("_Tstat_Temp")) roomPrefix = triggerName.replace("_Tstat_Temp", "")
+        else if (triggerName.contains("_TstatTemp")) roomPrefix = triggerName.replace("_TstatTemp", "")
+        else if (triggerName.contains("MS_Temp")) roomPrefix = triggerName.replace("MS_Temp", "")
     }
     
-    // Normalize "Den" to "DEN" (Case correction)
     if (roomPrefix == "Den") roomPrefix = "DEN"
-
-    // Guard: Exit if this room isn't in our Actuator Map (e.g., Kitchen might be skipped here as it's a slave)
     if (roomPrefix == "" || !roomActuators.containsKey(roomPrefix)) return;
 
-    // 2. LOOKUP ITEMS
+    // Execute Logic for this single room
+    checkZoneState(roomPrefix)
+end
+
+// =================================================================================
+// RULE 1.5: THE WATCHDOG ENFORCER (Periodic Audit)
+// =================================================================================
+// SAFETY NET: Runs every 5 minutes to catch "Missed" commands or Stuck Valves.
+// This prevents a room from freezing if the "Changed" event was missed.
+
+rule "Thermostat Watchdog Enforcer"
+when
+    Time cron "0 0/5 * * * ?" 
+then
+    if (System_Maintenance_Mode.state == ON) return;
+    
+    // Iterate through ALL known rooms and force a state check
+    roomActuators.keySet.forEach[ room |
+        checkZoneState(room)
+    ]
+end
+
+// =================================================================================
+// HELPER LAMBDA: CORE LOGIC (Reused by Event & Watchdog)
+// =================================================================================
+// By moving the logic here, we ensure the Watchdog and the Event Trigger use
+// IDENTICAL decision making.
+
+val org.eclipse.xtext.xbase.lib.Procedures$Procedure1<String> checkZoneState = [ String roomPrefix |
+    
+    // 1. LOOKUP ITEMS
     val String actuatorName = roomActuators.get(roomPrefix)
     val String tempItemName = roomSensors.get(roomPrefix)
     val String targetItemName = roomPrefix + "_Heating_TargetTemp"
     
-    // Safety Check: Did we find a valid sensor map?
-    if (tempItemName === null) {
-        logWarn("Tstat.Error", "No sensor mapped for room: " + roomPrefix)
-        return;
-    }
+    if (tempItemName === null) return;
 
-    // Fetch Actual Item Objects
     val tempItem = ScriptServiceUtil.getItemRegistry.getItem(tempItemName)
     val targetItem = ScriptServiceUtil.getItemRegistry.getItem(targetItemName)
     val actuatorItem = ScriptServiceUtil.getItemRegistry.getItem(actuatorName)
     
-    // UI Helper Item (Optional) - Used for Display
+    // UI Helper Item (Optional)
     var org.eclipse.smarthome.core.items.GenericItem uiTstatItem = null
     try {
-        // Try the standard naming convention for UI item
         uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem(roomPrefix + "_Tstat_Temp") as org.eclipse.smarthome.core.items.GenericItem
     } catch (Exception e) {
-        // Special Case: "Den" prefix in UI items
         if (roomPrefix == "DEN") {
-            try {
-                uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp") as org.eclipse.smarthome.core.items.GenericItem
-            } catch (Exception e2) {}
+            try { uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp") as org.eclipse.smarthome.core.items.GenericItem } catch (Exception e2) {}
         }
     }
 
@@ -120,13 +128,9 @@ then
     val double currentTemp = (tempItem.state as Number).doubleValue
     val double targetTemp = (targetItem.state as Number).doubleValue
     
-    // Update UI (Safe)
-    if (uiTstatItem !== null) {
-        try { uiTstatItem.sendCommand(currentTemp) } catch(Exception e) {}
-    }
+    if (uiTstatItem !== null) { try { uiTstatItem.sendCommand(currentTemp) } catch(Exception e) {} }
 
-    // 3. DETERMINE PARAMETERS (MASS-SPECIFIC LOGIC)
-    // ---------------------------------------------------------
+    // 2. DETERMINE PARAMETERS
     var double hystHigh = 0.5
     var double hystLow = 0.5
     var boolean isRadiant = actuatorName.contains("RH")
@@ -136,29 +140,24 @@ then
         if (RH_HysteresisHigh.state instanceof Number) hystHigh = (RH_HysteresisHigh.state as Number).doubleValue
         if (RH_HysteresisLow.state instanceof Number) hystLow = (RH_HysteresisLow.state as Number).doubleValue
         
-        // --- MASS-SPECIFIC CUTOFFS ---
         if (roomPrefix == "MBa" || roomPrefix == "KIT") {
-            // High Mass (Concrete/Tile) -> Early Cutoff
             hystHigh = -0.2 
             modeDescription = "HighMass(EarlyCut)"
         } else {
-            // Medium Mass (Wood) -> Soft Landing
             hystHigh = 0.0
             modeDescription = "MedMass(SoftLand)"
         }
-        
     } else if (roomPrefix == "GA") {
          if (GA_HysteresisHigh.state instanceof Number) hystHigh = (GA_HysteresisHigh.state as Number).doubleValue
          if (GA_HysteresisLow.state instanceof Number) hystLow = (GA_HysteresisLow.state as Number).doubleValue
          modeDescription = "GarageUnit"
     } else {
-        // Baseboard -> Standard Hysteresis
         if (ZV_HysteresisHigh.state instanceof Number) hystHigh = (ZV_HysteresisHigh.state as Number).doubleValue
         if (ZV_HysteresisLow.state instanceof Number) hystLow = (ZV_HysteresisLow.state as Number).doubleValue
         modeDescription = "Baseboard"
     }
 
-    // SYNC BONUS ("Opportunity Heating")
+    // SYNC BONUS
     var double syncBonus = 0.0
     if (roomPrefix != "GA") { 
         if (Boiler_Graph_State.state instanceof Number) {
@@ -167,28 +166,16 @@ then
         }
     }
 
-    // 4. DECISION LOGIC
-    // ---------------------------------------------------------
+    // 3. DECISION LOGIC
     val double onThreshold = targetTemp - hystLow + syncBonus
     val double offThreshold = targetTemp + hystHigh 
     
-    // DEBUGGING
-    logInfo("Tstat.Debug", "EVAL: " + roomPrefix + 
-        " | Cur=" + String::format("%.2f", currentTemp) + 
-        " | Tgt=" + String::format("%.2f", targetTemp) + 
-        " | Mode=" + modeDescription + 
-        " | HystH=" + hystHigh + 
-        " | Sync=" + syncBonus +
-        " | ON_Trig=" + String::format("%.2f", onThreshold) + 
-        " | OFF_Trig=" + String::format("%.2f", offThreshold)
-    )
-
     // GARAGE OVERRIDE
     if (roomPrefix == "GA") {
         if (vGA_Heating_OFF_Override.state != ON) {
              if (actuatorItem.state != OFF) {
                  actuatorItem.sendCommand(OFF)
-                 logInfo("Tstat.Debug", "   -> Override Active. Forcing OFF.")
+                 logInfo("Tstat.Watchdog", "Garage Override Active. Forcing GAZV OFF.")
              }
              return;
         }
@@ -197,6 +184,8 @@ then
     // STATE MACHINE
     if (currentTemp < onThreshold) {
         // --- DEMAND: ON ---
+        // WATCHDOG FIX: We check if it is NOT ON. 
+        // If it SHOULD be on, but is OFF, we force it.
         if (actuatorItem.state != ON) {
             actuatorItem.sendCommand(ON)
             lastOnTimes.put(actuatorName, now.millis)
@@ -228,13 +217,11 @@ then
                     "|Mode:" + modeDescription
                 )
             } else {
-                 logInfo("Tstat.Debug", "   -> MinRunTime Active for " + roomPrefix + ". Remaining: " + ((MIN_RUN_TIME - runtime)/1000) + "s")
+                 // Log only on change or explicit debug
             }
         }
-    } else {
-        logInfo("Tstat.Debug", "   -> DEADBAND: No Action Required.") 
     }
-end
+]
 
 // =================================================================================
 // RULE 2: KITCHEN SLAVE (VARIABLE PWM)
@@ -246,8 +233,6 @@ when
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    // USE MAPPED ITEMS FOR ROBUSTNESS
-    // Explicitly fetching Items to ensure names match the map
     val tempItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp")
     val targetItem = ScriptServiceUtil.getItemRegistry.getItem("DEN_Heating_TargetTemp")
     
@@ -288,74 +273,68 @@ end
 // =================================================================================
 
 rule "CFH1 Manager"
-when Item ZV changed then
+when Item ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (ZV.state == ON && CFH1.state == OFF) {
         CFH1.sendCommand(ON)
-        logInfo("HAL.Relay", "High Temp Call Active (CFH1 ON)")
+        logInfo("HAL.Watchdog", "Re-asserting CFH1 (High Temp) ON")
     }
     else if (ZV.state == OFF && CFH1.state == ON) {
         CFH1.sendCommand(OFF)
-        logInfo("HAL.Relay", "High Temp Call Satisfied (CFH1 OFF)")
     }
 end
 
 rule "CFH2 Manager"
-when Item RHP changed then
+when Item RHP changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (RHP.state == ON && CFH2.state == OFF) {
         CFH2.sendCommand(ON)
-        logInfo("HAL.Relay", "Radiant Call Active (CFH2 ON)")
+        logInfo("HAL.Watchdog", "Re-asserting CFH2 (Radiant) ON")
     }
     else if (RHP.state == OFF && CFH2.state == ON) {
         CFH2.sendCommand(OFF)
-        logInfo("HAL.Relay", "Radiant Call Satisfied (CFH2 OFF)")
     }
 end
 
 rule "Radiant Pump Logic"
-when Item RHZV changed then
+when Item RHZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (RHZV.state == ON) {
         if (RHP.state != ON) {
-            logInfo("HAL.Pump", "Radiant Demand. Starting 2min Wax Valve Delay.")
-            if (RHP_timer !== null) RHP_timer.cancel()
-            RHP_timer = createTimer(now.plusMinutes(2), [|
-                if (RHZV.state == ON) { 
-                    RHP.sendCommand(ON)
-                    logInfo("HAL.Pump", "Radiant Pump START")
-                }
-            ])
+            // Check if we are waiting on a timer
+            if (RHP_timer === null) {
+                 // No timer running, but pump is OFF? Restart Delay.
+                 logInfo("HAL.Watchdog", "Radiant Demand Active but Pump OFF. Starting Delay.")
+                 RHP_timer = createTimer(now.plusMinutes(2), [|
+                    if (RHZV.state == ON) { 
+                        RHP.sendCommand(ON)
+                        logInfo("HAL.Pump", "Radiant Pump START")
+                    }
+                ])
+            }
         }
     } else {
-        if (RHP_timer !== null) RHP_timer.cancel()
-        if (RHP.state != OFF) {
-            RHP.sendCommand(OFF)
-            logInfo("HAL.Pump", "Radiant Pump STOP")
-        }
+        if (RHP.state != OFF) RHP.sendCommand(OFF)
     }
 end
 
 rule "System Pump Logic"
-when Item ZV changed then
+when Item ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (ZV.state == ON) {
         if (SysPump.state != ON) {
-            logInfo("HAL.Pump", "System Demand. Starting 1min Circ Delay.")
-            if (SYSPump_timer !== null) SYSPump_timer.cancel()
-            SYSPump_timer = createTimer(now.plusMinutes(1), [|
-                if (ZV.state == ON) {
-                    SysPump.sendCommand(ON)
-                    logInfo("HAL.Pump", "System Pump START")
-                }
-            ])
+            if (SYSPump_timer === null) {
+                logInfo("HAL.Watchdog", "System Demand Active but Pump OFF. Starting Delay.")
+                SYSPump_timer = createTimer(now.plusMinutes(1), [|
+                    if (ZV.state == ON) {
+                        SysPump.sendCommand(ON)
+                        logInfo("HAL.Pump", "System Pump START")
+                    }
+                ])
+            }
         }
     } else {
-        if (SYSPump_timer !== null) SYSPump_timer.cancel()
-        if (SysPump.state != OFF) {
-            SysPump.sendCommand(OFF)
-            logInfo("HAL.Pump", "System Pump STOP")
-        }
+        if (SysPump.state != OFF) SysPump.sendCommand(OFF)
     }
 end
 
@@ -371,7 +350,6 @@ then
     var double maxError = 0.0
     var String worstRoom = "None"
     
-    // Explicitly iterate through KNOWN rooms to avoid parsing errors
     val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT", "GA")
     
     rooms.forEach[ prefix |
