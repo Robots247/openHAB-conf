@@ -279,3 +279,6 @@ Number Boiler_Control_Mode "Boiler Control Mode" <settings>
 
 // Prevents the boiler from restarting until it has cooled at least this much below the target
 Number Boiler_Release_Diff "Boiler Release Differential [%.1f °F]" <temperature>
+
+// Enables Dewpoint Protection Logic
+Switch Boiler_Dewpoint_Enable "Enable Dewpoint Protection" <settings>
