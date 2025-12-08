@@ -1,521 +1,366 @@
 import org.eclipse.smarthome.model.script.ScriptServiceUtil
-val String filename = "thermostat rules"
+import java.util.Map
+
+// ===================================================================================
+// PROFESSIONAL THERMOSTAT ENGINE (Universal State Machine)
+// Architecture: Group-Based Triggers, Centralized Logic, Dynamic Actuation
+// Updates: Fully Compatible with 'heating_mode.items' naming conventions
+// Compatibility: OpenHAB 2.5 (Eclipse Smarthome)
+// ===================================================================================
+
+// --- GLOBAL VARIABLES ---
+val String filename = "Thermostat.Engine"
 var Timer RHP_timer = null
 var Timer SYSPump_timer = null
 
-// --- ZONE STATE TRACKING (For Minimum On-Times) ---
-// We store the epoch time (ms) when a zone last turned ON
-var long lastOn_DEN = 0
-var long lastOn_MBa = 0
-var long lastOn_MBe = 0
-var long lastOn_LR  = 0
-var long lastOn_GBr = 0
-var long lastOn_MR  = 0
-var long lastOn_BMT = 0
-var long lastOn_GA  = 0
+// Runtime Tracking Map
+val Map<String, Long> lastOnTimes = newHashMap
 
-// Minimum Run Time in Milliseconds
-// UPDATED FOR WAX VALVES: Increased to 15 Minutes (900,000 ms)
-val long MIN_RUN_TIME = 900000 
+// CONFIGURATION
+val long MIN_RUN_TIME = 900000 // 15 Minutes (Wax Valve Protection)
+
+// --- MAPPING CONFIGURATION ---
+
+// 1. ACTUATORS (Room Prefix -> Switch Item)
+val Map<String, String> roomActuators = newHashMap(
+    "DEN" -> "DENRH",
+    "MBa" -> "MBaRH",
+    "MBe" -> "MBeRH",
+    "LR"  -> "LRZV",
+    "GBr" -> "GBrZV",
+    "MR"  -> "MRZV",
+    "BMT" -> "BMTZV",
+    "GA"  -> "GAZV"
+)
+
+// 2. SENSORS (Room Prefix -> Temp Sensor Item)
+// Maps the diverse naming conventions in your Items file to the standard Prefixes
+val Map<String, String> roomSensors = newHashMap(
+    "DEN" -> "Den_TstatTemp",      // Note: "Den" vs "DEN" handled here
+    "MBa" -> "MBa_Tstat_Temp",
+    "MBe" -> "MBe_Tstat_Temp",
+    "LR"  -> "LR_Tstat_Temp",
+    "GBr" -> "GBr_Tstat_Temp",
+    "MR"  -> "MR_Tstat_Temp",
+    "BMT" -> "BMT_Tstat_Temp",     // Assumes Main BMT Tstat. Switch to BMTBr_Tstat_Temp if needed.
+    "GA"  -> "GA_Tstat_Temp",
+    "KIT" -> "KITMS_Temp"          // Kitchen is usually slave, but good to have mapped
+)
 
 // =================================================================================
-// RELAY & PUMP LOGIC (LEGACY)
+// RULE 1: UNIVERSAL THERMOSTAT LOGIC
 // =================================================================================
-
-// --- CFH Rules (Relays) ---
-
-rule "Call For High Heat"
-when    
-    Item ZV changed from OFF to ON 
-then 
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if (CFH1.state == OFF) {
-        CFH1.sendCommand(ON)
-        logInfo(filename, "High Temperature Call For Heat, Activating CFH1")     
-    }
-end
-
-rule "CFH OFF"
+rule "Universal Zone Manager"
 when
-    Item ZV changed from ON to OFF
+    Member of gMS_Temps changed or
+    Member of gHeating_Targets changed or
+    Item System_Maintenance_Mode changed to OFF
 then
     if (System_Maintenance_Mode.state == ON) return;
 
-    if(CFH1.state == ON) {
-        CFH1.sendCommand(OFF)
-        logInfo(filename, "CFH Satisfied, Deactivating CFH1")
-    }
-end
+    // 1. IDENTIFY ROOM PREFIX
+    val String triggerName = triggeringItem.name
+    var String roomPrefix = ""
 
-rule "Call For Low Radiant Heat"
-when    
-    Item RHP changed from OFF to ON
-then 
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if (CFH2.state == OFF) {
-        CFH2.sendCommand(ON)
-        logInfo(filename, "Radiant Call For Heat, Activating CFH2")  
-    }
-end
-
-rule "Call For Low Radiant Heat OFF"
-when    
-    Item RHP changed from ON to OFF
-then 
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if (CFH2.state == ON) {
-        CFH2.sendCommand(OFF)
-        logInfo(filename, "Radiant Call For Heat Ended, Deactivating CFH2")  
-    }
-end
-
-// --- Pumping Rules ---
-
-rule "Radiant Pump OFF"
-when    
-    Item RHZV changed from ON to OFF
-then 
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if(RHP.state == ON) {
-        RHP.sendCommand(OFF)
-        logInfo(filename, "RHP changed from on to off")
-    }
-end
-
-rule "Radiant Pump ON"
-when    
-    Item RHZV changed from OFF to ON
-then
-    if (System_Maintenance_Mode.state == ON) return;
-
-    // 2 Minute delay allows Wax Valves to open before pump starts (prevents dead-head)
-    logInfo(filename, "Radiant Heat Activated, Starting 2 minute pump delay for Wax Valves")
-    RHP_timer = (createTimer(now.plusMinutes(2))[
-        logInfo(filename, "Delay over, RHP ON")
-        RHP.sendCommand(ON) ]
-    )
-end
-
-rule "System Pump OFF"
-when    
-    Item ZV changed from ON to OFF
-then 
-    if (System_Maintenance_Mode.state == ON) return;
-
-    if(SysPump.state == ON) {
-        SysPump.sendCommand(OFF)
-        logInfo(filename, "SYS changed from on to off")
-    }
-end
-
-rule "System Pump ON"
-when    
-    Item ZV changed from OFF to ON
-then
-    if (System_Maintenance_Mode.state == ON) return;
-
-    logInfo(filename, "System Heat Activated, Starting 1 minute pump delay")
-    SYSPump_timer = (createTimer(now.plusMinutes(1))[
-        logInfo(filename, "Delay over, System Pump ON")
-        SysPump.sendCommand(ON) ]
-    )
-end
-
-// =================================================================================
-// RADIANT THERMOSTAT LOGIC (PWM & SYNC)
-// =================================================================================
-
-rule "DEN Radiant Logic (Master for Kitchen)"
-    when
-        Item DEN_Heating_TargetTemp changed or
-        Item DENMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF or
-        Time cron "0 0/1 * 1/1 * ? *" // Run every minute to handle Kitchen PWM
-    then
-        // SAFETY: Handle NULLs
-        if (DENMS_Temp.state == NULL || DEN_Heating_TargetTemp.state == NULL) return;
-
-        var temp = (DENMS_Temp.state as Number).doubleValue
-        var setpoint = (DEN_Heating_TargetTemp.state as Number).doubleValue
-        
-        // Safety Hysteresis (Default to 0.5 if NULL)
-        var double hystHigh = if(RH_HysteresisHigh.state instanceof Number) (RH_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(RH_HysteresisLow.state instanceof Number) (RH_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // --- SYNC LOGIC (INLINED) ---
-        // "Opportunity Heating": If boiler is already firing, turn ON sooner (0.4F offset)
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
+    // Strategy: Strip suffixes to find the "Root" name
+    if (triggerName.contains("Heating_TargetTemp")) {
+        roomPrefix = triggerName.split("_").get(0)
+    } 
+    else {
+        // Handle the diverse Sensor naming conventions
+        if (triggerName.contains("_Tstat_Temp")) {
+            roomPrefix = triggerName.replace("_Tstat_Temp", "")
+        } 
+        else if (triggerName.contains("_TstatTemp")) {
+            roomPrefix = triggerName.replace("_TstatTemp", "")
         }
-
-        // VERBOSE LOGGING
-        // Only log if something is happening to avoid spam, or log every time for tuning
-        // logInfo("Tstat.Debug", "DEN: Temp=" + temp + " Set=" + setpoint + " SyncBonus=" + syncBonus + " ON_Thresh=" + (setpoint - hystLow + syncBonus))
-
-        // Update UI
-        sendCommand(Den_TstatTemp, temp)
-        
-        if (System_Maintenance_Mode.state == ON) return;
-
-        // --- ACTUATION ---
-        // Turn ON (Standard Low Threshold + Sync Bonus)
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (DENRH.state != ON) {
-                logInfo("Tstat.Action", "DEN Radiant ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(DENRH, ON)
-                lastOn_DEN = now.millis
-            }
-        }   
-        // Turn OFF
-        else if (temp > (setpoint + hystHigh)) {
-            // Check Minimum Run Time (15 mins for wax valves)
-            if (DENRH.state != OFF) {
-                var long runtime = now.millis - lastOn_DEN
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "DEN Radiant OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(DENRH, OFF) 
-                } else {
-                    logInfo("Tstat.Info", "DEN Radiant Minimum Run Time Active. Remaining: " + ((MIN_RUN_TIME - runtime)/60000) + " min")
-                }
-            }   
+        else if (triggerName.contains("MS_Temp")) {
+            roomPrefix = triggerName.replace("MS_Temp", "")
         }
+    }
+    
+    // Normalize "Den" to "DEN" (Case correction)
+    if (roomPrefix == "Den") roomPrefix = "DEN"
 
-        // --- KITCHEN "GHOST ZONE" PWM ---
-        // Expanded to 30-minute cycle (15 on / 15 off) for wax valve transition time.
-        if (DENRH.state == ON) {
-            var int currentMinute = now.getMinuteOfHour
-            // If minute 0-14: ON. Minute 15-29: OFF.
-            if ((currentMinute % 30) < 15) {
-                 if (KITRH.state != ON) {
-                     logInfo("Tstat.PWM", "Kitchen PWM ON (Slave to DEN)")
-                     sendCommand(KITRH, ON)
-                 }
-            } else {
-                 if (KITRH.state != OFF) {
-                     logInfo("Tstat.PWM", "Kitchen PWM OFF (Slave to DEN)")
-                     sendCommand(KITRH, OFF)
-                 }
-            }
+    // Guard: Exit if this room isn't in our Actuator Map (e.g., Kitchen might be skipped here as it's a slave)
+    if (roomPrefix == "" || !roomActuators.containsKey(roomPrefix)) return;
+
+    // 2. LOOKUP ITEMS
+    val String actuatorName = roomActuators.get(roomPrefix)
+    val String tempItemName = roomSensors.get(roomPrefix)
+    val String targetItemName = roomPrefix + "_Heating_TargetTemp"
+    
+    // Safety Check: Did we find a valid sensor map?
+    if (tempItemName === null) {
+        logWarn("Tstat.Error", "No sensor mapped for room: " + roomPrefix)
+        return;
+    }
+
+    // Fetch Actual Item Objects
+    val tempItem = ScriptServiceUtil.getItemRegistry.getItem(tempItemName)
+    val targetItem = ScriptServiceUtil.getItemRegistry.getItem(targetItemName)
+    val actuatorItem = ScriptServiceUtil.getItemRegistry.getItem(actuatorName)
+    
+    // UI Helper Item (Optional) - Used for Display
+    var org.eclipse.smarthome.core.items.GenericItem uiTstatItem = null
+    try {
+        // Try the standard naming convention for UI item
+        uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem(roomPrefix + "_Tstat_Temp") as org.eclipse.smarthome.core.items.GenericItem
+    } catch (Exception e) {
+        // Special Case: "Den" prefix in UI items
+        if (roomPrefix == "DEN") {
+            try {
+                uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp") as org.eclipse.smarthome.core.items.GenericItem
+            } catch (Exception e2) {}
+        }
+    }
+
+    if (tempItem.state == NULL || targetItem.state == NULL) return;
+
+    val double currentTemp = (tempItem.state as Number).doubleValue
+    val double targetTemp = (targetItem.state as Number).doubleValue
+    
+    // Update UI (Safe)
+    if (uiTstatItem !== null) {
+        try { uiTstatItem.sendCommand(currentTemp) } catch(Exception e) {}
+    }
+
+    // 3. DETERMINE PARAMETERS (MASS-SPECIFIC LOGIC)
+    // ---------------------------------------------------------
+    var double hystHigh = 0.5
+    var double hystLow = 0.5
+    var boolean isRadiant = actuatorName.contains("RH")
+    var String modeDescription = "Standard"
+
+    if (isRadiant) {
+        if (RH_HysteresisHigh.state instanceof Number) hystHigh = (RH_HysteresisHigh.state as Number).doubleValue
+        if (RH_HysteresisLow.state instanceof Number) hystLow = (RH_HysteresisLow.state as Number).doubleValue
+        
+        // --- MASS-SPECIFIC CUTOFFS ---
+        if (roomPrefix == "MBa" || roomPrefix == "KIT") {
+            // High Mass (Concrete/Tile) -> Early Cutoff
+            hystHigh = -0.2 
+            modeDescription = "HighMass(EarlyCut)"
         } else {
-            // If Den is satisfied, Kitchen must be OFF
-            if (KITRH.state != OFF) {
-                logInfo("Tstat.PWM", "Kitchen OFF (DEN Satisfied)")
-                sendCommand(KITRH, OFF)
-            }
+            // Medium Mass (Wood) -> Soft Landing
+            hystHigh = 0.0
+            modeDescription = "MedMass(SoftLand)"
         }
-end         
+        
+    } else if (roomPrefix == "GA") {
+         if (GA_HysteresisHigh.state instanceof Number) hystHigh = (GA_HysteresisHigh.state as Number).doubleValue
+         if (GA_HysteresisLow.state instanceof Number) hystLow = (GA_HysteresisLow.state as Number).doubleValue
+         modeDescription = "GarageUnit"
+    } else {
+        // Baseboard -> Standard Hysteresis
+        if (ZV_HysteresisHigh.state instanceof Number) hystHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+        if (ZV_HysteresisLow.state instanceof Number) hystLow = (ZV_HysteresisLow.state as Number).doubleValue
+        modeDescription = "Baseboard"
+    }
 
-rule "Master Bath Radiant"
-    when
-        Item MBe_Heating_TargetTemp changed or
-        Item MBeMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (MBeMS_Temp.state == NULL) return;
-        var temp = (MBeMS_Temp.state as Number).doubleValue
-        var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(RH_HysteresisHigh.state instanceof Number) (RH_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(RH_HysteresisLow.state instanceof Number) (RH_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
+    // SYNC BONUS ("Opportunity Heating")
+    var double syncBonus = 0.0
+    if (roomPrefix != "GA") { 
         if (Boiler_Graph_State.state instanceof Number) {
             var int bState = (Boiler_Graph_State.state as Number).intValue
             if (bState == 2 || bState > 0) syncBonus = 0.4
         }
+    }
 
-        sendCommand(MBa_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
+    // 4. DECISION LOGIC
+    // ---------------------------------------------------------
+    val double onThreshold = targetTemp - hystLow + syncBonus
+    val double offThreshold = targetTemp + hystHigh 
+    
+    // DEBUGGING
+    logInfo("Tstat.Debug", "EVAL: " + roomPrefix + 
+        " | Cur=" + String::format("%.2f", currentTemp) + 
+        " | Tgt=" + String::format("%.2f", targetTemp) + 
+        " | Mode=" + modeDescription + 
+        " | HystH=" + hystHigh + 
+        " | Sync=" + syncBonus +
+        " | ON_Trig=" + String::format("%.2f", onThreshold) + 
+        " | OFF_Trig=" + String::format("%.2f", offThreshold)
+    )
 
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (MBaRH.state != ON) {
-                logInfo("Tstat.Action", "MBa Radiant ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(MBaRH, ON)
-                lastOn_MBa = now.millis
+    // GARAGE OVERRIDE
+    if (roomPrefix == "GA") {
+        if (vGA_Heating_OFF_Override.state != ON) {
+             if (actuatorItem.state != OFF) {
+                 actuatorItem.sendCommand(OFF)
+                 logInfo("Tstat.Debug", "   -> Override Active. Forcing OFF.")
+             }
+             return;
+        }
+    }
+
+    // STATE MACHINE
+    if (currentTemp < onThreshold) {
+        // --- DEMAND: ON ---
+        if (actuatorItem.state != ON) {
+            actuatorItem.sendCommand(ON)
+            lastOnTimes.put(actuatorName, now.millis)
+            
+            logInfo("Tstat.Action", 
+                "Room:" + roomPrefix + 
+                "|Act:ON" + 
+                "|Cur:" + String::format("%.1f", currentTemp) + 
+                "|Thresh:" + String::format("%.1f", onThreshold) +
+                "|Mode:" + modeDescription
+            )
+        }
+    }
+    else if (currentTemp > offThreshold) {
+        // --- DEMAND: OFF ---
+        if (actuatorItem.state != OFF) {
+            // Check Min Run Time
+            var long lastOn = 0
+            if (lastOnTimes.containsKey(actuatorName)) lastOn = lastOnTimes.get(actuatorName)
+            var long runtime = now.millis - lastOn
+            
+            if (runtime > MIN_RUN_TIME || roomPrefix == "GA") { 
+                actuatorItem.sendCommand(OFF)
+                logInfo("Tstat.Action", 
+                    "Room:" + roomPrefix + 
+                    "|Act:OFF" + 
+                    "|Cur:" + String::format("%.1f", currentTemp) + 
+                    "|Thresh:" + String::format("%.1f", offThreshold) +
+                    "|Mode:" + modeDescription
+                )
+            } else {
+                 logInfo("Tstat.Debug", "   -> MinRunTime Active for " + roomPrefix + ". Remaining: " + ((MIN_RUN_TIME - runtime)/1000) + "s")
             }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (MBaRH.state != OFF) {
-                var long runtime = now.millis - lastOn_MBa
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "MBa Radiant OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(MBaRH, OFF)
-                }
-            }   
         }
-end     
-
-rule "Master Bedroom Radiant"
-    when
-        Item MBe_Heating_TargetTemp changed or
-        Item MBeMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (MBeMS_Temp.state == NULL) return;
-        var temp = (MBeMS_Temp.state as Number).doubleValue
-        var setpoint = (MBe_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(RH_HysteresisHigh.state instanceof Number) (RH_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(RH_HysteresisLow.state instanceof Number) (RH_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
-        }
-
-        sendCommand(MBe_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (MBeRH.state != ON) {
-                logInfo("Tstat.Action", "MBe Radiant ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(MBeRH, ON)
-                lastOn_MBe = now.millis
-            }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (MBeRH.state != OFF) {
-                var long runtime = now.millis - lastOn_MBe
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "MBe Radiant OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(MBeRH, OFF)
-                }
-            }   
-        }
-end 
-
-// =================================================================================
-// HIGH TEMP RULES (BASEBOARD)
-// =================================================================================
-
-rule "Living Room CFH"
-    when
-        Item LR_Heating_TargetTemp changed or
-        Item LRMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (LRMS_Temp.state == NULL) return;
-        var temp = (LRMS_Temp.state as Number).doubleValue
-        var setpoint = (LR_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(ZV_HysteresisHigh.state instanceof Number) (ZV_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(ZV_HysteresisLow.state instanceof Number) (ZV_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
-        }
-
-        sendCommand(LR_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (LRZV.state != ON) {
-                logInfo("Tstat.Action", "LR Baseboard ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(LRZV, ON)
-                lastOn_LR = now.millis
-            }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (LRZV.state != OFF) {
-                var long runtime = now.millis - lastOn_LR
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "LR Baseboard OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(LRZV, OFF) 
-                }
-            }   
-        }
-end         
-
-rule "Guest BedRoom CFH"
-    when
-        Item GBr_Heating_TargetTemp changed or
-        Item GBrMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (GBrMS_Temp.state == NULL) return;
-        var temp = (GBrMS_Temp.state as Number).doubleValue
-        var setpoint = (GBr_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(ZV_HysteresisHigh.state instanceof Number) (ZV_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(ZV_HysteresisLow.state instanceof Number) (ZV_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
-        }
-
-        sendCommand(GBr_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (GBrZV.state != ON) {
-                logInfo("Tstat.Action", "GBr Baseboard ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(GBrZV, ON)
-                lastOn_GBr = now.millis
-            }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (GBrZV.state != OFF) {
-                var long runtime = now.millis - lastOn_GBr
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "GBr Baseboard OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(GBrZV, OFF)
-                }
-            }   
-        }
-end
-
-rule "MudRoom CFH"
-    when
-        Item MR_Heating_TargetTemp changed or
-        Item MRMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (MRMS_Temp.state == NULL) return;
-        var temp = (MRMS_Temp.state as Number).doubleValue
-        var setpoint = (MR_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(ZV_HysteresisHigh.state instanceof Number) (ZV_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(ZV_HysteresisLow.state instanceof Number) (ZV_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
-        }
-
-        sendCommand(MR_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (MRZV.state != ON) {
-                logInfo("Tstat.Action", "MR Baseboard ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(MRZV, ON)
-                lastOn_MR = now.millis
-            }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (MRZV.state != OFF) {
-                var long runtime = now.millis - lastOn_MR
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "MR Baseboard OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(MRZV, OFF)
-                }
-            }   
-        }
-end
-
-rule "Basement CFH"
-    when
-        Item BMT_Heating_TargetTemp changed or
-        Item BMTBrMS_Temp changed or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (BMTBrMS_Temp.state == NULL) return;
-        var temp = (BMTBrMS_Temp.state as Number).doubleValue
-        var setpoint = (BMT_Heating_TargetTemp.state as Number).doubleValue
-        
-        var double hystHigh = if(ZV_HysteresisHigh.state instanceof Number) (ZV_HysteresisHigh.state as Number).doubleValue else 0.5
-        var double hystLow = if(ZV_HysteresisLow.state instanceof Number) (ZV_HysteresisLow.state as Number).doubleValue else 0.5
-        
-        // Inline Sync Check
-        var double syncBonus = 0.0
-        if (Boiler_Graph_State.state instanceof Number) {
-            var int bState = (Boiler_Graph_State.state as Number).intValue
-            if (bState == 2 || bState > 0) syncBonus = 0.4
-        }
-
-        sendCommand(BMT_Tstat_Temp, temp)
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (temp < (setpoint - hystLow + syncBonus)) {
-            if (BMTZV.state != ON) {
-                logInfo("Tstat.Action", "BMT Baseboard ON: Temp " + temp + " < " + (setpoint - hystLow + syncBonus))
-                sendCommand(BMTZV, ON)
-                lastOn_BMT = now.millis
-            }
-        }   
-        else if (temp > (setpoint + hystHigh)) {
-            if (BMTZV.state != OFF) {
-                var long runtime = now.millis - lastOn_BMT
-                if (runtime > MIN_RUN_TIME) {
-                    logInfo("Tstat.Action", "BMT Baseboard OFF: Temp " + temp + " > " + (setpoint + hystHigh))
-                    sendCommand(BMTZV, OFF)
-                }
-            }   
-        }   
-end 
-
-// =================================================================================
-// GARAGE THERMOSTAT (Unit Heater - No Sync Needed)
-// =================================================================================
-
-rule "Garage CFH Thermostat"
-    when
-        Item GA_Heating_TargetTemp changed or
-        Item GAMS_Temp changed or
-        Item vGA_Heating_OFF_Override changed from OFF to ON or
-        Item System_Maintenance_Mode changed to OFF
-    then
-        if (GAMS_Temp.state == NULL || GAMS_Temp.state == UNDEF) return;
-        
-        var temp = (GAMS_Temp.state as Number).doubleValue
-        var setpoint = (GA_Heating_TargetTemp.state as Number).doubleValue
-        var hysteresisHigh = (GA_HysteresisHigh.state as Number).doubleValue
-        var hysteresisLow = (GA_HysteresisLow.state as Number).doubleValue
-        
-        sendCommand(GA_Tstat_Temp, temp)
-
-        if (System_Maintenance_Mode.state == ON) return;
-
-        if (vGA_Heating_OFF_Override.state == ON){
-            if (temp < (setpoint - hysteresisLow)) {
-                if (GAZV.state != ON) {
-                    logInfo("Tstat.Action", "Garage ON: Temp " + temp + " < " + (setpoint - hysteresisLow))
-                    sendCommand(GAZV, ON)
-                    lastOn_GA = now.millis
-                }
-            }   
-            else if (temp > (setpoint + hysteresisHigh)) {
-                if (GAZV.state != OFF) {
-                    var long runtime = now.millis - lastOn_GA
-                    if (runtime > MIN_RUN_TIME) {
-                        logInfo("Tstat.Action", "Garage OFF: Temp " + temp + " > " + (setpoint + hysteresisHigh))
-                        sendCommand(GAZV, OFF)
-                    }
-                }   
-            }   
-        }    
-        else if (vGA_Heating_OFF_Override.state == NULL) {
-            sendCommand(vGA_Heating_OFF_Override, OFF)
-        }
-end
-
-rule "Garage Overide OFF"
-    when
-        Item vGA_Heating_OFF_Override changed from ON to OFF
-    then
-        if (System_Maintenance_Mode.state == ON) return;
-        if (GAZV.state == ON) sendCommand(GAZV, OFF)
+    } else {
+        logInfo("Tstat.Debug", "   -> DEADBAND: No Action Required.") 
+    }
 end
 
 // =================================================================================
-// ERROR CALCULATION (ROBUST VERSION)
+// RULE 2: KITCHEN SLAVE (VARIABLE PWM)
+// =================================================================================
+rule "Kitchen Radiant Follower (Variable PWM)"
+when
+    Item DENRH changed or
+    Time cron "0 0/15 * 1/1 * ? *" 
+then
+    if (System_Maintenance_Mode.state == ON) return;
+
+    // USE MAPPED ITEMS FOR ROBUSTNESS
+    // Explicitly fetching Items to ensure names match the map
+    val tempItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp")
+    val targetItem = ScriptServiceUtil.getItemRegistry.getItem("DEN_Heating_TargetTemp")
+    
+    if (DENRH.state == ON) {
+        var double denError = 0.0
+        if (targetItem.state instanceof Number && tempItem.state instanceof Number) {
+            denError = (targetItem.state as Number).doubleValue - (tempItem.state as Number).doubleValue
+        }
+        
+        var int onMinutes = 10 
+        if (denError > 1.0) onMinutes = 30
+        else if (denError > 0.5) onMinutes = 20
+        
+        var int currentMinute = now.getMinuteOfHour
+        var int cycleMinute = currentMinute % 30
+        
+        if (cycleMinute < onMinutes) {
+             if (KITRH.state != ON) {
+                 KITRH.sendCommand(ON)
+                 logInfo("Tstat.PWM", "Kitchen PWM: ON (Load: " + String::format("%.1f", denError) + "F | Duty:" + onMinutes + "m)")
+             }
+        } else {
+             if (KITRH.state != OFF) {
+                 KITRH.sendCommand(OFF)
+                 logInfo("Tstat.PWM", "Kitchen PWM: OFF (Cycle Rest)")
+             }
+        }
+    } else {
+        if (KITRH.state != OFF) {
+            KITRH.sendCommand(OFF)
+            logInfo("Tstat.PWM", "Kitchen PWM: OFF (Den Satisfied)")
+        }
+    }
+end
+
+// =================================================================================
+// RULE 3: PUMP & RELAY HAL (Hardware Abstraction Layer)
+// =================================================================================
+
+rule "CFH1 Manager"
+when Item ZV changed then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (ZV.state == ON && CFH1.state == OFF) {
+        CFH1.sendCommand(ON)
+        logInfo("HAL.Relay", "High Temp Call Active (CFH1 ON)")
+    }
+    else if (ZV.state == OFF && CFH1.state == ON) {
+        CFH1.sendCommand(OFF)
+        logInfo("HAL.Relay", "High Temp Call Satisfied (CFH1 OFF)")
+    }
+end
+
+rule "CFH2 Manager"
+when Item RHP changed then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (RHP.state == ON && CFH2.state == OFF) {
+        CFH2.sendCommand(ON)
+        logInfo("HAL.Relay", "Radiant Call Active (CFH2 ON)")
+    }
+    else if (RHP.state == OFF && CFH2.state == ON) {
+        CFH2.sendCommand(OFF)
+        logInfo("HAL.Relay", "Radiant Call Satisfied (CFH2 OFF)")
+    }
+end
+
+rule "Radiant Pump Logic"
+when Item RHZV changed then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (RHZV.state == ON) {
+        if (RHP.state != ON) {
+            logInfo("HAL.Pump", "Radiant Demand. Starting 2min Wax Valve Delay.")
+            if (RHP_timer !== null) RHP_timer.cancel()
+            RHP_timer = createTimer(now.plusMinutes(2), [|
+                if (RHZV.state == ON) { 
+                    RHP.sendCommand(ON)
+                    logInfo("HAL.Pump", "Radiant Pump START")
+                }
+            ])
+        }
+    } else {
+        if (RHP_timer !== null) RHP_timer.cancel()
+        if (RHP.state != OFF) {
+            RHP.sendCommand(OFF)
+            logInfo("HAL.Pump", "Radiant Pump STOP")
+        }
+    }
+end
+
+rule "System Pump Logic"
+when Item ZV changed then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (ZV.state == ON) {
+        if (SysPump.state != ON) {
+            logInfo("HAL.Pump", "System Demand. Starting 1min Circ Delay.")
+            if (SYSPump_timer !== null) SYSPump_timer.cancel()
+            SYSPump_timer = createTimer(now.plusMinutes(1), [|
+                if (ZV.state == ON) {
+                    SysPump.sendCommand(ON)
+                    logInfo("HAL.Pump", "System Pump START")
+                }
+            ])
+        }
+    } else {
+        if (SYSPump_timer !== null) SYSPump_timer.cancel()
+        if (SysPump.state != OFF) {
+            SysPump.sendCommand(OFF)
+            logInfo("HAL.Pump", "System Pump STOP")
+        }
+    }
+end
+
+// =================================================================================
+// RULE 4: ERROR CALCULATION
 // =================================================================================
 rule "Calculate Max Room Error"
 when
@@ -523,50 +368,36 @@ when
     Member of gHeating_Targets changed or
     Time cron "0 * * ? * *"
 then
-    var Double maxError = 0.0
+    var double maxError = 0.0
     var String worstRoom = "None"
     
-    // List of Room Prefixes
-    val rooms = newArrayList("DEN", "LR", "KIT", "GBr", "MR", "BMT", "MBe", "MBa")
-
-    rooms.forEach[ room |
+    // Explicitly iterate through KNOWN rooms to avoid parsing errors
+    val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT", "GA")
+    
+    rooms.forEach[ prefix |
         try {
-            // 1. DYNAMIC NAME GENERATION
-            // Handle the Basement naming exception (BMT prefix for Target, but BMTBr for Temp)
-            var String tempItemName = room + "MS_Temp"
-            if (room == "BMT") {
-                tempItemName = "BMTBrMS_Temp"
-            }
+            val String sName = roomSensors.get(prefix)
+            val String tName = prefix + "_Heating_TargetTemp"
             
-            var String targetItemName = room + "_Heating_TargetTemp"
-
-            // 2. SAFE ITEM LOOKUP
-            val tempItem = ScriptServiceUtil.getItemRegistry.getItem(tempItemName)
-            val targetItem = ScriptServiceUtil.getItemRegistry.getItem(targetItemName)
-
-            // 3. CALCULATE
-            if (tempItem.state instanceof Number && targetItem.state instanceof Number) {
-                val Double currentTemp = (tempItem.state as Number).doubleValue
-                val Double targetTemp = (targetItem.state as Number).doubleValue
+            if (sName !== null) {
+                val sItem = ScriptServiceUtil.getItemRegistry.getItem(sName)
+                val tItem = ScriptServiceUtil.getItemRegistry.getItem(tName)
                 
-                var Double error = targetTemp - currentTemp
-                if (error < 0) error = 0.0
-
-                if (error > maxError) {
-                    maxError = error
-                    worstRoom = room
+                if (sItem.state instanceof Number && tItem.state instanceof Number) {
+                    val double cVal = (sItem.state as Number).doubleValue
+                    val double tVal = (tItem.state as Number).doubleValue
+                    var double err = tVal - cVal
+                    if (err > maxError) {
+                        maxError = err
+                        worstRoom = prefix
+                    }
                 }
             }
-        } catch (Exception e) {
-            // Log missing items instead of crashing the whole rule
-            logWarn("Boiler.ErrorCalc", "Could not calculate error for room: " + room + ". Check Item names. Error: " + e.getMessage())
-        }
+        } catch (Exception e) {}
     ]
 
-    // 4. NULL-SAFE UPDATE
-    // Check if state is NULL before comparing, preventing NPE on startup
-    if (Boiler_Max_Error.state == NULL || Boiler_Max_Error.state == UNDEF || (Boiler_Max_Error.state as Number).doubleValue != maxError) {
+    if (Boiler_Max_Error.state == NULL || (Boiler_Max_Error.state as Number).doubleValue != maxError) {
         Boiler_Max_Error.postUpdate(maxError)
-        logInfo("Boiler.ErrorCalc", "New Max Error: " + maxError + "°F in " + worstRoom)
+        if (maxError > 0.5) logInfo("Boiler.Error", "Max Error: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")")
     }
 end

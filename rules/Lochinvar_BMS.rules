@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER - PROFESSIONAL EDITION
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updates: Fixed Dewpoint Guard for Mixed Systems (High Temp Override)
+// Updates: Optimized DHW Handoff (175F Availability Threshold)
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -205,31 +205,36 @@ then
     val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 100.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
     
-    // --- POST-DHW CHILL OUT (IDLE AT 10%) ---
-    // If DHW just finished (< 90 seconds ago), transition smoothly.
-    if ((now.millis - last_dhw_end_time) < 90000) {
+    // --- POST-DHW CHILL OUT (FACTORY PURGE RELEASE) ---
+    // If DHW recently finished, allow Factory Post-Purge to clear heat.
+    // OPTIMIZED: Take over as soon as temp is 175F (Safety Buffer from 188F Trip).
+    
+    if ((now.millis - last_dhw_end_time) < 120000) { // 2 Minute Handover Window
         
-        // Ensure Enable is held High so we don't kill the cycle (and potentially the pump)
-        if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1) {
-            Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(1)
+        if (outletTemp > 175.0) { // <-- UPDATED THRESHOLD
+            // DANGER ZONE: Too Hot (Near High Limit). Release to Factory Control.
+            // By setting Enable to 0, we allow the boiler's internal post-purge logic to run the pump at high speed.
+            if (Lochinvar_40002_Boiler_Enable_Cmd.state != 0) {
+                Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0) // DISABLE
+                Lochinvar_40003_Rate_Command.sendCommand(0)      // ZERO RATE
+                logInfo("Boiler.DHW", "Post-DHW: Releasing to Factory Purge (Too Hot: " + outletTemp + "F).")
+            }
+            return; // Exit and let the boiler do its job
+        } 
+        else {
+            // SAFE ZONE (175F): Temperature is manageable. We can take over.
+            // Check if we actually need to fire (is there a heating demand?)
+            
+            if (targetTemp < 70.0) {
+                 // No real demand, ensure we are off
+                 if (Lochinvar_40002_Boiler_Enable_Cmd.state != 0) {
+                     Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
+                     Lochinvar_40003_Rate_Command.sendCommand(0)
+                 }
+                 return;
+            }
+            // If there IS demand, fall through to the PID logic below to begin heating immediately.
         }
-        
-        // SAFETY CHECK: If we are too hot coming off DHW, do NOT fire.
-        // DHW setpoint is often 180F+. If we add heat, we trip High Limit (190-200F).
-        // If > 175F, Coast (0%). If < 175F, Idle (10%).
-        var int chillRate = 0
-        if (outletTemp < 175.0) {
-            chillRate = 10
-            logInfo("Boiler.DHW", "Post-DHW Chill Out: Idling at 10% (Temp Safe: " + outletTemp + "F)")
-        } else {
-            chillRate = 0
-            logInfo("Boiler.DHW", "Post-DHW Chill Out: Coasting at 0% (Too Hot: " + outletTemp + "F)")
-        }
-
-        if (Lochinvar_40003_Rate_Command.state != chillRate) {
-            Lochinvar_40003_Rate_Command.sendCommand(chillRate)
-        }
-        return;
     }
 
     // --- UPDATED WWSD LOGIC ---
