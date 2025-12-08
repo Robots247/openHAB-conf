@@ -1,19 +1,19 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// PROFESSIONAL OUTDOOR RESET (Max-Select Architecture)
-// Features: Independent Calculation, Max-Select Arbitration, Integral Persistence
-// Updated: Detailed Debugging Added
+// PROFESSIONAL OUTDOOR RESET MANAGER (ODR)
+// Architecture: Max-Select Arbitration with Room Feedback Integration
+// Updates: Asymmetric Smoothing (Denver Mode), WWSD @ 75F
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
-var Number last_outdoor_smooth = 40.0 
-var Number room_integral_mem = 0.0    // Persistent Memory for Room Feedback
+var double last_outdoor_smooth = 40.0 
+var double room_integral_mem = 0.0    // Persistent Memory for Room Feedback
 
 // ===================================================================================
 // RULE 1: INITIALIZATION
 // ===================================================================================
-rule "Initialize Tuning Parameters"
+rule "Initialize ODR Parameters"
 when
     System started
 then
@@ -25,7 +25,7 @@ then
     if (Room_Kp.state == NULL || Room_Kp.state == UNDEF) Room_Kp.postUpdate(5.0)  // Strong P-Term
     if (Room_Ki.state == NULL || Room_Ki.state == UNDEF) Room_Ki.postUpdate(0.05) // Slow I-Term
     
-    logInfo("Boiler.Init", "ODR parameters initialized.")
+    logInfo("ODR.Init", "Professional ODR parameters initialized.")
 end
 
 // ===================================================================================
@@ -36,20 +36,42 @@ when
     Time cron "0 * * ? * *" 
 then
     // ---------------------------------------------------------
-    // 0. FETCH INPUTS
+    // 0. FETCH & SANITIZE INPUTS
     // ---------------------------------------------------------
-    val Number curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
-    val Number curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 160.0
-    val Number Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 5.0
-    val Number Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
+    val double curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
+    val double curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 160.0
+    val double Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 5.0
+    val double Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
 
-    // Outdoor Temp Smoothing (Low Pass Filter: 5% New, 95% Old)
-    var Number rawOutdoor = 32.0
+    // OUTDOOR TEMP SMOOTHING (High Desert Optimization)
+    // Denver Context: Temps crash fast at sunset. We need Fast Attack, Slow Decay.
+    var double rawOutdoor = 32.0
     if (Outdoor_Temperature.state instanceof Number) {
         rawOutdoor = (Outdoor_Temperature.state as Number).doubleValue
     }
-    last_outdoor_smooth = (0.05 * rawOutdoor) + (0.95 * last_outdoor_smooth)
-    val Number outdoorInput = last_outdoor_smooth 
+    
+    // Safety check for bad sensor data
+    if (rawOutdoor > -50.0 && rawOutdoor < 120.0) {
+        if (rawOutdoor < last_outdoor_smooth) {
+            // GETTING COLDER: Fast Response (20% new)
+            // React quickly to sunset or cold fronts
+            last_outdoor_smooth = (0.20 * rawOutdoor) + (0.80 * last_outdoor_smooth)
+        } else {
+            // GETTING WARMER: Slow Response (2% new)
+            // Ignore brief sun on sensor or warm gusts
+            last_outdoor_smooth = (0.02 * rawOutdoor) + (0.98 * last_outdoor_smooth)
+        }
+    }
+    val double outdoorInput = last_outdoor_smooth 
+
+    // WWSD CHECK: 75F Threshold (Denver Shoulder Season)
+    if (outdoorInput > 75.0) {
+        if (Boiler_Target_Temp.state != 0) Boiler_Target_Temp.postUpdate(0)
+        Boiler_Demand_Type.postUpdate("WWSD (Warm)")
+        // Reset Integral during summer so we don't start with a huge bias in Oct
+        room_integral_mem = 0.0 
+        return; 
+    }
 
     // Zone Calls
     var boolean garageCall = (GAZV.state == ON)
@@ -58,19 +80,13 @@ then
 
     // Boiler Busy State (for Integral freezing)
     var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
-    var boolean boilerIsBusy = (bState == 2 || bState < 0)
+    var boolean boilerIsBusy = (bState == 2 || bState < 0) 
     
     // Room Error (Max error from all active Baseboard zones)
-    var Number maxErrorHT = 0.0
+    var double maxErrorHT = 0.0
     if (Boiler_Max_Error.state instanceof Number) {
         maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
     }
-
-    logInfo("ODR_Debug", "========================================")
-    logInfo("ODR_Debug", "   OUTDOOR RESET CALCULATION REPORT     ")
-    logInfo("ODR_Debug", "========================================")
-    logInfo("ODR_Debug", "INPUTS: Outdoor(Smooth)=" + String::format("%.1f", outdoorInput.doubleValue) + "F | Raw=" + rawOutdoor)
-    logInfo("ODR_Debug", "CONFIG: Slope=" + curveSlope + " | Intercept=" + curveIntercept)
 
     // ---------------------------------------------------------
     // 1. CALCULATE INDIVIDUAL ZONE REQUIREMENTS
@@ -80,112 +96,110 @@ then
     var double reqGarage = 0.0
     if (garageCall) {
         val double gar_Intercept = 180.0
-        val double gar_Slope = -0.7 // Steep slope
-        reqGarage = gar_Intercept + (gar_Slope * outdoorInput.doubleValue)
+        val double gar_Slope = -0.7 
+        reqGarage = gar_Intercept + (gar_Slope * outdoorInput)
         
-        // Clamp for comfort (prevent cold blow) and equipment safety
         if (reqGarage < 145.0) reqGarage = 145.0
         if (reqGarage > 180.0) reqGarage = 180.0
-        logInfo("ODR_Debug", "GARAGE: Active. Calc=" + String::format("%.1f", reqGarage) + "F (Comfort Curve)")
-    } else {
-        logInfo("ODR_Debug", "GARAGE: Inactive (0.0F)")
     }
 
-    // B. BASEBOARD REQUIREMENT (ODR + Room Feedback)
+    // B. BASEBOARD REQUIREMENT (ODR + PID Room Feedback)
     var double reqBaseboard = 0.0
     var double baseTarget = 0.0
     var double P_room = 0.0
     
     if (baseboardCall) {
-        baseTarget = curveIntercept.doubleValue + (curveSlope.doubleValue * outdoorInput.doubleValue)
+        baseTarget = curveIntercept + (curveSlope * outdoorInput)
         
-        // --- Room Feedback Logic ---
-        P_room = Kp_room_val.doubleValue * maxErrorHT.doubleValue
+        // --- PID Room Feedback ---
+        P_room = Kp_room_val * maxErrorHT
         
-        // Integral Accumulation (Smart Windup)
+        // Integral Logic: Asymmetric Windup
         if (!boilerIsBusy) {
-            if (maxErrorHT.doubleValue > 0.5) {
-                // If rooms are cold, accumulate boost
-                room_integral_mem = room_integral_mem + (Ki_room_val.doubleValue * maxErrorHT.doubleValue)
-            } else if (maxErrorHT.doubleValue < 0.2) {
-                // If rooms are satisfied, FAST DECAY the boost
-                room_integral_mem = room_integral_mem * 0.80 
+            if (maxErrorHT > 0.5) {
+                // Cold Rooms: Accumulate Boost
+                room_integral_mem = room_integral_mem + (Ki_room_val * maxErrorHT)
+            } else if (maxErrorHT < 0.2) {
+                // Satisfied: Fast Decay
+                room_integral_mem = room_integral_mem * 0.70 
             }
         }
         
-        // Anti-Windup (Clamps)
+        // Anti-Windup Clamps
         if (room_integral_mem > 15.0) room_integral_mem = 15.0
         if (room_integral_mem < -5.0) room_integral_mem = -5.0
         
-        reqBaseboard = baseTarget + P_room + room_integral_mem.doubleValue
+        reqBaseboard = baseTarget + P_room + room_integral_mem
         
         // Baseboard Safety Clamps
-        // LOWERED MIN CLAMP TO 110F to maximize condensing in shoulder season
         if (reqBaseboard > 175.0) reqBaseboard = 175.0
         if (reqBaseboard < 110.0) reqBaseboard = 110.0
-        
-        logInfo("ODR_Debug", "BASEBOARD: Active. MaxError=" + maxErrorHT + "F")
-        logInfo("ODR_Debug", "   Math: Curve(" + String::format("%.1f", baseTarget) + ") + P(" + String::format("%.1f", P_room) + ") + I(" + String::format("%.1f", room_integral_mem.doubleValue) + ") = " + String::format("%.1f", reqBaseboard))
     }
     else {
         // If Baseboard is OFF, slowly decay memory
         room_integral_mem = room_integral_mem * 0.90
-        logInfo("ODR_Debug", "BASEBOARD: Inactive. Memory Decay=" + String::format("%.1f", room_integral_mem.doubleValue))
     }
 
     // C. RADIANT REQUIREMENT (Mix-Feed Curve)
-    // Caleffi Valve Requirement: Needs ~20F overhead for stability.
-    // Minimum Supply Temp for valve stability is roughly 130F.
+    // Goal: Maintain sufficient overhead for Caleffi Mix Valves (Target + 20F)
     var double reqRadiant = 0.0
     if (radiantCall) {
-        val double rad_Intercept = 140.0 // Increased from 130 to give headroom
-        val double rad_Slope = -0.5      // Shallower slope
-        reqRadiant = rad_Intercept + (rad_Slope * outdoorInput.doubleValue)
+        val double rad_Intercept = 140.0 
+        val double rad_Slope = -0.5      
+        reqRadiant = rad_Intercept + (rad_Slope * outdoorInput)
         
-        // Radiant Clamps
-        // CLAMP: 130F Minimum to satisfy Caleffi mixing valve Delta-T requirement
+        // Clamp: Ensure 130F min for mix valve stability
         if (reqRadiant > 160.0) reqRadiant = 160.0
         if (reqRadiant < 130.0) reqRadiant = 130.0
-        logInfo("ODR_Debug", "RADIANT: Active. Calc=" + String::format("%.1f", reqRadiant) + "F (Mix Valve Feed - Min 130F)")
-    } else {
-        logInfo("ODR_Debug", "RADIANT: Inactive (0.0F)")
     }
 
     // ---------------------------------------------------------
-    // 2. MAX-SELECT ARBITRATION
+    // 2. MAX-SELECT ARBITRATION (Winner Takes All)
     // ---------------------------------------------------------
     
     var double finalTarget = 0.0
     var String demandSource = "None"
 
-    // Default winner is usually Baseboard or Radiant
+    // 1. Baseboard vs Radiant
     if (reqBaseboard >= reqRadiant) {
         finalTarget = reqBaseboard
-        demandSource = "Baseboard (ODR)"
+        demandSource = "Baseboard"
     } else {
         finalTarget = reqRadiant
-        demandSource = "Radiant (Mix Overhead)"
+        demandSource = "Radiant"
     }
     
-    // Garage Priority Override (if higher)
+    // 2. Garage Override (High Priority)
     if (reqGarage > finalTarget) {
         finalTarget = reqGarage
-        demandSource = "Garage Priority"
+        demandSource = "Garage"
     }
     
-    // If no calls, target is 0
+    // 3. No Demand Check
     if (!garageCall && !baseboardCall && !radiantCall) {
         finalTarget = 0.0
-        demandSource = "No Demand"
+        demandSource = "Standby"
     }
 
     // ---------------------------------------------------------
-    // 3. POST UPDATES
+    // 3. EXECUTION & LOGGING
     // ---------------------------------------------------------
     Boiler_Room_Integral.postUpdate(room_integral_mem)
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
     
-    logInfo("ODR_Debug", ">>> DECISION: " + demandSource + " WINS. Target=" + String::format("%.1f", finalTarget) + "F <<<")
-    logInfo("ODR_Debug", "========================================")
+    // FACTORY STYLE LOGGING (Single Line)
+    // Format: OUT | BASE | RAD | GAR | ERR | INT | WINNER | FINAL
+    if (finalTarget > 0) {
+        logInfo("ODR.Diagnostic", 
+            "Out:" + String::format("%.1f", outdoorInput) + 
+            "|Base:" + String::format("%.1f", reqBaseboard) + 
+            "|Rad:" + String::format("%.1f", reqRadiant) + 
+            "|Gar:" + String::format("%.1f", reqGarage) +
+            "|Err:" + String::format("%.1f", maxErrorHT) + 
+            "|Int:" + String::format("%.1f", room_integral_mem) +
+            "|WIN:" + demandSource +
+            "|FINAL:" + String::format("%.1f", finalTarget)
+        )
+    }
 end
