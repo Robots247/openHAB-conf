@@ -1,11 +1,13 @@
 import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
-// INTELLIGENT BOILER SHUTOFF & ENERGY MONITORING
+// INTELLIGENT BOILER SHUTOFF & ENERGY MONITORING (SAFETY SUPERVISOR)
+// Updates: Added DHW Grace Period to prevent false blocks during transition
 // ===================================================================================
 
 // Global State
 var long block_end_time = 0
+var long last_dhw_event = 0 // Track when DHW ended to suppress false alarms
 
 // 1. INITIALIZE TUNING DEFAULTS (System Start)
 rule "Initialize Shutoff Parameters"
@@ -24,7 +26,19 @@ then
     logInfo("Boiler.Shutoff", "Shutoff & Energy parameters initialized.")
 end
 
-// 2. MAIN MONITOR LOOP (Runs every 15s)
+// 2. TRACK DHW STATE (To create immunity window)
+rule "Track DHW End Time"
+when
+    Item Boiler_Status_Code changed
+then
+    // If we just left DHW Mode (19)
+    if (previousState == 19) {
+        last_dhw_event = now.millis
+        logInfo("Boiler.Shutoff", "DHW Cycle Ended. Starting 5-minute Immunity Window.")
+    }
+end
+
+// 3. MAIN MONITOR LOOP (Runs every 15s)
 rule "Boiler Supervisor Loop"
 when
     Time cron "0/15 * * * * ?" 
@@ -59,7 +73,6 @@ then
 
     // B. OVERRUN SUPERVISOR
     // -------------------------------------------------------------------------------
-    // SAFETY: Check for NULLs before converting to double. Default to 0.0 to prevent crash.
     var double supply = if(System_Supply_Temp.state instanceof Number) (System_Supply_Temp.state as Number).doubleValue else 0.0
     var double target = if(Boiler_Target_Temp.state instanceof Number) (Boiler_Target_Temp.state as Number).doubleValue else 0.0
     var double fireRate = if(Boiler_Firing_Rate.state instanceof Number) (Boiler_Firing_Rate.state as Number).doubleValue else 0.0
@@ -71,18 +84,26 @@ then
     // --- DECISION LOGIC ---
 
     // 1. Are we currently in a "Timer Block"?
-    // JODA FIX: Use .millis instead of .toInstant.toEpochMilli
     var boolean timer_active = (now.millis < block_end_time)
 
     // 2. Is the Overrun Condition met right now? (Rate low & Temp High)
-    // Note: We include rate < 21 to catch idling, but if rate is 0 (already blocked), we still check temp.
-    // SAFETY: Ensure we aren't comparing garbage data
     var boolean overrun_condition = false
     if (System_Supply_Temp.state instanceof Number && Boiler_Target_Temp.state instanceof Number) {
         overrun_condition = (supply > (target + ovr_thresh)) && (fireRate < 21.0)
     }
     
-    // 3. Has the temp dropped enough to release a Normal Block? (Simple Hysteresis)
+    // 3. DHW IMMUNITY CHECK (The Fix)
+    // If we finished DHW less than 5 minutes ago, IGNORE overrun.
+    // The supply temp (180F) will naturally be way higher than target (130F).
+    if ((now.millis - last_dhw_event) < 300000) { // 300,000ms = 5 minutes
+        if (overrun_condition) {
+             // Log only once if we are suppressing it? Or just silently suppress.
+             // logInfo("Boiler.Shutoff", "Overrun Detected but Suppressed (DHW Immunity).")
+             overrun_condition = false 
+        }
+    }
+    
+    // 4. Has the temp dropped enough to release a Normal Block?
     var boolean release_condition = (supply <= target)
 
     // --- STATE MACHINE ---
@@ -102,7 +123,6 @@ then
                 logInfo("Boiler.Shutoff", "RESCUE: Block broken due to demand spike.")
             } else {
                 // Keep Waiting
-                // JODA FIX: Use .millis for time math
                 var long time_left_ms = block_end_time - now.millis
                 var int time_left_min = (time_left_ms / 60000).intValue + 1
                 Boiler_Block_Status.postUpdate("Smart Block: " + time_left_min + "m left")
@@ -119,7 +139,6 @@ then
                 Boiler_Block_Timer_Rem.postUpdate(0)
             } else {
                 // If Smart Mode is OFF -> We are in Standard Hysteresis.
-                // We hold the block until Supply drops back to Target.
                 if (release_condition) {
                     Boiler_Block_Active.postUpdate(OFF)
                     Boiler_Block_Status.postUpdate("Monitoring")
@@ -138,13 +157,12 @@ then
             
             if (Boiler_SmartOverrun_Enable.state == ON) {
                 // Smart Mode: Start the Timer
-                // JODA FIX: Use .millis directly on the DateTime object
                 block_end_time = now.plusMinutes(block_min).millis
                 
                 Boiler_Block_Status.postUpdate("Overrun Detected: Smart Block Started")
                 logInfo("Boiler.Shutoff", "SMART BLOCK: Rate " + fireRate + "% | Supply " + supply + " > " + (target+ovr_thresh))
             } else {
-                // Normal Mode: Just Block (Latch until Release Condition)
+                // Normal Mode: Just Block
                 Boiler_Block_Status.postUpdate("Overrun Detected: Limit Cooling")
                 logInfo("Boiler.Shutoff", "NORMAL BLOCK: Limit reached. Shutting down.")
             }

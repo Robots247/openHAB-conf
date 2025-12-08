@@ -8,3 +8,26 @@ String Maintenance_Timer_Msg   "Auto-Reset: [%s]" <time>
 // Manual Boiler Control (Only visible/active in Maintenance Mode)
 Switch Boiler_Manual_Enable    "Manual Boiler Firing" <fire> (gLochinvar_config)
 Number Boiler_Manual_Rate      "Manual Rate Command [%d %%]" <heating> (gLochinvar_config) { autoupdate="true" }
+
+
+// Zone Valve Cycle Counters & Runtimes
+Number GAZV_Cycle_Count        "Garage Valve Cycle Count" <counter> (gLochinvar_config)
+Number LRZV_Cycle_Count       "Living Room Zone Valve Cycle Count" <counter> (gLochinvar_config)
+Number GBrZV_Cycle_Count      "Guest BR Zone Valve Cycle Count" <counter> (gLochinvar_config)
+Number BMTZV_Cycle_Count     "Basement Zone Valve Cycle Count" <counter> (gLochinvar_config)
+Number MRZV_Cycle_Count      "Master BR Zone Valve Cycle Count" <counter> (gLochinvar_config)
+Number KITRH_Cycle_Count     "Kitchen Rad Valve Cycle Count" <counter> (gLochinvar_config)
+Number DENRH_Cycle_Count     "Den Rad Valve Cycle Count" <counter> (gLochinvar_config)
+Number MBaRH_Cycle_Count     "Master Bath Rad Valve Cycle Count" <counter> (gLochinvar_config)
+Number MBeRH_Cycle_Count     "Master Bedroom Rad Valve Cycle Count" <counter> (gLochinvar_config)   
+
+Number GAZV_Runtime_Hours      "Garage Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number LRZV_Runtime_Hours     "Living Room Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number GBrZV_Runtime_Hours    "Guest BR Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number BMTZV_Runtime_Hours   "Basement Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number MRZV_Runtime_Hours    "Master BR Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number KITRH_Runtime_Hours   "Kitchen Rad Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number DENRH_Runtime_Hours   "Den Rad Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)     
+Number MBaRH_Runtime_Hours   "Master Bath Rad Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
+Number MBeRH_Runtime_Hours   "Master Bedroom Rad Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)   
+// =================================================================================

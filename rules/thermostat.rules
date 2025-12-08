@@ -1,10 +1,11 @@
 import org.eclipse.smarthome.model.script.ScriptServiceUtil
 import java.util.Map
+import java.util.concurrent.ConcurrentHashMap
 
 // ===================================================================================
 // PROFESSIONAL THERMOSTAT ENGINE (Universal State Machine)
-// Architecture: Group-Based Triggers + Periodic Watchdog
-// Updates: Added "Watchdog Enforcer" to prevent frozen zones
+// Architecture: Group-Based Triggers + Periodic Watchdog + Runtime Tracking
+// Updates: Added "Legacy Mode" Check to HAL (Prevents CFH conflict in BMS Mode)
 // Compatibility: OpenHAB 2.5 (Eclipse Smarthome)
 // ===================================================================================
 
@@ -13,107 +14,50 @@ val String filename = "Thermostat.Engine"
 var Timer RHP_timer = null
 var Timer SYSPump_timer = null
 
-// Runtime Tracking Map
-val Map<String, Long> lastOnTimes = newHashMap
+// Runtime Tracking Maps
+var Map<String, Long> lastOnTimes = new ConcurrentHashMap()
+var Map<String, Long> runtimeStartTimes = new ConcurrentHashMap()
 
 // CONFIGURATION
-val long MIN_RUN_TIME = 900000 // 15 Minutes (Wax Valve Protection)
-
-// --- MAPPING CONFIGURATION ---
-
-// 1. ACTUATORS (Room Prefix -> Switch Item)
-val Map<String, String> roomActuators = newHashMap(
-    "DEN" -> "DENRH",
-    "MBa" -> "MBaRH",
-    "MBe" -> "MBeRH",
-    "LR"  -> "LRZV",
-    "GBr" -> "GBrZV",
-    "MR"  -> "MRZV",
-    "BMT" -> "BMTZV",
-    "GA"  -> "GAZV"
-)
-
-// 2. SENSORS (Room Prefix -> Temp Sensor Item)
-val Map<String, String> roomSensors = newHashMap(
-    "DEN" -> "Den_TstatTemp",      
-    "MBa" -> "MBa_Tstat_Temp",
-    "MBe" -> "MBe_Tstat_Temp",
-    "LR"  -> "LR_Tstat_Temp",
-    "GBr" -> "GBr_Tstat_Temp",
-    "MR"  -> "MR_Tstat_Temp",
-    "BMT" -> "BMT_Tstat_Temp",     
-    "GA"  -> "GA_Tstat_Temp",
-    "KIT" -> "KITMS_Temp"          
-)
+val long MIN_RUN_TIME = 900000 // 15 Minutes
 
 // =================================================================================
-// RULE 1: UNIVERSAL ZONE MANAGER (Event Driven)
+// HELPER LAMBDA: CORE LOGIC
 // =================================================================================
-rule "Universal Zone Manager"
-when
-    Member of gMS_Temps changed or
-    Member of gHeating_Targets changed or
-    Item System_Maintenance_Mode changed to OFF
-then
-    if (System_Maintenance_Mode.state == ON) return;
+val org.eclipse.xtext.xbase.lib.Procedures$Procedure3<String, Boolean, Map<String, Long>> checkZoneState = [ 
+    String roomPrefix, 
+    Boolean isWatchdog, 
+    Map<String, Long> lastOnTimesMap |
+    
+    // 0. SAFETY
+    if (lastOnTimesMap === null) return;
 
-    // 1. IDENTIFY ROOM & ITEMS
-    val String triggerName = triggeringItem.name
-    var String roomPrefix = ""
-
-    if (triggerName.contains("Heating_TargetTemp")) {
-        roomPrefix = triggerName.split("_").get(0)
-    } else {
-        if (triggerName.contains("_Tstat_Temp")) roomPrefix = triggerName.replace("_Tstat_Temp", "")
-        else if (triggerName.contains("_TstatTemp")) roomPrefix = triggerName.replace("_TstatTemp", "")
-        else if (triggerName.contains("MS_Temp")) roomPrefix = triggerName.replace("MS_Temp", "")
+    // 1. CONFIGURATION LOOKUP
+    var String actuatorName = null
+    var String tempItemName = null
+    
+    switch(roomPrefix) {
+        case "DEN": { actuatorName="DENRH"; tempItemName="DENMS_Temp" }
+        case "MBa": { actuatorName="MBaRH"; tempItemName="MBaMS_Temp" }
+        case "MBe": { actuatorName="MBeRH"; tempItemName="MBeMS_Temp" }
+        case "LR":  { actuatorName="LRZV";  tempItemName="LRMS_Temp" }
+        case "GBr": { actuatorName="GBrZV"; tempItemName="GBrMS_Temp" }
+        case "MR":  { actuatorName="MRZV";  tempItemName="MRMS_Temp" }
+        case "BMT": { actuatorName="BMTZV"; tempItemName="BMTMS_Temp" }
+        case "GA":  { actuatorName="GAZV";  tempItemName="GAMS_Temp" }
+        case "KIT": { actuatorName=null;    tempItemName="KITMS_Temp" } 
     }
     
-    if (roomPrefix == "Den") roomPrefix = "DEN"
-    if (roomPrefix == "" || !roomActuators.containsKey(roomPrefix)) return;
+    if (actuatorName === null || tempItemName === null) return;
 
-    // Execute Logic for this single room
-    checkZoneState(roomPrefix)
-end
-
-// =================================================================================
-// RULE 1.5: THE WATCHDOG ENFORCER (Periodic Audit)
-// =================================================================================
-// SAFETY NET: Runs every 5 minutes to catch "Missed" commands or Stuck Valves.
-// This prevents a room from freezing if the "Changed" event was missed.
-
-rule "Thermostat Watchdog Enforcer"
-when
-    Time cron "0 0/5 * * * ?" 
-then
-    if (System_Maintenance_Mode.state == ON) return;
-    
-    // Iterate through ALL known rooms and force a state check
-    roomActuators.keySet.forEach[ room |
-        checkZoneState(room)
-    ]
-end
-
-// =================================================================================
-// HELPER LAMBDA: CORE LOGIC (Reused by Event & Watchdog)
-// =================================================================================
-// By moving the logic here, we ensure the Watchdog and the Event Trigger use
-// IDENTICAL decision making.
-
-val org.eclipse.xtext.xbase.lib.Procedures$Procedure1<String> checkZoneState = [ String roomPrefix |
-    
-    // 1. LOOKUP ITEMS
-    val String actuatorName = roomActuators.get(roomPrefix)
-    val String tempItemName = roomSensors.get(roomPrefix)
     val String targetItemName = roomPrefix + "_Heating_TargetTemp"
     
-    if (tempItemName === null) return;
-
+    // 2. FETCH ITEMS
     val tempItem = ScriptServiceUtil.getItemRegistry.getItem(tempItemName)
     val targetItem = ScriptServiceUtil.getItemRegistry.getItem(targetItemName)
     val actuatorItem = ScriptServiceUtil.getItemRegistry.getItem(actuatorName)
     
-    // UI Helper Item (Optional)
+    // UI Helper (Optional)
     var org.eclipse.smarthome.core.items.GenericItem uiTstatItem = null
     try {
         uiTstatItem = ScriptServiceUtil.getItemRegistry.getItem(roomPrefix + "_Tstat_Temp") as org.eclipse.smarthome.core.items.GenericItem
@@ -123,39 +67,49 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure1<String> checkZoneState = [
         }
     }
 
-    if (tempItem.state == NULL || targetItem.state == NULL) return;
+    // NULL CHECK
+    if (tempItem.state == NULL || tempItem.state == UNDEF || targetItem.state == NULL || targetItem.state == UNDEF) {
+        if (isWatchdog) logWarn("Tstat.Watchdog", "Skipping " + roomPrefix + " -> Sensors are NULL/UNDEF.")
+        return
+    }
 
     val double currentTemp = (tempItem.state as Number).doubleValue
     val double targetTemp = (targetItem.state as Number).doubleValue
     
     if (uiTstatItem !== null) { try { uiTstatItem.sendCommand(currentTemp) } catch(Exception e) {} }
 
-    // 2. DETERMINE PARAMETERS
+    // 3. DETERMINE PARAMETERS
     var double hystHigh = 0.5
     var double hystLow = 0.5
     var boolean isRadiant = actuatorName.contains("RH")
     var String modeDescription = "Standard"
 
-    if (isRadiant) {
-        if (RH_HysteresisHigh.state instanceof Number) hystHigh = (RH_HysteresisHigh.state as Number).doubleValue
-        if (RH_HysteresisLow.state instanceof Number) hystLow = (RH_HysteresisLow.state as Number).doubleValue
-        
-        if (roomPrefix == "MBa" || roomPrefix == "KIT") {
-            hystHigh = -0.2 
-            modeDescription = "HighMass(EarlyCut)"
-        } else {
-            hystHigh = 0.0
-            modeDescription = "MedMass(SoftLand)"
+    // FETCH GLOBAL SETTINGS
+    try {
+        if (RH_HysteresisHigh.state instanceof Number) hystHigh = (RH_HysteresisHigh.state as Number).doubleValue 
+        if (isRadiant) {
+             if (RH_HysteresisHigh.state instanceof Number) hystHigh = (RH_HysteresisHigh.state as Number).doubleValue
+             if (RH_HysteresisLow.state instanceof Number) hystLow = (RH_HysteresisLow.state as Number).doubleValue
+             
+             if (roomPrefix == "MBa" || roomPrefix == "KIT") {
+                hystHigh = -0.2 
+                modeDescription = "HighMass(EarlyCut)"
+            } else {
+                hystHigh = 0.0
+                modeDescription = "MedMass(SoftLand)"
+            }
+        } 
+        else if (roomPrefix == "GA") {
+             if (GA_HysteresisHigh.state instanceof Number) hystHigh = (GA_HysteresisHigh.state as Number).doubleValue
+             if (GA_HysteresisLow.state instanceof Number) hystLow = (GA_HysteresisLow.state as Number).doubleValue
+             modeDescription = "GarageUnit"
+        } 
+        else {
+            if (ZV_HysteresisHigh.state instanceof Number) hystHigh = (ZV_HysteresisHigh.state as Number).doubleValue
+            if (ZV_HysteresisLow.state instanceof Number) hystLow = (ZV_HysteresisLow.state as Number).doubleValue
+            modeDescription = "Baseboard"
         }
-    } else if (roomPrefix == "GA") {
-         if (GA_HysteresisHigh.state instanceof Number) hystHigh = (GA_HysteresisHigh.state as Number).doubleValue
-         if (GA_HysteresisLow.state instanceof Number) hystLow = (GA_HysteresisLow.state as Number).doubleValue
-         modeDescription = "GarageUnit"
-    } else {
-        if (ZV_HysteresisHigh.state instanceof Number) hystHigh = (ZV_HysteresisHigh.state as Number).doubleValue
-        if (ZV_HysteresisLow.state instanceof Number) hystLow = (ZV_HysteresisLow.state as Number).doubleValue
-        modeDescription = "Baseboard"
-    }
+    } catch (Exception e) {}
 
     // SYNC BONUS
     var double syncBonus = 0.0
@@ -166,10 +120,22 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure1<String> checkZoneState = [
         }
     }
 
-    // 3. DECISION LOGIC
+    // 4. DECISION LOGIC
     val double onThreshold = targetTemp - hystLow + syncBonus
     val double offThreshold = targetTemp + hystHigh 
-    
+
+    // DEBUG LOGGING
+    if (isWatchdog || actuatorItem.state != ON) {
+         logInfo("Tstat.Debug", 
+             "CHECKING " + roomPrefix + 
+             " | Cur=" + String::format("%.2f", currentTemp) + 
+             " | Tgt=" + String::format("%.2f", targetTemp) + 
+             " | ON_Trig=" + String::format("%.2f", onThreshold) + 
+             " | OFF_Trig=" + String::format("%.2f", offThreshold) +
+             " | Valve=" + actuatorItem.state
+         )
+    }
+
     // GARAGE OVERRIDE
     if (roomPrefix == "GA") {
         if (vGA_Heating_OFF_Override.state != ON) {
@@ -184,44 +150,125 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure1<String> checkZoneState = [
     // STATE MACHINE
     if (currentTemp < onThreshold) {
         // --- DEMAND: ON ---
-        // WATCHDOG FIX: We check if it is NOT ON. 
-        // If it SHOULD be on, but is OFF, we force it.
         if (actuatorItem.state != ON) {
-            actuatorItem.sendCommand(ON)
-            lastOnTimes.put(actuatorName, now.millis)
             
-            logInfo("Tstat.Action", 
-                "Room:" + roomPrefix + 
-                "|Act:ON" + 
-                "|Cur:" + String::format("%.1f", currentTemp) + 
-                "|Thresh:" + String::format("%.1f", onThreshold) +
-                "|Mode:" + modeDescription
-            )
+            // Watchdog Action
+            if (isWatchdog) {
+                logWarn("Tstat.Watchdog", "CORRECTION: " + roomPrefix + " found OFF but needs Heat! Forcing ON. (Cur:" + currentTemp + " < Tgt:" + onThreshold + ")")
+            } else {
+                logInfo("Tstat.Action", 
+                    "Room:" + roomPrefix + 
+                    "|Act:ON" + 
+                    "|Cur:" + String::format("%.1f", currentTemp) + 
+                    "|Thresh:" + String::format("%.1f", onThreshold) +
+                    "|Mode:" + modeDescription
+                )
+            }
+            
+            actuatorItem.sendCommand(ON)
+            lastOnTimesMap.put(actuatorName, now.millis)
         }
     }
     else if (currentTemp > offThreshold) {
         // --- DEMAND: OFF ---
         if (actuatorItem.state != OFF) {
+            
             // Check Min Run Time
             var long lastOn = 0
-            if (lastOnTimes.containsKey(actuatorName)) lastOn = lastOnTimes.get(actuatorName)
-            var long runtime = now.millis - lastOn
+            if (lastOnTimesMap.containsKey(actuatorName)) {
+                lastOn = lastOnTimesMap.get(actuatorName)
+            }
             
-            if (runtime > MIN_RUN_TIME || roomPrefix == "GA") { 
+            var long runtime = now.millis - lastOn
+            val long MIN_RUN_TIME_VAL = 900000 
+            
+            if (runtime > MIN_RUN_TIME_VAL || roomPrefix == "GA") { 
+                
+                if (isWatchdog) {
+                     // Warn only if temp is significantly over threshold
+                     if (currentTemp > offThreshold + 0.5) {
+                        logWarn("Tstat.Watchdog", "CORRECTION: " + roomPrefix + " found ON but needs OFF. Forcing OFF. (Cur:" + currentTemp + " > Tgt:" + offThreshold + ")")
+                     }
+                } else {
+                    logInfo("Tstat.Action", 
+                        "Room:" + roomPrefix + 
+                        "|Act:OFF" + 
+                        "|Cur:" + String::format("%.1f", currentTemp) + 
+                        "|Thresh:" + String::format("%.1f", offThreshold) +
+                        "|Mode:" + modeDescription
+                    )
+                }
                 actuatorItem.sendCommand(OFF)
-                logInfo("Tstat.Action", 
-                    "Room:" + roomPrefix + 
-                    "|Act:OFF" + 
-                    "|Cur:" + String::format("%.1f", currentTemp) + 
-                    "|Thresh:" + String::format("%.1f", offThreshold) +
-                    "|Mode:" + modeDescription
-                )
+                
             } else {
-                 // Log only on change or explicit debug
+                 if (!isWatchdog) logInfo("Tstat.Info", roomPrefix + " MinRunTime Active. Remaining: " + ((MIN_RUN_TIME_VAL - runtime)/60000).intValue + "m")
             }
         }
     }
 ]
+
+// =================================================================================
+// RULE: SENSOR PROTECTION (Ignore Commands to Sensors)
+// =================================================================================
+rule "Block Sensor Commands"
+when
+    Member of gMS_Temps received command
+then
+    val String itemName = triggeringItem.name
+    logWarn("Tstat.Protection", "Rogue Command detected on Sensor Item: " + itemName + " Command: " + receivedCommand)
+end
+
+// =================================================================================
+// RULE 1: UNIVERSAL ZONE MANAGER (Event Driven)
+// =================================================================================
+rule "Universal Zone Manager"
+when
+    Member of gMS_Temps changed or
+    Member of gHeating_Targets changed or
+    Item System_Maintenance_Mode changed to OFF
+then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" || Heating_Mode.state.toString == "OFF") return;
+
+    val String triggerName = triggeringItem.name
+    var String roomPrefix = ""
+
+    if (triggerName.contains("Heating_TargetTemp")) {
+        roomPrefix = triggerName.split("_").get(0)
+    } else {
+        if (triggerName.contains("_Tstat_Temp")) roomPrefix = triggerName.replace("_Tstat_Temp", "")
+        else if (triggerName.contains("_TstatTemp")) roomPrefix = triggerName.replace("_TstatTemp", "")
+        else if (triggerName.contains("MS_Temp")) roomPrefix = triggerName.replace("MS_Temp", "")
+    }
+    
+    if (roomPrefix == "Den") roomPrefix = "DEN"
+    
+    if (lastOnTimes === null) lastOnTimes = new ConcurrentHashMap()
+    checkZoneState.apply(roomPrefix, false, lastOnTimes)
+end
+
+// =================================================================================
+// RULE 1.5: THE WATCHDOG ENFORCER (Periodic Audit)
+// =================================================================================
+rule "Thermostat Watchdog Enforcer"
+when
+    Time cron "0 0/5 * * * ?" 
+then
+    if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" || Heating_Mode.state.toString == "OFF") return;
+
+    val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT", "GA")
+    
+    if (lastOnTimes === null) lastOnTimes = new ConcurrentHashMap()
+    
+    rooms.forEach[ room |
+        try {
+            checkZoneState.apply(room, true, lastOnTimes)
+        } catch (Exception e) {
+            logError("Tstat.Watchdog", "Error checking room " + room + ": " + e.getMessage())
+        }
+    ]
+end
 
 // =================================================================================
 // RULE 2: KITCHEN SLAVE (VARIABLE PWM)
@@ -232,8 +279,10 @@ when
     Time cron "0 0/15 * 1/1 * ? *" 
 then
     if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" || Heating_Mode.state.toString == "OFF") return;
 
-    val tempItem = ScriptServiceUtil.getItemRegistry.getItem("Den_TstatTemp")
+    // USE CORRECT SENSOR MAP
+    val tempItem = ScriptServiceUtil.getItemRegistry.getItem("DENMS_Temp")
     val targetItem = ScriptServiceUtil.getItemRegistry.getItem("DEN_Heating_TargetTemp")
     
     if (DENRH.state == ON) {
@@ -271,13 +320,25 @@ end
 // =================================================================================
 // RULE 3: PUMP & RELAY HAL (Hardware Abstraction Layer)
 // =================================================================================
+// UPDATED: Now checks Boiler_Control_Mode. 
+// If Mode > 0 (BMS Mode), do NOT force CFH relays ON (prevents Double Call).
 
 rule "CFH1 Manager"
 when Item ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
+        if (CFH1.state == ON) CFH1.sendCommand(OFF)
+        return;
+    }
+    
+    // CHECK LEGACY MODE
+    var int mode = 0
+    if (Boiler_Control_Mode.state instanceof Number) mode = (Boiler_Control_Mode.state as Number).intValue
+    if (mode > 0) return; // BMS Mode Active - Let BMS handle it.
+
     if (ZV.state == ON && CFH1.state == OFF) {
         CFH1.sendCommand(ON)
-        logInfo("HAL.Watchdog", "Re-asserting CFH1 (High Temp) ON")
+        logInfo("HAL.Watchdog", "Re-asserting CFH1 (High Temp) ON (Legacy Mode)")
     }
     else if (ZV.state == OFF && CFH1.state == ON) {
         CFH1.sendCommand(OFF)
@@ -287,9 +348,19 @@ end
 rule "CFH2 Manager"
 when Item RHP changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
+        if (CFH2.state == ON) CFH2.sendCommand(OFF)
+        return;
+    }
+
+    // CHECK LEGACY MODE
+    var int mode = 0
+    if (Boiler_Control_Mode.state instanceof Number) mode = (Boiler_Control_Mode.state as Number).intValue
+    if (mode > 0) return; // BMS Mode Active
+
     if (RHP.state == ON && CFH2.state == OFF) {
         CFH2.sendCommand(ON)
-        logInfo("HAL.Watchdog", "Re-asserting CFH2 (Radiant) ON")
+        logInfo("HAL.Watchdog", "Re-asserting CFH2 (Radiant) ON (Legacy Mode)")
     }
     else if (RHP.state == OFF && CFH2.state == ON) {
         CFH2.sendCommand(OFF)
@@ -299,11 +370,15 @@ end
 rule "Radiant Pump Logic"
 when Item RHZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
+         if (RHP.state == ON) RHP.sendCommand(OFF)
+         return;
+    }
+
+    // Note: Pump Logic should generally run in ALL modes to move the water
     if (RHZV.state == ON) {
         if (RHP.state != ON) {
-            // Check if we are waiting on a timer
             if (RHP_timer === null) {
-                 // No timer running, but pump is OFF? Restart Delay.
                  logInfo("HAL.Watchdog", "Radiant Demand Active but Pump OFF. Starting Delay.")
                  RHP_timer = createTimer(now.plusMinutes(2), [|
                     if (RHZV.state == ON) { 
@@ -321,6 +396,12 @@ end
 rule "System Pump Logic"
 when Item ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
+    if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
+         if (SysPump.state == ON) SysPump.sendCommand(OFF)
+         return;
+    }
+
+    // Pump Logic runs in all modes
     if (ZV.state == ON) {
         if (SysPump.state != ON) {
             if (SYSPump_timer === null) {
@@ -350,12 +431,24 @@ then
     var double maxError = 0.0
     var String worstRoom = "None"
     
+    // Switch Case Lookup for Reliability
     val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT", "GA")
     
     rooms.forEach[ prefix |
         try {
-            val String sName = roomSensors.get(prefix)
-            val String tName = prefix + "_Heating_TargetTemp"
+            var String sName = null
+            var String tName = prefix + "_Heating_TargetTemp"
+            
+            switch(prefix) {
+                case "DEN": sName="DENMS_Temp"
+                case "MBa": sName="MBaMS_Temp"
+                case "MBe": sName="MBeMS_Temp"
+                case "LR":  sName="LRMS_Temp"
+                case "GBr": sName="GBrMS_Temp"
+                case "MR":  sName="MRMS_Temp"
+                case "BMT": sName="BMTMS_Temp"
+                case "GA":  sName="GAMS_Temp"
+            }
             
             if (sName !== null) {
                 val sItem = ScriptServiceUtil.getItemRegistry.getItem(sName)
@@ -377,5 +470,61 @@ then
     if (Boiler_Max_Error.state == NULL || (Boiler_Max_Error.state as Number).doubleValue != maxError) {
         Boiler_Max_Error.postUpdate(maxError)
         if (maxError > 0.5) logInfo("Boiler.Error", "Max Error: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")")
+    }
+end
+
+// =================================================================================
+// RULE 5: SYSTEM-WIDE RUNTIME & CYCLE TRACKING
+// =================================================================================
+rule "System Runtime & Cycle Tracker"
+when
+    Item DENRH changed or
+    Item MBaRH changed or
+    Item MBeRH changed or
+    Item LRZV changed or
+    Item GBrZV changed or
+    Item MRZV changed or
+    Item BMTZV changed or
+    Item RHP changed or
+    Item SysPump changed
+then
+    val String itemName = triggeringItem.name
+    
+    // Safety check for runtime map
+    if (runtimeStartTimes === null) runtimeStartTimes = new ConcurrentHashMap()
+
+    if (triggeringItem.state == ON) {
+        runtimeStartTimes.put(itemName, now.millis)
+        
+        val cycleItemName = itemName + "_Cycle_Count"
+        try {
+            val cycleItem = ScriptServiceUtil.getItemRegistry.getItem(cycleItemName)
+            if (cycleItem !== null) {
+                var Number currentCycles = 0
+                if (cycleItem.state instanceof Number) currentCycles = (cycleItem.state as Number).intValue
+                cycleItem.postUpdate(currentCycles + 1)
+            }
+        } catch (Exception e) { }
+    }
+    else if (triggeringItem.state == OFF) {
+        if (runtimeStartTimes.containsKey(itemName)) {
+            val long start = runtimeStartTimes.get(itemName)
+            val long duration = now.millis - start
+            val double hours = duration / 3600000.0 
+            
+            val runtimeItemName = itemName + "_Runtime_Hours"
+            try {
+                val runtimeItem = ScriptServiceUtil.getItemRegistry.getItem(runtimeItemName)
+                if (runtimeItem !== null) {
+                    var double totalHours = 0.0
+                    if (runtimeItem.state instanceof Number) totalHours = (runtimeItem.state as Number).doubleValue
+                    runtimeItem.postUpdate(totalHours + hours)
+                    
+                    logInfo("Runtime.Tracker", itemName + ": Cycle Ended. Ran for " + String::format("%.2f", hours * 60) + "m. Total: " + String::format("%.1f", totalHours + hours) + "h")
+                }
+            } catch (Exception e) { }
+            
+            runtimeStartTimes.remove(itemName)
+        }
     }
 end

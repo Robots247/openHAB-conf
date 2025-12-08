@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER - PROFESSIONAL EDITION
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updates: Restored "Flame-On" DHW Handoff (Governor Controlled)
+// Updates: Removed CFH Force-OFF (Prevents Pump Kill if electrically linked)
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -16,6 +16,7 @@ var double lastSafeRate = 0.0        // Rate limiter for high limit jumps (Legac
 var long safety_trip_start_time = 0  // For High Limit Ride Through
 var long wwsd_timer_start = 0        // For WWSD Hysteresis (1 Hour)
 var long last_dhw_end_time = 0      // Tracks when DHW cycle finished
+var long cycle_start_time = 0        // Tracks when the current burn cycle started
 
 // -----------------------------------------------------------------------------------
 // RULE 0: SYNC LEGACY SWITCH (Compatibility Bridge)
@@ -75,12 +76,19 @@ then
     }
 
     if (mode == 1 || mode == 2) {
+        // Enforce BMS Mode (5)
         Lochinvar_40001_Control_Mode.sendCommand(5)
-        if (CFH1.state == ON) CFH1.sendCommand(OFF)
-        if (CFH2.state == ON) CFH2.sendCommand(OFF)
+        
+        // CRITICAL UPDATE: DO NOT Force CFH OFF.
+        // If CFH relays are electrically tied to pumps, forcing them OFF kills flow.
+        // Let the Thermostat Rules manage CFH states.
+        // if (CFH1.state == ON) CFH1.sendCommand(OFF) // REMOVED
+        // if (CFH2.state == ON) CFH2.sendCommand(OFF) // REMOVED
     } 
     else {
+        // Legacy Mode (0)
         Lochinvar_40001_Control_Mode.sendCommand(0)
+        
         var int currentEn = -1
         if (Lochinvar_40002_Boiler_Enable_Cmd.state instanceof Number) currentEn = (Lochinvar_40002_Boiler_Enable_Cmd.state as Number).intValue
         if (currentEn != 0) Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
@@ -206,14 +214,9 @@ then
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
     
     // --- POST-DHW CHILL OUT (FLAME HANDOVER) ---
-    // If DHW recently finished, we allow the PID Loop/Governors to handle the transition.
-    // We removed the forced "Enable=0" command to prevent flame-out.
-    // The "GovOutletLimit" (Component 2) will naturally throttle the rate if the water is hot.
-    
     if ((now.millis - last_dhw_end_time) < 60000) { 
-        // Just log the handover for diagnostics
         if (targetTemp > 70.0) {
-             logInfo("Boiler.DHW", "Post-DHW Handover: Temp=" + outletTemp + "F. Letting PID/Governor manage transition.")
+             // logInfo("Boiler.DHW", "Post-DHW Handover: Temp=" + outletTemp + "F. Letting PID/Governor manage transition.")
         }
     }
 
@@ -251,6 +254,7 @@ then
     var boolean callActive = false
     if (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON) callActive = true
     if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) callActive = true
+    if (CFH1.state == ON || CFH2.state == ON || CFH3.state == ON) callActive = true 
     if (wwsd_active) callActive = false
 
     // 3. PID & GOVERNOR PRE-CALCULATION
@@ -306,9 +310,9 @@ then
         // 2B. DELTA T GOVERNOR (Efficiency & Shock Protection)
         var double boilerDeltaT = outletTemp - inletTemp
         
-        if (boilerDeltaT < 18.0 && boilerDeltaT > 0.0) {
+        if (boilerDeltaT < 10.0 && boilerDeltaT > 0.0) { 
             // Aggressive Throttle for small DeltaT
-            govFlowLimit = (boilerDeltaT / 18.0) * 100.0
+            govFlowLimit = (boilerDeltaT / 10.0) * 100.0
             if (govFlowLimit < 20.0) govFlowLimit = 20.0 
         } else {
             govFlowLimit = 100.0
@@ -323,7 +327,7 @@ then
 
         // CRITICAL FIX: DETECT HIGH TEMP OVERRIDE
         // If Baseboards or Garage are calling, we CANNOT hold condensing temps.
-        var boolean isHighTempCall = (CFH1.state == ON || GAZV.state == ON)
+        var boolean isHighTempCall = (CFH1.state == ON || GAZV.state == ON || CFH3.state == ON)
         
         // Backup: Check Demand Type String
         var String demandType = "Unknown"
@@ -346,11 +350,7 @@ then
                  logInfo("Boiler.Gov", "Dewpoint Guard Active (Pure Radiant). Inlet: " + inletTemp + "F. Limiting to " + govDewpointLimit.intValue + "%")
             }
         } else {
-            // CONTEXT: High Temp / Mixed Mode (Gear 2)
-            // We ignore the 125F limit because physics won't allow it with High Temp demand.
             govDewpointLimit = 100.0 
-            // Debug Log (Optional - kept quiet for production)
-            // if (isHighTempCall && inletTemp > 125.0) logInfo("Boiler.Gov", "Dewpoint Guard Skipped (High Temp Demand Active)")
         }
 
         // GOV D: Pump Speed Follower
@@ -379,7 +379,7 @@ then
             limitingFactor = "HighLimit_Gov"
         }
         
-        // Check Dewpoint (Efficiency Second) - If active
+        // Check Dewpoint (Efficiency Second)
         if (rawProposedRate > govDewpointLimit) {
             rawProposedRate = govDewpointLimit
             limitingFactor = "Dewpoint_Guard"
@@ -426,34 +426,58 @@ then
         // 3. OUTPUT SMOOTHING (The "Rolls Royce" Filter)
         val double alpha = 0.20 
         var double smoothedRate = 0.0
+        var double safeRate = 0.0
 
-        // STARTUP JUMP
-        if (last_firing_rate < 1.0 && rawProposedRate > min_fire) {
-             smoothedRate = 25.0
+        // STARTUP JUMP ("The Kicker")
+        if (lastSafeRate < cutoff_threshold && rawProposedRate >= min_fire) {
+             safeRate = rawProposedRate
+             // Cap violent startups
+             if (safeRate > 50.0) safeRate = 50.0
              limitingFactor = "Ignition_Jump"
+             logInfo("Boiler.Startup", "STARTUP JUMP: Bypassing Slew Rate. 0 -> " + safeRate)
+             cycle_start_time = now.millis // Mark Cycle Start
         } 
         else {
-             smoothedRate = (alpha * rawProposedRate) + ((1.0 - alpha) * last_firing_rate)
-             
-             // Slew Rate Limiter
+             // Normal Slew Rate Limiter
              val double maxRise = 2.0
              val double maxFall = 5.0 
-             if (smoothedRate > last_firing_rate + maxRise) smoothedRate = last_firing_rate + maxRise
-             if (smoothedRate < last_firing_rate - maxFall) smoothedRate = last_firing_rate - maxFall
+             
+             // Base calculation
+             var double target = rawProposedRate
+             
+             if (target > lastSafeRate + maxRise) safeRate = lastSafeRate + maxRise
+             else if (target < lastSafeRate - maxFall) safeRate = lastSafeRate - maxFall
+             else safeRate = target
         }
+
+        // Output Smoothing (Alpha Filter on the Slew-Limited Rate)
+        smoothedRate = (alpha * safeRate) + ((1.0 - alpha) * last_firing_rate)
 
         // Absolute Clamps
         if (smoothedRate < 0.0) smoothedRate = 0.0
         if (smoothedRate > 100.0) smoothedRate = 100.0
+        
+        // Update SafeRate memory for next cycle
+        lastSafeRate = safeRate 
 
         // 4. DEADBAND & CUTOFF
         var double finalRate = 0.0
         
-        // TAILOUT Logic
-        var boolean tailout = (smoothedRate < cruise_threshold && boilerDeltaT < 3.0 && pumpSpeed > 10.0)
+        // TAILOUT LOGIC (Optimized)
+        // Check 1: Is this a "new" cycle (started < 60s ago)? If so, ignore DeltaT.
+        var boolean startup_grace = (cycle_start_time > 0 && (now.millis - cycle_start_time) < 60000)
+        
+        var boolean tailout = false
+        if (!startup_grace) {
+            // Only check tailout if we are past the grace period
+            // Relaxed threshold: Only kill if DeltaT < 1.0F
+            if (safeRate < cruise_threshold && boilerDeltaT < 1.0 && pumpSpeed > 10.0) {
+                tailout = true
+            }
+        }
 
         // Demand Timer Update
-        if (smoothedRate > cutoff_threshold && !tailout) {
+        if (safeRate > cutoff_threshold && !tailout) {
             last_demand_time = now.millis
         }
 
@@ -462,11 +486,12 @@ then
             logInfo("Boiler.Tailout", "TAILOUT: DeltaT Collapse (" + String::format("%.1f", boilerDeltaT) + "). Stopping to save gas.")
         }
         else if (smoothedRate < cruise_threshold) {
-             if (smoothedRate > cutoff_threshold) {
+             if (safeRate <= cutoff_threshold) {
+                 // We are truly low. Check Debounce.
                  if ((now.millis - last_demand_time) < 10000) finalRate = min_fire 
                  else finalRate = 0.0 
              } else {
-                 finalRate = 0.0 
+                 finalRate = min_fire 
              }
         } else {
             finalRate = smoothedRate
@@ -508,6 +533,9 @@ then
         
         last_firing_rate = finalRate
         Boiler_Final_Command.postUpdate(finalRate)
+        
+        // Reset Cycle Start if we stopped
+        if (finalRate < 0.1) cycle_start_time = 0
 
     } 
     else {
@@ -519,6 +547,8 @@ then
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
         Lochinvar_40003_Rate_Command.sendCommand(0)
         last_firing_rate = 0.0
+        lastSafeRate = 0.0 
+        cycle_start_time = 0
         Boiler_Final_Command.postUpdate(0)
     }
 
