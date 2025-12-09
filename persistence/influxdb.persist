@@ -125,9 +125,7 @@ Items {
     System_Supply_Temp : strategy = everyChange, every15Mins
 
     // Persist all maintenance counters
-    //*_Cycle_Count : strategy = everyChange, restoreOnStartup
-    //*_Runtime_Hours : strategy = everyChange, restoreOnStartup
-    
+    gLochinvar_config* : strategy = everyChange
 
     
     // Sensors & System

@@ -43,7 +43,7 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure3<String, Boolean, Map<Strin
         case "LR":  { actuatorName="LRZV";  tempItemName="LRMS_Temp" }
         case "GBr": { actuatorName="GBrZV"; tempItemName="GBrMS_Temp" }
         case "MR":  { actuatorName="MRZV";  tempItemName="MRMS_Temp" }
-        case "BMT": { actuatorName="BMTZV"; tempItemName="BMTMS_Temp" }
+        case "BMT": { actuatorName="BMTZV"; tempItemName="BMTBrMS_Temp" }
         case "GA":  { actuatorName="GAZV";  tempItemName="GAMS_Temp" }
         case "KIT": { actuatorName=null;    tempItemName="KITMS_Temp" } 
     }
@@ -207,16 +207,6 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure3<String, Boolean, Map<Strin
     }
 ]
 
-// =================================================================================
-// RULE: SENSOR PROTECTION (Ignore Commands to Sensors)
-// =================================================================================
-rule "Block Sensor Commands"
-when
-    Member of gMS_Temps received command
-then
-    val String itemName = triggeringItem.name
-    logWarn("Tstat.Protection", "Rogue Command detected on Sensor Item: " + itemName + " Command: " + receivedCommand)
-end
 
 // =================================================================================
 // RULE 1: UNIVERSAL ZONE MANAGER (Event Driven)
@@ -432,7 +422,8 @@ then
     var String worstRoom = "None"
     
     // Switch Case Lookup for Reliability
-    val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT", "GA")
+    //removed GA from list as garage is not included in max error calculation
+    val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT")
     
     rooms.forEach[ prefix |
         try {

@@ -11,6 +11,7 @@ Number Boiler_Manual_Rate      "Manual Rate Command [%d %%]" <heating> (gLochinv
 
 
 // Zone Valve Cycle Counters & Runtimes
+Group gCycle_Count  "Zone Valve Cycle Counts" <counter> (gLochinvar_config)
 Number GAZV_Cycle_Count        "Garage Valve Cycle Count" <counter> (gLochinvar_config)
 Number LRZV_Cycle_Count       "Living Room Zone Valve Cycle Count" <counter> (gLochinvar_config)
 Number GBrZV_Cycle_Count      "Guest BR Zone Valve Cycle Count" <counter> (gLochinvar_config)
@@ -21,6 +22,7 @@ Number DENRH_Cycle_Count     "Den Rad Valve Cycle Count" <counter> (gLochinvar_c
 Number MBaRH_Cycle_Count     "Master Bath Rad Valve Cycle Count" <counter> (gLochinvar_config)
 Number MBeRH_Cycle_Count     "Master Bedroom Rad Valve Cycle Count" <counter> (gLochinvar_config)   
 
+Group gRuntime_Hours  "Zone Valve Runtime Hours" <time> (gLochinvar_config) 
 Number GAZV_Runtime_Hours      "Garage Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
 Number LRZV_Runtime_Hours     "Living Room Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)
 Number GBrZV_Runtime_Hours    "Guest BR Zone Valve Runtime [%.1f hrs]" <time> (gLochinvar_config)

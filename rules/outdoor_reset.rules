@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // PROFESSIONAL OUTDOOR RESET MANAGER (ODR)
 // Architecture: Max-Select Arbitration with Room Feedback Integration
-// Updates: Radiant Cap Added (Prevent Windup against Mixing Valves)
+// Updates: Tightened Authority Clamping (Max 10F Boost) to prevent Overheating
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -43,7 +43,7 @@ then
     val double Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 3.0
     val double Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
 
-    // OUTDOOR TEMP SMOOTHING
+    // OUTDOOR TEMP SMOOTHING (High Desert Optimization)
     var double rawOutdoor = 32.0
     if (Outdoor_Temperature.state instanceof Number) {
         rawOutdoor = (Outdoor_Temperature.state as Number).doubleValue
@@ -83,7 +83,7 @@ then
     }
     
     // SAFETY CLAMP: Input Error
-    // If error is > 10F, it's likely a glitch. Clamp effective error.
+    // If error is > 10F, it's likely a glitch or open window. Don't let it drive the boiler crazy.
     var double effectiveError = maxErrorHT
     if (effectiveError > 10.0) effectiveError = 10.0
 
@@ -107,32 +107,32 @@ then
     var double P_room = 0.0
     
     if (baseboardCall) {
+        // Base ODR Calculation
         baseTarget = curveIntercept + (curveSlope * outdoorInput)
         
+        // --- PID Room Feedback ---
+        // Use 'effectiveError' (Clamped) for calculation
         P_room = Kp_room_val * effectiveError
         
-        // AUTHORITY CLAMP (TIGHTENED to 10F)
-        if (P_room > 10.0) P_room = 10.0
+        // AUTHORITY CLAMP 
+        if (P_room > 20.0) P_room = 20.0
         
-        // Integral Logic
+        // Integral Logic: Asymmetric Windup
         if (!boilerIsBusy) {
-            // Anti-Windup: Only integrate if error is reasonable (< 5F)
-            if (effectiveError > 0.5 && effectiveError < 5.0) {
+            if (effectiveError > 0.5) {
                 room_integral_mem = room_integral_mem + (Ki_room_val * effectiveError)
-            } else if (effectiveError <= 0.2) {
+            } else if (effectiveError < 0.2) {
                 room_integral_mem = room_integral_mem * 0.70 
-            } else if (effectiveError >= 5.0) {
-                // Decay integral if error is massive (prevents runaway)
-                room_integral_mem = room_integral_mem * 0.99
             }
         }
         
-        // Clamp I-Term
+        // Anti-Windup Clamps (Tightened from 10 to 5)
         if (room_integral_mem > 5.0) room_integral_mem = 5.0
         if (room_integral_mem < -5.0) room_integral_mem = -5.0
         
         reqBaseboard = baseTarget + P_room + room_integral_mem
         
+        // Baseboard Safety Clamps
         if (reqBaseboard > 175.0) reqBaseboard = 175.0
         if (reqBaseboard < 110.0) reqBaseboard = 110.0
     }
@@ -142,17 +142,26 @@ then
 
     // C. RADIANT REQUIREMENT
     var double reqRadiant = 0.0
-    if (radiantCall) {
+    
+    //not used but left here for reference and future update of hardware valves
+    /*if (radiantCall) {
         val double rad_Intercept = 140.0 
         val double rad_Slope = -0.5      
         reqRadiant = rad_Intercept + (rad_Slope * outdoorInput)
         
-        if (reqRadiant > 160.0) reqRadiant = 160.0
-        if (reqRadiant < 130.0) reqRadiant = 130.0
-    }
+        // Radiant Safety Clamps
+        
+        
+        //if (reqRadiant > 160.0) reqRadiant = 160.0
+        //if (reqRadiant < 130.0) reqRadiant = 130.0
+    }*/
+
+        //clamped to 152F due to Caleffi Mixing Valve Max Temp 27F above operating temp
+        reqRadiant = 152.0
+       
 
     // ---------------------------------------------------------
-    // 2. MAX-SELECT ARBITRATION
+    // 2. MAX-SELECT ARBITRATION (Winner Takes All)
     // ---------------------------------------------------------
     
     var double finalTarget = 0.0
@@ -166,13 +175,6 @@ then
         demandSource = "Radiant"
     }
     
-    // RADIANT CAP (The Fix for Mixing Valves)
-    // If Radiant Wins, we MUST cap the target at what the mixing valve can handle (e.g. 145F).
-    // Sending 170F is useless if the valve clips it to 120F.
-    if (demandSource == "Radiant" && finalTarget > 145.0) {
-        finalTarget = 145.0
-    }
-
     if (reqGarage > finalTarget) {
         finalTarget = reqGarage
         demandSource = "Garage"
@@ -190,6 +192,7 @@ then
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
     
+    // FACTORY STYLE LOGGING (Enhanced for Debugging)
     if (finalTarget > 0) {
         logInfo("ODR.Diagnostic", 
             "Out:" + String::format("%.1f", outdoorInput) + 
