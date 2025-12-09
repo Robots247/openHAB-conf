@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // PROFESSIONAL OUTDOOR RESET MANAGER (ODR)
 // Architecture: Max-Select Arbitration with Room Feedback Integration
-// Updates: Tightened Authority Clamping (Max 10F Boost) to prevent Overheating
+// Updates: Radiant Cap Added (Prevent Windup against Mixing Valves)
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -43,7 +43,7 @@ then
     val double Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 3.0
     val double Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
 
-    // OUTDOOR TEMP SMOOTHING (High Desert Optimization)
+    // OUTDOOR TEMP SMOOTHING
     var double rawOutdoor = 32.0
     if (Outdoor_Temperature.state instanceof Number) {
         rawOutdoor = (Outdoor_Temperature.state as Number).doubleValue
@@ -83,7 +83,7 @@ then
     }
     
     // SAFETY CLAMP: Input Error
-    // If error is > 10F, it's likely a glitch or open window. Don't let it drive the boiler crazy.
+    // If error is > 10F, it's likely a glitch. Clamp effective error.
     var double effectiveError = maxErrorHT
     if (effectiveError > 10.0) effectiveError = 10.0
 
@@ -107,33 +107,32 @@ then
     var double P_room = 0.0
     
     if (baseboardCall) {
-        // Base ODR Calculation
         baseTarget = curveIntercept + (curveSlope * outdoorInput)
         
-        // --- PID Room Feedback ---
-        // Use 'effectiveError' (Clamped) for calculation
         P_room = Kp_room_val * effectiveError
         
-        // AUTHORITY CLAMP (TIGHTENED)
-        // Prevent P-Term from adding more than 10F boost (was 20F)
+        // AUTHORITY CLAMP (TIGHTENED to 10F)
         if (P_room > 10.0) P_room = 10.0
         
-        // Integral Logic: Asymmetric Windup
+        // Integral Logic
         if (!boilerIsBusy) {
-            if (effectiveError > 0.5) {
+            // Anti-Windup: Only integrate if error is reasonable (< 5F)
+            if (effectiveError > 0.5 && effectiveError < 5.0) {
                 room_integral_mem = room_integral_mem + (Ki_room_val * effectiveError)
-            } else if (effectiveError < 0.2) {
+            } else if (effectiveError <= 0.2) {
                 room_integral_mem = room_integral_mem * 0.70 
+            } else if (effectiveError >= 5.0) {
+                // Decay integral if error is massive (prevents runaway)
+                room_integral_mem = room_integral_mem * 0.99
             }
         }
         
-        // Anti-Windup Clamps (Tightened from 10 to 5)
+        // Clamp I-Term
         if (room_integral_mem > 5.0) room_integral_mem = 5.0
         if (room_integral_mem < -5.0) room_integral_mem = -5.0
         
         reqBaseboard = baseTarget + P_room + room_integral_mem
         
-        // Baseboard Safety Clamps
         if (reqBaseboard > 175.0) reqBaseboard = 175.0
         if (reqBaseboard < 110.0) reqBaseboard = 110.0
     }
@@ -153,7 +152,7 @@ then
     }
 
     // ---------------------------------------------------------
-    // 2. MAX-SELECT ARBITRATION (Winner Takes All)
+    // 2. MAX-SELECT ARBITRATION
     // ---------------------------------------------------------
     
     var double finalTarget = 0.0
@@ -167,6 +166,13 @@ then
         demandSource = "Radiant"
     }
     
+    // RADIANT CAP (The Fix for Mixing Valves)
+    // If Radiant Wins, we MUST cap the target at what the mixing valve can handle (e.g. 145F).
+    // Sending 170F is useless if the valve clips it to 120F.
+    if (demandSource == "Radiant" && finalTarget > 145.0) {
+        finalTarget = 145.0
+    }
+
     if (reqGarage > finalTarget) {
         finalTarget = reqGarage
         demandSource = "Garage"
@@ -184,7 +190,6 @@ then
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
     
-    // FACTORY STYLE LOGGING (Enhanced for Debugging)
     if (finalTarget > 0) {
         logInfo("ODR.Diagnostic", 
             "Out:" + String::format("%.1f", outdoorInput) + 
