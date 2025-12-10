@@ -1,3 +1,7 @@
+// --- Active Zone Counters (Populated by Rules) ---
+Number HighTemp_Active_Count "High Temp Zones Active [%d]"
+Number Radiant_Active_Count  "Radiant Zones Active [%d]"
+
 //Zone Valves
 // NOTE: "homekit" tags must use Capitalized types like "Valve", "Switchable", "Fan"
 

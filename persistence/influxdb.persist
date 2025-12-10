@@ -18,12 +18,17 @@ Items {
     Boiler_Kp : strategy = everyChange
     Boiler_Ki : strategy = everyChange
     Boiler_Kd : strategy = everyChange
-    Room_Kp : strategy = everyChange
-    Room_Ki : strategy = everyChange
+    Room_Radiant_Kp : strategy = everyChange
+    Room_Radiant_Ki : strategy = everyChange
+    Room_Baseboard_Kp : strategy = everyChange
+    Room_Baseboard_Ki : strategy = everyChange
     
     // Outdoor Reset Tuning
     ODR_Slope : strategy = everyChange
     ODR_Intercept : strategy = everyChange
+    ODR_Base_Target : strategy = everyChange   
+    ODR_Req_Baseboard : strategy = everyChange   
+    ODR_Req_Radiant : strategy = everyChange 
     
     // Smart Overrun Tuning
     Boiler_SmartOverrun_Enable : strategy = everyChange
@@ -53,6 +58,7 @@ Items {
     // Room Feedback
     Boiler_Max_Error : strategy = everyMinute, everyChange
     Boiler_Room_Integral : strategy = everyMinute, everyChange
+    Boiler_Max_Error_Room : strategy = everyChange
 
     // 3. Status & State Indicators (Save on Change)
     Boiler_Zone_Limit : strategy = everyChange

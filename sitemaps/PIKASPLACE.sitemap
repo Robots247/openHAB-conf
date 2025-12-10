@@ -960,79 +960,238 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
             Frame label="preset updates" visibility=[Heating_PresetSwitch==OFF] {
                 Switch item=Heating_UpdatePresets label="update preset temps to current settings"
             }
-            Frame label="Boiler Control Mode" {
-                Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
-
-            }
-            Frame {
-                Text label="Boiler BMS TUNING" icon="boiler" {
-                    Frame label="Boiler Control Overview" {
-                        // The main switch to hand over control to the new rule
-                        Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
-
-                        // NEW: Switch between Outlet Control (Condensing) and Tank Control (Charging)
-                        Switch item=Boiler_High_Efficiency_Enable label="High Efficiency (Outlet Control)" icon="energy"
-                        Switch item=Boiler_Dewpoint_Enable label="Dewpoint Protection Enable" icon="shield"
-
-        
-
-                        // Live Feedback of what the rule decided
-                        Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="text"
-                        Text item=Boiler_Final_Command label="Command Sent to Boiler [%.0f %%]" icon="fire"
+            
+          Frame {
+                Text label="Boiler Control Center" icon="boiler" {
+    
+                    Frame label="System Status" {
+                        Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="fire" valuecolor=["Standby"="grey", "Baseboard"="orange", "Radiant"="blue", "DHW"="red"]
+                        Text item=Boiler_Final_Command label="Firing Rate [%d %%]" icon="fire" valuecolor=[>80="red", >50="orange", >0="green"]
+                        Text item=System_Supply_Temp label="Supply Temp [%.1f °F]" icon="temperature" valuecolor=[>180="red", >140="orange", >100="green"]
+                        Text item=Boiler_Output_BTU label="Heat Output [%.0f BTU/hr]" icon="energy"
+                        Text item=Boiler_Block_Status label="Supervisor State [%s]" icon="lock" valuecolor=["Monitoring"="green", "Overrun Detected"="red", "RESCUE"="orange"]
+                        Text item=Boiler_Block_Timer_Rem label="Cooldown Timer [%d min]" visibility=[Boiler_Block_Timer_Rem>0] icon="time"
                     }
 
-                    Frame label="Control Loop Internals" {
-                        // Watch the math happen in real-time
-                        Text item=Boiler_Target_Temp label="Calculated Target Temp [%.1f °F]" icon="temperature"
-                        Text item=System_Supply_Temp label="Actual Supply Temp [%.1f °F]" icon="temperature"
+                    Frame label="Active Zones" {
                         
-                        // NEW: Monitor the worst room error driving the ODR Boost
-                        Text item=Boiler_Max_Error label="Max Room Error [%.1f °F]" icon="bedroom"
-
-                        Text item=Boiler_PID_Output label="Raw PID Output [%.1f %%]" icon="chart"
-                        Text item=Boiler_Zone_Limit label="Zone Load Limit [%.1f %%]" icon="speed"
-
-                        Text item=Lochinvar_DeltaT label="System Delta T [%.1f °F]" icon="line"
+                        // Option C: Dynamic Counts
+                        Text item=HighTemp_Active_Count label="High Temp Zones [%d Active]" icon="fire" valuecolor=[>0="red", 0="green"] {
+                            
+                            Frame label="Living Room" {
+                                Default item=LRZV label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=LRMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=LR_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=50 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Guest Bed" {
+                                Default item=GBrZV label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=GBrMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=GBr_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=50 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Basement" {
+                                Default item=BMTZV label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=BMTBrMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=BMT_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=50 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Garage" {
+                                Default item=GAZV label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=GAMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=GA_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=40 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Mud Room" {
+                                Default item=MRZV label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=MRMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=MR_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=50 maxValue=80 step=1
+                                }
+                            }
+                        }
+                        
+                        Text item=Radiant_Active_Count label="Radiant Zones [%d Active]" icon="water" valuecolor=[>0="blue", 0="green"] {
+                            
+                            Frame label="Kitchen" {
+                                Default item=KITRH label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=DENMS_Temp label="Actual Temp (Den Sensor) [%.1f °F]" icon="temperature"
+                                    Setpoint item=KIT_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=60 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Den" {
+                                Default item=DENRH label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=DENMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=DEN_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=60 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Master Bath" {
+                                Default item=MBaRH label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=MBaMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=MBa_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=60 maxValue=80 step=1
+                                }
+                            }
+                            Frame label="Master Bed" {
+                                Default item=MBeRH label="Valve State" icon="radiator"
+                                Frame {
+                                    Text item=MBeMS_Temp label="Actual Temp [%.1f °F]" icon="temperature"
+                                    Setpoint item=MBe_Heating_TargetTemp label="Target Temp [%.1f °F]" minValue=60 maxValue=80 step=1
+                                }
+                            }
+                        }
                     }
 
-                    Frame label="Boiler Feedback (Modbus)" {
-                        // What the boiler is actually doing
+                    Frame label="Boiler Sensors (Modbus)" {
                         Text item=Boiler_Status_Code label="Status [MAP(LochinvarBoilerStatus.map):%s]"
-                        Text item=Boiler_Blocking label="Blocking Status [MAP(LochinvarErrorCodes.map):%s]"
-                        Text item=Boiler_Lockout_Code label="Lockout Code [MAP(LochinvarLOC.map):%s]"
-                        Text item=Boiler_Firing_Rate label="Actual Firing Rate [%d %%]" icon="fire"
-                        Text item=Boiler_Pump_Speed label="Boiler Pump Speed [%d %%]" icon="pump"
                         Text item=Boiler_Outlet_Temp label="Outlet Temp (Sensor) [%.1f °F]"
                         Text item=Boiler_Inlet_Temp label="Inlet Temp (Sensor) [%.1f °F]"
+                        Text item=Lochinvar_DeltaT label="System Delta T [%.1f °F]" icon="line"
+                        Text item=Boiler_Pump_Speed label="Boiler Pump Speed [%d %%]" icon="pump"
+                        Text item=System_Supply_Temp label="System Supply Temp (Sensor) [%.1f °F]" icon="temperature"
                     }
 
-                    // NEW: Dynamic PID Tuning (Only shows the active set)
-                    Frame label="Standard PID Tuning (Supply/Tank)" visibility=[Boiler_High_Efficiency_Enable!=ON] {
-                        Setpoint item=Boiler_Supply_Kp label="Supply Kp (Slow) [%.1f]" minValue=0 maxValue=10 step=0.1
-                        Setpoint item=Boiler_Supply_Ki label="Supply Ki (Slow) [%.2f]" minValue=0 maxValue=1 step=0.01
-                        Setpoint item=Boiler_Supply_Kd label="Supply Kd (Slow) [%.2f]" minValue=0 maxValue=5 step=0.1
-                    }
-
-                    Frame label="High Eff. PID Tuning (Outlet)" visibility=[Boiler_High_Efficiency_Enable==ON] {
-                        Setpoint item=Boiler_Outlet_Kp label="Outlet Kp (Fast) [%.1f]" minValue=0 maxValue=10 step=0.1
-                        Setpoint item=Boiler_Outlet_Ki label="Outlet Ki (Fast) [%.2f]" minValue=0 maxValue=1 step=0.01
-                        Setpoint item=Boiler_Outlet_Kd label="Outlet Kd (Fast) [%.2f]" minValue=0 maxValue=5 step=0.1
-                    }
-
-                    Frame label="Active Zones (Inputs)" {
-                        // Quick view of what is calling for heat
-                        Text label="High Temp Zones" icon="fire" {
-                            Text item=LRZV label="Living Room"
-                            Text item=GBrZV label="Guest Bed"
-                            Text item=BMTZV label="Basement"
-                            Text item=GAZV label="Garage"
-                            Text item=MRZV label="Mud Room"
+                    Text label="Manual Zone Control" icon="switch" {
+                        Frame label="Radiator Zone Valves" {
+                            Switch item=GAZV label="Garage" icon="radiator"
+                            Switch item=MRZV label="Mud Room" icon="radiator"
+                            Switch item=LRZV label="Living Room" icon="radiator"
+                            Switch item=GBrZV label="Guest Bed" icon="radiator"
+                            Switch item=BMTZV label="Basement" icon="radiator"
                         }
-                        Text label="Radiant Zones (Low Temp)" icon="water" {
-                            Text item=KITRH label="Kitchen"
-                            Text item=DENRH label="Den"
-                            Text item=MBaRH label="Master Bath"
-                            Text item=MBeRH label="Master Bed"
+                        Frame label="Radiant Zone Valves" {
+                            Switch item=DENRH label="Den" icon="radiator"
+                            Switch item=KITRH label="Kitchen" icon="radiator"
+                            Switch item=MBeRH label="Master Bed" icon="radiator"
+                            Switch item=MBaRH label="Master Bath" icon="radiator"
+                        }
+                        Frame label="Pumps" {
+                            Switch item=RHP label="Radiant Heat Pump" icon="pump"
+                            Switch item=System_Pump_indicator label="System Pump" icon="pump"
+                            Switch item=CH_Pump label="Boiler Pump" icon="pump"
+                            Switch item=DHW_Pump_indicator label="DHW Pump" icon="pump"
+                            Switch item=DHW_Recirc_Pump_indicator label="DHW Recirc Pump" icon="pump"
+                        }
+                    }
+
+                    Text label="Advanced Configuration" icon="settings" {
+                        
+                        // 1. TOP LEVEL SETTINGS
+                        Frame label="Master Strategy" {
+                            Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"]
+                            Switch item=Boiler_High_Efficiency_Enable label="High Efficiency Mode" icon="energy"
+                            Switch item=Boiler_Dewpoint_Enable label="Dewpoint Protection" icon="shield"
+                        }
+
+                        // 2. NESTED TUNING PAGES
+                        
+                        Text label="Room Tuning (PID Gains)" icon="house" {
+                            Frame label="Status" {
+                                Text item=Outdoor_Temperature label="Outdoor Temp [%.1f °F]" icon="garden"
+                                Text item=Boiler_Max_Error_Room label="Coldest Room [%s]" icon="bedroom" valuecolor=["None"="green"]
+                                Text item=Boiler_Max_Error label="Error Magnitude [%.1f °F]" icon="error"
+                            }
+                            Frame label="Baseboard (Standard)" {
+                                Setpoint item=Room_Baseboard_Kp label="Baseboard Kp (Reaction) [%.1f]" minValue=0.0 maxValue=10.0 step=0.5
+                                Setpoint item=Room_Baseboard_Ki label="Baseboard Ki (Learning) [%.2f]" minValue=0.00 maxValue=2.00 step=0.01
+                            }
+                            Frame label="Radiant (High Inertia)" {
+                                Setpoint item=Room_Radiant_Kp label="Radiant Kp (Boost) [%.1f]" minValue=0.0 maxValue=20.0 step=0.5
+                                Setpoint item=Room_Radiant_Ki label="Radiant Ki (Windup) [%.2f]" minValue=0.00 maxValue=2.00 step=0.01
+                            }
+                        }
+
+                        Text label="Boiler Tuning (Internal PID)" icon="fire" {
+                            Frame label="Tank Control (Relaxed)" {
+                                Text label="Active when Pump is OFF or Demand Low" icon="water"
+                                Setpoint item=Boiler_Supply_Kp label="Tank Kp [%.1f]" minValue=0.0 maxValue=10.0 step=0.1
+                                Setpoint item=Boiler_Supply_Ki label="Tank Ki [%.3f]" minValue=0.000 maxValue=1.000 step=0.001
+                            }
+                            Frame label="Outlet Control (Aggressive)" {
+                                Text label="Active during High Demand / Firing" icon="fire"
+                                Setpoint item=Boiler_Outlet_Kp label="Outlet Kp [%.1f]" minValue=0.0 maxValue=10.0 step=0.1
+                                Setpoint item=Boiler_Outlet_Ki label="Outlet Ki [%.3f]" minValue=0.000 maxValue=1.000 step=0.001
+                            }
+                        }
+
+                        Text label="Outdoor Reset Curve" icon="line" {
+                            Frame label="Visualization" {
+                                Image refresh=60000 url="http://10.0.0.122:3000/render/d-solo/OthqIVRRk/odr-tuning?orgId=1&from=now-24h&to=now&panelId=2&width=1000&height=500&tz=America%2FDenver"
+                            }
+                            Frame label="Curve Settings" {
+                                Setpoint item=ODR_Intercept label="Design Temp (0°F Out) [%.0f °F]" minValue=160 maxValue=200 step=1
+                                Setpoint item=ODR_Slope label="Curve Slope [%.1f]" minValue=-2.0 maxValue=-0.5 step=0.1
+                            }
+                            Frame label="Reference" {
+                                Text item=Outdoor_Temperature label="Current Outdoor [%.1f °F]"
+                                Text item=Boiler_Target_Temp label="Calculated Target [%.1f °F]"
+                            }
+                        }
+
+                        Text label="Safety & Limits" icon="lock" {
+                            Frame label="Smart Shutdown Logic" {
+                                Switch item=Boiler_SmartOverrun_Enable label="Smart Shutdown Logic"
+                                Setpoint item=Boiler_Overrun_Threshold label="Overrun Cutoff [+ %.1f °F]" minValue=2.0 maxValue=20.0 step=0.5
+                                Setpoint item=Boiler_Rescue_Threshold label="Rescue Restart [- %.1f °F]" minValue=5.0 maxValue=30.0 step=1.0
+                                Setpoint item=Boiler_Block_Time label="Cooldown Time [%d min]" minValue=5 maxValue=60 step=1
+                            }
+                            Frame label="Calibration" {
+                                Text item=Boiler_Est_Flow label="Total Flow Est. [%.1f GPM]" icon="flow"
+                                Setpoint item=Flow_GPM_System label="Sys Pump GPM [%.1f]" minValue=1.0 maxValue=10.0 step=0.1
+                                Setpoint item=Flow_GPM_Radiant label="Rad Pump GPM [%.1f]" minValue=1.0 maxValue=10.0 step=0.1
+                            }
+                        }
+
+                        Text label="System Maintenance" icon="configuration" {
+                            Frame label="Maintenance Master Control" {
+                                Switch item=System_Maintenance_Mode label="MAINTENANCE MODE"
+                                Text item=Maintenance_Timer_Msg icon="time" visibility=[System_Maintenance_Mode==ON]
+                                Text label="Warning: Logic Disabled" icon="error" visibility=[System_Maintenance_Mode==ON]
+                            }
+
+                            Frame label="Manual Boiler Control" visibility=[System_Maintenance_Mode==ON] {
+                                Switch item=Boiler_Manual_Enable label="Enable Firing"
+                                Slider item=Boiler_Manual_Rate label="Manual Rate [%d %%]" minValue=0 maxValue=100 step=1 visibility=[Boiler_Manual_Enable==ON]
+                                Text item=System_Supply_Temp
+                                Text item=System_Return_Temp
+                                Text item=Boiler_Firing_Rate label="Actual Rate [%d %%]"
+                            }
+
+                            Frame label="Manual Pump Control" visibility=[System_Maintenance_Mode==ON] {
+                                Switch item=SysPump label="System Pump"
+                                Switch item=RHP label="Radiant Pump"
+                                Switch item=RecFan
+                                Switch item=MBaFan
+                                Switch item=BmtBaFan
+                                Switch item=GuestBaFan
+                            }
+
+                            Frame label="High Temp Zone Valves" visibility=[System_Maintenance_Mode==ON] {
+                                Switch item=GAZV label="Garage"
+                                Switch item=MRZV label="Mud Room"
+                                Switch item=LRZV label="Living Room"
+                                Switch item=GBrZV label="Guest Bed"
+                                Switch item=BMTZV label="Basement"
+                            }
+
+                            Frame label="Radiant Zone Valves" visibility=[System_Maintenance_Mode==ON] {
+                                Switch item=KITRH label="Kitchen"
+                                Switch item=DENRH label="Den"
+                                Switch item=MBaRH label="Master Bath"
+                                Switch item=MBeRH label="Master Bed"
+                            }
+                            
+                            Frame label="Readouts" {
+                                Text item=Lochinvar_40001_Control_Mode label="Control Mode (Reg 40001) [%d]"
+                                Text item=Lochinvar_40002_Boiler_Enable_Cmd label="Enable Cmd (Reg 40002) [%d]"
+                                Text item=Lochinvar_40003_Rate_Command label="Rate Cmd (Reg 40003) [%d]"
+                            }
                         }
                     }
                 }
@@ -1075,7 +1234,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
 
                     Frame label="Pumps" {
                         Switch item=RHP label="Radiant Heat Pump" icon="PUMP"
-                        Switch item=System_Pump_indicator label="System Pump" icon="PUMP"
+                        Switch item=SysPump label="System Pump" icon="PUMP"
                     }
                     Frame {
                         Switch item=CH_Pump label="Boiler Pump" icon="PUMP"

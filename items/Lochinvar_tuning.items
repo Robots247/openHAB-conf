@@ -20,20 +20,16 @@ Number Boiler_Outlet_Kp "Outlet PID Kp (Fast) [%.1f]" <line> (gLochinvar_tuning)
 Number Boiler_Outlet_Ki "Outlet PID Ki (Fast) [%.2f]" <line> (gLochinvar_tuning)
 Number Boiler_Outlet_Kd "Outlet PID Kd (Fast) [%.2f]" <line> (gLochinvar_tuning)
 
-// === DEPRECATED (Old Single PID Items) ===
-// Kept commented out for reference/safety
-// Number Boiler_Kp "PID Kp (Proportional) [%.1f]" <line> (gLochinvar_tuning)
-// Number Boiler_Ki "PID Ki (Integral) [%.2f]" <line> (gLochinvar_tuning)
-// Number Boiler_Kd "PID Kd (Derivative) [%.2f]" <line> (gLochinvar_tuning)
-
 
 // === Outdoor Reset Tuning ===
 Number ODR_Slope "Curve Slope [%.1f]" <line> (gLochinvar_tuning)
 Number ODR_Intercept "Curve Intercept (0F) [%.1f °F]" <temperature> (gLochinvar_tuning)
 
 // === Room Feedback Tuning ===
-Number Room_Kp "Room Kp (Boost/Deg) [%.1f]" <line> (gLochinvar_tuning)
-Number Room_Ki "Room Ki (Learn/Min) [%.2f]" <line> (gLochinvar_tuning)
+Number Room_Baseboard_Kp "Room Kp (Boost/Deg) [%.1f]" <line> (gLochinvar_tuning)
+Number Room_Baseboard_Ki "Room Ki (Learn/Min) [%.2f]" <line> (gLochinvar_tuning)
+Number Room_Radiant_Kp "Radiant Room Kp (Inertia) [%.1f]"
+Number Room_Radiant_Ki "Radiant Room Ki (Memory) [%.2f]"
 
 // === SMART OVERRUN LOGIC (NEW) ===
 Switch Boiler_SmartOverrun_Enable "Enable Smart Overrun Logic" <switch> (gLochinvar_tuning)
@@ -110,3 +106,11 @@ Number Boiler_Gov_Pump   "Gov Limit Pump [%.1f %%]"   <chart>
 
 // Switch for Grafana to track ACTUAL DHW burning (0=OFF, 1=ON)
 Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indicators, Indicators)
+
+Number ODR_Radiant_Target "Radiant Fixed Target [%.0f °F]" <temperature>
+
+String Boiler_Mode_Name "Control Mode Name" <text>
+
+Number ODR_Base_Target     "Base ODR Curve [%.1f °F]"
+Number ODR_Req_Baseboard   "Baseboard Requirement (w/ PID) [%.1f °F]"
+Number ODR_Req_Radiant     "Radiant Requirement (w/ PID) [%.1f °F]"

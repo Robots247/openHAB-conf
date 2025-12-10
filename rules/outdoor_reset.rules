@@ -2,8 +2,8 @@ import org.openhab.core.model.script.ScriptServiceUtil
 
 // ===================================================================================
 // PROFESSIONAL OUTDOOR RESET MANAGER (ODR)
-// Architecture: Max-Select Arbitration with Room Feedback Integration
-// Updates: Tightened Authority Clamping (Max 10F Boost) to prevent Overheating
+// Architecture: Max-Select Arbitration with Shared Room Feedback
+// Updates: Added Tracking Items for Graphing (ODR_Base_Target, ODR_Req_Baseboard, ODR_Req_Radiant)
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -21,10 +21,17 @@ then
     if (ODR_Slope.state == NULL || ODR_Slope.state == UNDEF) ODR_Slope.postUpdate(-1.1)
     if (ODR_Intercept.state == NULL || ODR_Intercept.state == UNDEF) ODR_Intercept.postUpdate(160.0)
     
-    // Room Feedback: Tuned for Stability
-    if (Room_Kp.state == NULL || Room_Kp.state == UNDEF) Room_Kp.postUpdate(3.0)  
-    if (Room_Ki.state == NULL || Room_Ki.state == UNDEF) Room_Ki.postUpdate(0.05) 
+    // Standard Room Feedback (Baseboard/Air) - RENAMED
+    if (Room_Baseboard_Kp.state == NULL || Room_Baseboard_Kp.state == UNDEF) Room_Baseboard_Kp.postUpdate(3.0)  
+    if (Room_Baseboard_Ki.state == NULL || Room_Baseboard_Ki.state == UNDEF) Room_Baseboard_Ki.postUpdate(0.05) 
     
+    // Radiant Specific Feedback (High Inertia)
+    if (Room_Radiant_Kp.state == NULL || Room_Radiant_Kp.state == UNDEF) Room_Radiant_Kp.postUpdate(6.0)
+    if (Room_Radiant_Ki.state == NULL || Room_Radiant_Ki.state == UNDEF) Room_Radiant_Ki.postUpdate(0.20)
+    
+    // Initialize Radiant Target if missing
+    if (ODR_Radiant_Target.state == NULL || ODR_Radiant_Target.state == UNDEF) ODR_Radiant_Target.postUpdate(152.0)
+
     logInfo("ODR.Init", "Professional ODR parameters initialized.")
 end
 
@@ -40,8 +47,14 @@ then
     // ---------------------------------------------------------
     val double curveSlope = if(ODR_Slope.state instanceof Number) (ODR_Slope.state as Number).doubleValue else -1.1
     val double curveIntercept = if(ODR_Intercept.state instanceof Number) (ODR_Intercept.state as Number).doubleValue else 160.0
-    val double Kp_room_val = if(Room_Kp.state instanceof Number) (Room_Kp.state as Number).doubleValue else 3.0
-    val double Ki_room_val = if(Room_Ki.state instanceof Number) (Room_Ki.state as Number).doubleValue else 0.05
+    
+    // Standard Gains (Baseboard) - Tunable via Sitemap (RENAMED)
+    val double Kp_std = if(Room_Baseboard_Kp.state instanceof Number) (Room_Baseboard_Kp.state as Number).doubleValue else 3.0
+    val double Ki_std = if(Room_Baseboard_Ki.state instanceof Number) (Room_Baseboard_Ki.state as Number).doubleValue else 0.05
+    
+    // Radiant Gains - Tunable via Sitemap
+    val double Kp_rad = if(Room_Radiant_Kp.state instanceof Number) (Room_Radiant_Kp.state as Number).doubleValue else 6.0
+    val double Ki_rad = if(Room_Radiant_Ki.state instanceof Number) (Room_Radiant_Ki.state as Number).doubleValue else 0.20
 
     // OUTDOOR TEMP SMOOTHING (High Desert Optimization)
     var double rawOutdoor = 32.0
@@ -64,7 +77,7 @@ then
         if (Boiler_Target_Temp.state != 0) Boiler_Target_Temp.postUpdate(0)
         Boiler_Demand_Type.postUpdate("WWSD (Warm)")
         room_integral_mem = 0.0 
-        return; 
+        return;
     }
 
     // Zone Calls
@@ -76,16 +89,116 @@ then
     var int bState = if(Boiler_Graph_State.state instanceof Number) (Boiler_Graph_State.state as Number).intValue else 0
     var boolean boilerIsBusy = (bState == 2 || bState < 0) 
     
-    // Room Error
-    var double maxErrorHT = 0.0
-    if (Boiler_Max_Error.state instanceof Number) {
-        maxErrorHT = (Boiler_Max_Error.state as Number).doubleValue
-    }
+    // ---------------------------------------------------------
+    // 0A. CALCULATE MAX ROOM ERROR (The Coldest Room)
+    // ---------------------------------------------------------
     
-    // SAFETY CLAMP: Input Error
-    // If error is > 10F, it's likely a glitch or open window. Don't let it drive the boiler crazy.
+    var double calc_max_error = 0.0
+    var String calc_room_name = "None"
+    var double t_val = 0.0
+    var double s_val = 0.0
+    var double e_val = 0.0
+
+    // 1. Master Bath
+    if (MBaMS_Temp.state instanceof Number && MBa_Heating_TargetTemp.state instanceof Number) {
+        t_val = (MBaMS_Temp.state as Number).doubleValue
+        s_val = (MBa_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Master Bath"; }
+    }
+    // 2. Master Bed
+    if (MBeMS_Temp.state instanceof Number && MBe_Heating_TargetTemp.state instanceof Number) {
+        t_val = (MBeMS_Temp.state as Number).doubleValue
+        s_val = (MBe_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Master Bed"; }
+    }
+    // 3. Den
+    if (DENMS_Temp.state instanceof Number && DEN_Heating_TargetTemp.state instanceof Number) {
+        t_val = (DENMS_Temp.state as Number).doubleValue
+        s_val = (DEN_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Den"; }
+    }
+    // 4. Mud Room
+    if (MRMS_Temp.state instanceof Number && MR_Heating_TargetTemp.state instanceof Number) {
+        t_val = (MRMS_Temp.state as Number).doubleValue
+        s_val = (MR_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Mud Room"; }
+    }
+    // 5. Living Room
+    if (LRMS_Temp.state instanceof Number && LR_Heating_TargetTemp.state instanceof Number) {
+        t_val = (LRMS_Temp.state as Number).doubleValue
+        s_val = (LR_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Living Room"; }
+    }
+    // 6. Basement
+    // NOTE: Switched to BMTBrMS (Basement Bedroom) because main BMTMS sensor is broken
+    if (BMTBrMS_Temp.state instanceof Number && BMT_Heating_TargetTemp.state instanceof Number) {
+        t_val = (BMTBrMS_Temp.state as Number).doubleValue
+        s_val = (BMT_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Basement (Bed)"; }
+    }
+    // 7. Guest Bed
+    if (GBrMS_Temp.state instanceof Number && GBr_Heating_TargetTemp.state instanceof Number) {
+        t_val = (GBrMS_Temp.state as Number).doubleValue
+        s_val = (GBr_Heating_TargetTemp.state as Number).doubleValue
+        e_val = s_val - t_val
+        if (e_val > calc_max_error) { calc_max_error = e_val; calc_room_name = "Guest Bed"; }
+    }
+
+    // UPDATE SITEMAP ITEMS
+    if (Boiler_Max_Error.state != calc_max_error) Boiler_Max_Error.postUpdate(calc_max_error)
+    if (Boiler_Max_Error_Room.state.toString != calc_room_name) Boiler_Max_Error_Room.postUpdate(calc_room_name)
+
+    // USE CALCULATED ERROR FOR PID
+    var double maxErrorHT = calc_max_error
     var double effectiveError = maxErrorHT
     if (effectiveError > 10.0) effectiveError = 10.0
+
+    // ---------------------------------------------------------
+    // 0B. CALCULATE SHARED ROOM CORRECTION (PID)
+    // ---------------------------------------------------------
+    
+    // GAIN SELECTION
+    var double active_Kp = Kp_std
+    var double active_Ki = Ki_std
+    
+    if (radiantCall) {
+        // Use Radiant Specific Tuning
+        active_Kp = Kp_rad 
+        active_Ki = Ki_rad 
+    }
+    
+    // 1. Proportional Term (P)
+    var double P_room = active_Kp * effectiveError
+    if (P_room > 20.0) P_room = 20.0 // Authority Clamp
+    
+    // 2. Integral Term (I)
+    // Only accumulate if we have an active heating call
+    if (baseboardCall || radiantCall) {
+        if (!boilerIsBusy) {
+            if (effectiveError > 0.5) {
+                room_integral_mem = room_integral_mem + (active_Ki * effectiveError)
+            } else if (effectiveError < 0.2) {
+                room_integral_mem = room_integral_mem * 0.70 
+            }
+        }
+        
+        // Anti-Windup Clamps (Tightened from 10 to 5)
+        if (room_integral_mem > 5.0) room_integral_mem = 5.0
+        if (room_integral_mem < -5.0) room_integral_mem = -5.0
+    }
+    else {
+        // Decay integral if no calls are active
+        room_integral_mem = room_integral_mem * 0.90
+    }
+    
+    // 3. Total Correction
+    var double totalRoomCorrection = P_room + room_integral_mem
 
     // ---------------------------------------------------------
     // 1. CALCULATE INDIVIDUAL ZONE REQUIREMENTS
@@ -104,61 +217,34 @@ then
     // B. BASEBOARD REQUIREMENT (ODR + PID Room Feedback)
     var double reqBaseboard = 0.0
     var double baseTarget = 0.0
-    var double P_room = 0.0
+    
+    // ALWAYS CALCULATE BASE TARGET (For Graphing)
+    baseTarget = curveIntercept + (curveSlope * outdoorInput)
     
     if (baseboardCall) {
-        // Base ODR Calculation
-        baseTarget = curveIntercept + (curveSlope * outdoorInput)
+        reqBaseboard = baseTarget + totalRoomCorrection 
         
-        // --- PID Room Feedback ---
-        // Use 'effectiveError' (Clamped) for calculation
-        P_room = Kp_room_val * effectiveError
-        
-        // AUTHORITY CLAMP 
-        if (P_room > 20.0) P_room = 20.0
-        
-        // Integral Logic: Asymmetric Windup
-        if (!boilerIsBusy) {
-            if (effectiveError > 0.5) {
-                room_integral_mem = room_integral_mem + (Ki_room_val * effectiveError)
-            } else if (effectiveError < 0.2) {
-                room_integral_mem = room_integral_mem * 0.70 
-            }
-        }
-        
-        // Anti-Windup Clamps (Tightened from 10 to 5)
-        if (room_integral_mem > 5.0) room_integral_mem = 5.0
-        if (room_integral_mem < -5.0) room_integral_mem = -5.0
-        
-        reqBaseboard = baseTarget + P_room + room_integral_mem
-        
-        // Baseboard Safety Clamps
         if (reqBaseboard > 175.0) reqBaseboard = 175.0
         if (reqBaseboard < 110.0) reqBaseboard = 110.0
-    }
-    else {
-        room_integral_mem = room_integral_mem * 0.90
     }
 
     // C. RADIANT REQUIREMENT
     var double reqRadiant = 0.0
     
-    //not used but left here for reference and future update of hardware valves
-    /*if (radiantCall) {
-        val double rad_Intercept = 140.0 
-        val double rad_Slope = -0.5      
-        reqRadiant = rad_Intercept + (rad_Slope * outdoorInput)
+    var double userRadiantTarget = 152.0
+    if (ODR_Radiant_Target.state instanceof Number) {
+        userRadiantTarget = (ODR_Radiant_Target.state as Number).doubleValue
+    } else {
+        ODR_Radiant_Target.postUpdate(152.0)
+    }
+
+    if (radiantCall) {
+        // Apply Shared PID Correction to Radiant Target
+        reqRadiant = userRadiantTarget + totalRoomCorrection
         
         // Radiant Safety Clamps
-        
-        
-        //if (reqRadiant > 160.0) reqRadiant = 160.0
-        //if (reqRadiant < 130.0) reqRadiant = 130.0
-    }*/
-
-        //clamped to 152F due to Caleffi Mixing Valve Max Temp 27F above operating temp
-        reqRadiant = 152.0
-       
+        if (reqRadiant > 160.0) reqRadiant = 160.0
+    }
 
     // ---------------------------------------------------------
     // 2. MAX-SELECT ARBITRATION (Winner Takes All)
@@ -192,16 +278,21 @@ then
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
     
-    // FACTORY STYLE LOGGING (Enhanced for Debugging)
+    // --- UPDATE TRACKING ITEMS (For Grafana) ---
+    // These only update if they exist in the .items file!
+    try { ODR_Base_Target.postUpdate(baseTarget) } catch(Exception e) {}
+    try { ODR_Req_Baseboard.postUpdate(reqBaseboard) } catch(Exception e) {}
+    try { ODR_Req_Radiant.postUpdate(reqRadiant) } catch(Exception e) {}
+    
     if (finalTarget > 0) {
         logInfo("ODR.Diagnostic", 
             "Out:" + String::format("%.1f", outdoorInput) + 
             "|Base:" + String::format("%.1f", baseTarget) + 
-            "|BoostP:" + String::format("%.1f", P_room) + 
-            "|BoostI:" + String::format("%.1f", room_integral_mem) +
+            "|RadTgt:" + String::format("%.1f", userRadiantTarget) +
+            "|Boost:" + String::format("%.1f", totalRoomCorrection) + 
             "|Err:" + String::format("%.1f", maxErrorHT) + 
             "|WIN:" + demandSource +
             "|FINAL:" + String::format("%.1f", finalTarget)
-        )
+         )
     }
 end

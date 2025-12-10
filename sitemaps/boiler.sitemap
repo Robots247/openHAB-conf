@@ -1,6 +1,4 @@
-sitemap boiler label="Boiler Control Center" {
-    
-    Frame label="System Status & Safety" {
+Frame label="System Status & Safety" {
         Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
         
         Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="fire"
@@ -46,17 +44,21 @@ sitemap boiler label="Boiler Control Center" {
     }
 
     Frame label="Advanced Tuning: PID Gains" {
-        Text label="Room PID: Reacts to House Temp" icon="house"
-        Setpoint item=Room_Kp label="Room Kp (Reaction) [%.1f]" minValue=0.0 maxValue=10.0 step=0.5
-        Text label="Room Kp: Higher = Faster reaction to cold rooms." icon="none"
-        Setpoint item=Room_Ki label="Room Ki (Learning) [%.2f]" minValue=0.00 maxValue=2.00 step=0.05
-        Text label="Room Ki: Higher = Stronger push to hit exact room temp." icon="none"
+        Text label="Standard (Baseboard) Room PID" icon="house"
+        Setpoint item=Room_Baseboard_Kp label="Std. Room Kp (Reaction) [%.1f]" minValue=0.0 maxValue=10.0 step=0.5
+        Text label="Standard Kp: For radiators (Fast response)." icon="none"
+        Setpoint item=Room_Baseboard_Ki label="Std. Room Ki (Learning) [%.2f]" minValue=0.00 maxValue=2.00 step=0.01
+        Text label="Standard Ki: Clears small persistent errors." icon="none"
+        
+        Text label="Radiant Specific PID (High Inertia)" icon="sun"
+        Setpoint item=Room_Radiant_Kp label="Radiant Kp (Boost) [%.1f]" minValue=0.0 maxValue=20.0 step=0.5
+        Text label="Radiant Kp: Needs high value (e.g. 6.0) to jump-start slab." icon="none"
+        Setpoint item=Room_Radiant_Ki label="Radiant Ki (Windup) [%.2f]" minValue=0.00 maxValue=2.00 step=0.01
+        Text label="Radiant Ki: Needs faster windup (e.g. 0.20) to overcome lag." icon="none"
         
         Text label="Boiler PID: Reacts to Water Temp" icon="water"
         Setpoint item=Boiler_Kp label="Firing Kp (Aggression) [%.1f]" minValue=0.0 maxValue=10.0 step=0.1
-        Text label="Boiler Kp: Lower = Smoother fire, less overshoot." icon="none"
         Setpoint item=Boiler_Ki label="Firing Ki (Precision) [%.2f]" minValue=0.00 maxValue=1.00 step=0.01
-        Text label="Boiler Ki: Higher = Eliminates steady droop below target." icon="none"
     }
 
     Frame label="System Calibration" {

@@ -3,7 +3,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER - PROFESSIONAL EDITION
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updates: Added Debug Logging to troubleshoot "Failure to Fire"
+// Updates: Added PID Initialization for Tank vs Outlet tuning
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -46,6 +46,15 @@ then
     if (Boiler_Dewpoint_Enable.state == NULL) {
         Boiler_Dewpoint_Enable.postUpdate(ON)
     }
+    
+    // --- PID INITIALIZATION ---
+    // Supply/Tank (Relaxed Mode - Pump Off or Low Demand)
+    if (Boiler_Supply_Kp.state == NULL || Boiler_Supply_Kp.state == UNDEF) Boiler_Supply_Kp.postUpdate(1.0)
+    if (Boiler_Supply_Ki.state == NULL || Boiler_Supply_Ki.state == UNDEF) Boiler_Supply_Ki.postUpdate(0.005)
+    
+    // Outlet (Aggressive Mode - Active Firing)
+    if (Boiler_Outlet_Kp.state == NULL || Boiler_Outlet_Kp.state == UNDEF) Boiler_Outlet_Kp.postUpdate(2.0)
+    if (Boiler_Outlet_Ki.state == NULL || Boiler_Outlet_Ki.state == UNDEF) Boiler_Outlet_Ki.postUpdate(0.05)
 end
 
 // -----------------------------------------------------------------------------------
@@ -176,7 +185,7 @@ end
 
 // -----------------------------------------------------------------------------------
 // RULE 3: HYBRID BOILER PID LOOP (MODE 2)
-// Updates: Added Debug Logic to identify why boiler is OFF
+// Updates: Integrated "Pump Speed" sensor selection with Mixing Valve Protection
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop (Mode 2)"
 when
@@ -209,26 +218,45 @@ then
     val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 100.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
 
-    // 3. SELECT PID STRATEGY
-    var boolean highEffMode = (Boiler_High_Efficiency_Enable.state == ON)
+    // 3. SELECT SENSOR & PID STRATEGY (AUTO-DETECT)
+    // Logic: 
+    // - If Pump < 5% (OFF): We trust the Tank/Supply. Use Relaxed PIDs.
+    // - If Pump >= 5% (ON): We trust the Boiler Loop (Inlet/Outlet). Use Aggressive PIDs.
+
+    var boolean useAggressiveMode = false
+    var String tempSource = "Tank(Supply)"
+    var double monitorTemp = supplyTemp // Default to Supply
     
+    // Configurable PID placeholders
     var double active_Kp = 1.0
     var double active_Ki = 0.01
-    
-    if (highEffMode) {
-        if (Boiler_Outlet_Kp.state instanceof Number) active_Kp = (Boiler_Outlet_Kp.state as Number).doubleValue
-        if (Boiler_Outlet_Ki.state instanceof Number) active_Ki = (Boiler_Outlet_Ki.state as Number).doubleValue
-    } else {
+
+    if (pumpSpeed < 5.0) {
+        // --- MODE: TANK (RELAXED) ---
+        useAggressiveMode = false
+        monitorTemp = supplyTemp
+        tempSource = "Tank(Supply)"
+        
+        // Use Relaxed PIDs (Supply Config)
         if (Boiler_Supply_Kp.state instanceof Number) active_Kp = (Boiler_Supply_Kp.state as Number).doubleValue
         if (Boiler_Supply_Ki.state instanceof Number) active_Ki = (Boiler_Supply_Ki.state as Number).doubleValue
+    } 
+    else {
+        // --- MODE: INLET/BOILER (AGGRESSIVE) ---
+        useAggressiveMode = true
+        monitorTemp = inletTemp
+        tempSource = "Inlet"
+        
+        // Use Aggressive PIDs (Outlet Config)
+        if (Boiler_Outlet_Kp.state instanceof Number) active_Kp = (Boiler_Outlet_Kp.state as Number).doubleValue
+        if (Boiler_Outlet_Ki.state instanceof Number) active_Ki = (Boiler_Outlet_Ki.state as Number).doubleValue
     }
 
-    // 4. CALCULATE PID ERROR
+    // 4. CALL DETECTION & ERROR CALC
     var double pidRequest = 0.0
     var double error = 0.0
     var String controlVar = "Supply"
 
-    // CALL DETECTION
     var boolean callActive = false
     if (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON) callActive = true
     if (KITRH.state == ON || DENRH.state == ON || MBaRH.state == ON || MBeRH.state == ON) callActive = true
@@ -237,10 +265,12 @@ then
     if (Boiler_Block_Active.state != ON && callActive && targetTemp > 0) {
         
         // --- CALCULATE ERROR ---
-        if (highEffMode) {
+        if (useAggressiveMode) {
+            // In Aggressive Mode, we target the OUTLET temp for fast response
             error = targetTemp - outletTemp
             controlVar = "Outlet"
         } else {
+            // In Relaxed Mode, we target the SUPPLY temp (Tank)
             error = targetTemp - supplyTemp
             controlVar = "Supply"
         }
@@ -257,7 +287,6 @@ then
         var double govOutletLimit = 100.0
         var double govFlowLimit = 100.0
         var double govDewpointLimit = 100.0 
-        var double govPumpLimit = 100.0 
 
         // 2A. HIGH LIMIT GOVERNOR
         val double safetyTrip = 188.0
@@ -275,36 +304,47 @@ then
              if (govFlowLimit < 20.0) govFlowLimit = 20.0 
         }
 
-        // 2C. DEWPOINT GUARD
+      // 2C. DEWPOINT GUARD (EFFICIENCY & SHORT CYCLE PROTECTION)
         var boolean dewpointEnabled = (Boiler_Dewpoint_Enable.state == ON)
         var boolean isHighTempRequired = (targetTemp >= 155.0)
-        var double monitorTemp = inletTemp
-        var String tempSource = "Inlet"
-        if (pumpSpeed < 5.0) {
-            monitorTemp = supplyTemp
-            tempSource = "Tank(Supply)"
+
+        // CRITICAL BYPASS: MIXING VALVE PROTECTION
+        // If the active sensor (Tank or Inlet) is below 130F, we are "Starving".
+        // We MUST fire to protect the mixing valve, ignoring efficiency rules.
+        var boolean mixingValveStarving = (monitorTemp < 130.0)
+
+        if (dewpointEnabled && !isHighTempRequired && !mixingValveStarving) {
+             // We are in the "Efficiency Zone" (Above 130F, but not High Temp)
+             // Goal: Prevent short-cycling when water is already "warm enough" (e.g. 132F).
+             
+             val double condensing_limit = 132.0   // Upper Limit (Turn off)
+             val double restart_hysteresis = 10.0   // Drop required to restart
+             val double restart_trigger = condensing_limit - restart_hysteresis // 130.0F
+
+             if (monitorTemp >= condensing_limit) {
+                  // CASE 1: TOO HOT - KILL FLAME
+                  govDewpointLimit = 0.0
+                  if (last_firing_rate > 0) {
+                      logInfo("Boiler.Gov", "⛔ DEWPOINT LIMIT: Killing Flame. " + tempSource + " (" + monitorTemp + ") > " + condensing_limit)
+                  }
+             }
+             else if (monitorTemp > restart_trigger) {
+                  // CASE 2: DEADBAND (e.g. 132F) - PREVENT RESTART
+                  
+                  if (last_firing_rate < 1.0) {
+                      // Boiler is OFF. Keep it OFF until we drop below 130F.
+                      govDewpointLimit = 0.0
+                      
+                      // LOGGING: Only shout if the PID is trying to fire
+                      if (pidRequest > 10.0) {
+                         logInfo("Boiler.Gov", "⛔ DEWPOINT BLOCK: Requesting " + pidRequest.intValue + "% but " + tempSource + " is " + monitorTemp + "F. (Waiting for <" + restart_trigger + "F)")
+                      }
+                  } else {
+                      // Boiler is ON. Just restrict it to Low Fire (20%) to extend the run.
+                      govDewpointLimit = 10.0 
+                  }
+             } 
         }
-
-        if (dewpointEnabled && !isHighTempRequired) {
-            val double condensing_limit = 127.0   
-            val double restart_hysteresis = 12.0  
-
-            if (monitorTemp >= condensing_limit) {
-                 govDewpointLimit = 0.0
-                 // logInfo("Boiler.Gov", "Dewpoint Guard: " + tempSource + " > " + condensing_limit + "F. KILL FLAME.")
-            }
-            else if (monitorTemp > (condensing_limit - restart_hysteresis)) {
-                 if (last_firing_rate < 1.0) {
-                     govDewpointLimit = 0.0
-                 } else {
-                     var double range = restart_hysteresis
-                     var double climb = monitorTemp - (condensing_limit - restart_hysteresis)
-                     var double throttle = 100.0 - ((climb / range) * 100.0)
-                     if (climb > (range - 2.0) && throttle > 20.0) throttle = 20.0
-                     govDewpointLimit = throttle
-                 }
-            } 
-        } 
 
         // UPDATE GOV ITEMS
         Boiler_Gov_Outlet.postUpdate(govOutletLimit)
@@ -346,9 +386,10 @@ then
         // --- COMPONENT 5: SMOOTHING & OUTPUT ---
         var double finalRate = rawProposedRate
         
-        if (finalRate < 20.0 && finalRate > 0.1) finalRate = 20.0 
+        if (finalRate < 10.0 && finalRate > 0.1) finalRate = 10.0 
         if (finalRate < 0.1) finalRate = 0.0
 
+        // Ramp Rate Limits
         if (finalRate > last_firing_rate + 5.0) finalRate = last_firing_rate + 5.0
         if (finalRate < last_firing_rate - 10.0) finalRate = last_firing_rate - 10.0
         last_firing_rate = finalRate
@@ -386,15 +427,12 @@ then
         // SYSTEM OFF
         
         // --- DEBUGGING: Why are we OFF? ---
-        // Only log if we suspect we *should* be running (Valve is OPEN or Target is HIGH)
         if (callActive || targetTemp > 0) {
              if (Boiler_Block_Active.state == ON) {
                  logInfo("Boiler.Debug", "OFF REASON: Block Active (Shutoff Rule Triggered).")
              } else if (!callActive) {
-                 // We see Target > 0 but Call is false.
                  logInfo("Boiler.Debug", "OFF REASON: No Active Call detected (Check Zone Valves).")
              } else if (targetTemp <= 0) {
-                 // We see Call is true but Target is 0.
                  logInfo("Boiler.Debug", "OFF REASON: Target Temp is 0.0 (Check ODR Rule).")
              }
         }

@@ -314,7 +314,7 @@ end
 // If Mode > 0 (BMS Mode), do NOT force CFH relays ON (prevents Double Call).
 
 rule "CFH1 Manager"
-when Item ZV changed or Time cron "0 0/5 * * * ?" then
+when Member of ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
         if (CFH1.state == ON) CFH1.sendCommand(OFF)
@@ -358,7 +358,7 @@ when Item RHP changed or Time cron "0 0/5 * * * ?" then
 end
 
 rule "Radiant Pump Logic"
-when Item RHZV changed or Time cron "0 0/5 * * * ?" then
+when Member of RHZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
          if (RHP.state == ON) RHP.sendCommand(OFF)
@@ -384,7 +384,7 @@ when Item RHZV changed or Time cron "0 0/5 * * * ?" then
 end
 
 rule "System Pump Logic"
-when Item ZV changed or Time cron "0 0/5 * * * ?" then
+when Member of ZV changed or Time cron "0 0/5 * * * ?" then
     if (System_Maintenance_Mode.state == ON) return;
     if (Heating_Mode.state.toString == "OFF_SUMMER" && Heating_ModeOverride.state != ON) {
          if (SysPump.state == ON) SysPump.sendCommand(OFF)
@@ -536,5 +536,26 @@ then
             
             runtimeStartTimes.remove(itemName)
         }
+    }
+end
+// =================================================================================
+// RULE 6: UPDATE ACTIVE ZONE COUNTS (For Sitemap Option C)
+// =================================================================================
+rule "Update Active Zone Counts"
+when
+    Member of ZV changed or
+    Member of RHZV changed or
+    System started
+then
+    // Calculate High Temp Count (ZV Group)
+    val highTempCount = ZV.members.filter[ i | i.state == ON ].size
+    if (HighTemp_Active_Count.state == NULL || (HighTemp_Active_Count.state as Number).intValue != highTempCount) {
+        HighTemp_Active_Count.postUpdate(highTempCount)
+    }
+
+    // Calculate Radiant Count (RHZV Group)
+    val radiantCount = RHZV.members.filter[ i | i.state == ON ].size
+    if (Radiant_Active_Count.state == NULL || (Radiant_Active_Count.state as Number).intValue != radiantCount) {
+        Radiant_Active_Count.postUpdate(radiantCount)
     }
 end
