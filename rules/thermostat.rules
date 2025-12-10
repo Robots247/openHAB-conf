@@ -410,7 +410,7 @@ when Item ZV changed or Time cron "0 0/5 * * * ?" then
 end
 
 // =================================================================================
-// RULE 4: ERROR CALCULATION
+// RULE 4: ERROR CALCULATION (FIXED BMT SENSOR + DEBUG)
 // =================================================================================
 rule "Calculate Max Room Error"
 when
@@ -422,45 +422,64 @@ then
     var String worstRoom = "None"
     
     // Switch Case Lookup for Reliability
-    //removed GA from list as garage is not included in max error calculation
     val rooms = newArrayList("DEN", "MBa", "MBe", "LR", "GBr", "MR", "BMT")
     
+    logInfo("Boiler.Error", "--- Starting Error Calc ---") // DEBUG
+
     rooms.forEach[ prefix |
         try {
             var String sName = null
             var String tName = prefix + "_Heating_TargetTemp"
-            
+            var String actuatorName = null
+
+            // MAPPING
             switch(prefix) {
-                case "DEN": sName="DENMS_Temp"
-                case "MBa": sName="MBaMS_Temp"
-                case "MBe": sName="MBeMS_Temp"
-                case "LR":  sName="LRMS_Temp"
-                case "GBr": sName="GBrMS_Temp"
-                case "MR":  sName="MRMS_Temp"
-                case "BMT": sName="BMTMS_Temp"
-                case "GA":  sName="GAMS_Temp"
+                case "DEN": { sName="DENMS_Temp";   actuatorName="DENRH" }
+                case "MBa": { sName="MBaMS_Temp";   actuatorName="MBaRH" }
+                case "MBe": { sName="MBeMS_Temp";   actuatorName="MBeRH" }
+                case "LR":  { sName="LRMS_Temp";    actuatorName="LRZV" }
+                case "GBr": { sName="GBrMS_Temp";   actuatorName="GBrZV" }
+                case "MR":  { sName="MRMS_Temp";    actuatorName="MRZV" }
+                // *** FIX: UPDATED SENSOR NAME TO MATCH THERMOSTAT ***
+                case "BMT": { sName="BMTBrMS_Temp"; actuatorName="BMTZV" } 
             }
             
-            if (sName !== null) {
+            if (sName !== null && actuatorName !== null) {
                 val sItem = ScriptServiceUtil.getItemRegistry.getItem(sName)
                 val tItem = ScriptServiceUtil.getItemRegistry.getItem(tName)
+                val aItem = ScriptServiceUtil.getItemRegistry.getItem(actuatorName) 
                 
                 if (sItem.state instanceof Number && tItem.state instanceof Number) {
-                    val double cVal = (sItem.state as Number).doubleValue
-                    val double tVal = (tItem.state as Number).doubleValue
+                    val double cVal = (sItem.state as Number).doubleValue // Current Temp
+                    val double tVal = (tItem.state as Number).doubleValue // Target Temp
                     var double err = tVal - cVal
-                    if (err > maxError) {
-                        maxError = err
-                        worstRoom = prefix
+
+                    // CHECK ACTUATOR STATE
+                    if (aItem.state == ON) {
+                        // Log ACTIVE zones
+                        logInfo("Boiler.Error", "ACTIVE: " + prefix + " | Tgt:" + tVal + " | Cur:" + cVal + " | Err:" + String::format("%.1f", err)) // DEBUG
+                        
+                        if (err > maxError) {
+                            maxError = err
+                            worstRoom = prefix
+                        }
+                    } else {
+                        // Log SKIPPED zones
+                        logInfo("Boiler.Error", "SKIP:   " + prefix + " | Tgt:" + tVal + " | Cur:" + cVal + " | Pot.Err:" + String::format("%.1f", err) + " (Valve OFF)") // DEBUG
                     }
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            logError("Boiler.Error", "Exception in loop for " + prefix + ": " + e.getMessage())
+        }
     ]
 
+    // Update Global Item
     if (Boiler_Max_Error.state == NULL || (Boiler_Max_Error.state as Number).doubleValue != maxError) {
         Boiler_Max_Error.postUpdate(maxError)
-        if (maxError > 0.5) logInfo("Boiler.Error", "Max Error: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")")
+        logInfo("Boiler.Error", ">>> NEW MAX ERROR: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")")
+    } else {
+        logInfo("Boiler.Error", ">>> NO CHANGE. Max: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")") // DEBUG
     }
 end
 

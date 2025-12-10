@@ -1,7 +1,31 @@
-// PID Tuning Parameters (Persist these if possible!)
-Number Boiler_Kp "PID Kp (Proportional) [%.1f]" <line> (gLochinvar_tuning)
-Number Boiler_Ki "PID Ki (Integral) [%.2f]" <line> (gLochinvar_tuning)
-Number Boiler_Kd "PID Kd (Derivative) [%.2f]" <line> (gLochinvar_tuning)
+// =================================================================================
+// LOCHINVAR TUNING PARAMETERS & BMS LOGIC ITEMS
+// =================================================================================
+
+// === MASTER CONTROL SWITCHES ===
+Switch Boiler_High_Efficiency_Enable "High Efficiency Mode (Outlet Control)" <energy> (gLochinvar_tuning)
+Switch Boiler_BMS_ENBLE "Use New Hybrid Logic" <settings>
+Number Boiler_Control_Mode "Boiler Control Mode" <settings>
+Switch Boiler_Dewpoint_Enable "Enable Dewpoint Protection" <settings>
+
+// === PID PARAMETER SETS ===
+
+// Set A: Supply/Tank Control (Slow, High Kp) - "The Boost"
+Number Boiler_Supply_Kp "Supply PID Kp (Slow) [%.1f]" <line> (gLochinvar_tuning)
+Number Boiler_Supply_Ki "Supply PID Ki (Slow) [%.2f]" <line> (gLochinvar_tuning)
+Number Boiler_Supply_Kd "Supply PID Kd (Slow) [%.2f]" <line> (gLochinvar_tuning)
+
+// Set B: Outlet Control (Fast, Low Kp) - "The Efficient One"
+Number Boiler_Outlet_Kp "Outlet PID Kp (Fast) [%.1f]" <line> (gLochinvar_tuning)
+Number Boiler_Outlet_Ki "Outlet PID Ki (Fast) [%.2f]" <line> (gLochinvar_tuning)
+Number Boiler_Outlet_Kd "Outlet PID Kd (Fast) [%.2f]" <line> (gLochinvar_tuning)
+
+// === DEPRECATED (Old Single PID Items) ===
+// Kept commented out for reference/safety
+// Number Boiler_Kp "PID Kp (Proportional) [%.1f]" <line> (gLochinvar_tuning)
+// Number Boiler_Ki "PID Ki (Integral) [%.2f]" <line> (gLochinvar_tuning)
+// Number Boiler_Kd "PID Kd (Derivative) [%.2f]" <line> (gLochinvar_tuning)
+
 
 // === Outdoor Reset Tuning ===
 Number ODR_Slope "Curve Slope [%.1f]" <line> (gLochinvar_tuning)
@@ -20,37 +44,69 @@ String Boiler_Block_Status "Block Status [%s]" <text>
 Number Boiler_Overrun_Threshold "Overrun Threshold [%.1f °F]" <temperature> (gLochinvar_tuning)
 Number Boiler_Block_Time "Block Time Setting [%d min]" <time> (gLochinvar_tuning)
 Number Boiler_Rescue_Threshold "Rescue Threshold [%.1f °F]" <temperature> (gLochinvar_tuning)
+Number Boiler_Release_Diff "Boiler Release Differential [%.1f °F]" <temperature>
 
 // Counters
 Number Boiler_Block_Timer_Rem "Block Timer Remaining [%d min]" <time>
 
-// === BTU ENERGY CALCULATOR (NEW) ===
+// === BTU ENERGY CALCULATOR & MONITORING ===
 Number Boiler_Output_BTU "Current Output [%.0f BTU/hr]" <energy>
 Number Boiler_Est_Flow "Estimated Flow [%.1f GPM]" <flow>
+
+// Simplified to Number to prevent UoM conflicts in rules
+Number Lochinvar_DeltaT "Lochinvar boiler deltaT (outlet-input) [%.1f °F]" (gLochinvar_temperatures)
+
+// Added formatting/groups to ensure parser stability
+Number Lochinvar_cycles "Lochinvar Cycle Count today [%d]" (gLochinvar_tuning)
+Number Lochinvar_cyclesHour "Lochinvar Cycle Count this hour [%d]" (gLochinvar_tuning)
 
 // Virtual Flow Calibration (Tune these to match reality)
 Number Flow_GPM_System "Calib: System Pump GPM [%.1f]" <flow> (gLochinvar_tuning)
 Number Flow_GPM_Radiant "Calib: Radiant Pump GPM [%.1f]" <flow> (gLochinvar_tuning)
 
-// === Outdoor Reset Control Items ===
+// === CONTROL LOGIC VARIABLES ===
 
-// The calculated target (Output of the reset rule)
-Number Boiler_Target_Temp "Calculated Target Temp [%.1f °F]"
+// The calculated target (Output of the reset rule) - Simplified to Number
+Number Boiler_Target_Temp "Calculated Target Temp [%.1f °F]" <temperature>
 
 // Status string for debugging/UI
-String Boiler_Demand_Type "Current Demand Type [%s]"
+String Boiler_Demand_Type "Current Demand Type [%s]" <text>
 
 // The calculated Zone Weight (0-100)
-Number Boiler_Zone_Limit "Zone Load Weighting [%d %%]"
+Number Boiler_Zone_Limit "Zone Load Limit [%.1f %%]" <chart>
+
+// PID Outputs
+Number Boiler_PID_Output "PID Output Rate [%.1f %%]" <line>
+Number Boiler_Final_Command "Final Rate Command [%.1f %%]" <fire>
+
+// Persistence Variables for Boiler Control
+Number Boiler_Pid_Integral      "PID Integral Memory [%.2f]"    (gBoiler)
+Number Boiler_Limit_Integral    "Limit Integral Memory [%.2f]"  (gBoiler)
+Number Boiler_Last_Outlet_Temp  "Last Outlet Temp [%.1f F]"     (gBoiler)
 
 // PID Internal Memory (Needed to persist integral across rule runs)
-// Note: We don't strictly need an Item for this if we use a global var, 
-// but an Item allows you to graph the Integral term in Grafana to tune it.
 Number Boiler_Room_Integral "Room PID Integral Accumulator [%.2f]"
 
 // Calculated Error (The "Worst Case" room) - Useful for UI
-Number Boiler_Max_Error "Max Room Error [%.1f °F]"
+Number Boiler_Max_Error "Max Room Error [%.1f °F]" <bedroom>
 String Boiler_Max_Error_Room "Worst Performing Room [%s]" <bedroom>
 Switch Boiler_Boost_Active "PID Boost Active" <fire>
 
 Number Boiler_Rate_Deviation "Boiler Rate Deviation [%.1f %%]" <chart>
+
+// === VISUALIZATION & GOVERNORS ===
+
+// -2 = Hard Lockout (Requires Reset)
+// -1 = Soft Block (High Delta T, etc)
+//  0 = Standby / Pump Delay / Check
+//  1 = Space Heating (SH)
+//  2 = DHW Heating
+Number Boiler_Graph_State "Boiler State Graph [-2 to 2]" <chart> (gLochinvar, gLochinvar_codes)
+
+// Governor Tracking for Grafana
+Number Boiler_Gov_Outlet "Gov Limit Outlet [%.1f %%]" <chart>
+Number Boiler_Gov_Flow   "Gov Limit Flow [%.1f %%]"   <chart>
+Number Boiler_Gov_Pump   "Gov Limit Pump [%.1f %%]"   <chart>
+
+// Switch for Grafana to track ACTUAL DHW burning (0=OFF, 1=ON)
+Switch DHW_Running_Status "DHW Running [MAP(en.map):%s]" (gDHW, gLochinvar_indicators, Indicators)

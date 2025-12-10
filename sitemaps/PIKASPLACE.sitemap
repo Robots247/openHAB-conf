@@ -970,6 +970,11 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         // The main switch to hand over control to the new rule
                         Selection item=Boiler_Control_Mode label="Control Mode []" mappings=[0="LEGACY (Relays)", 1="BMS SETPOINT", 2="BMS FLOW (Rate)"] icon="settings"
 
+                        // NEW: Switch between Outlet Control (Condensing) and Tank Control (Charging)
+                        Switch item=Boiler_High_Efficiency_Enable label="High Efficiency (Outlet Control)" icon="energy"
+                        Switch item=Boiler_Dewpoint_Enable label="Dewpoint Protection Enable" icon="shield"
+
+        
 
                         // Live Feedback of what the rule decided
                         Text item=Boiler_Demand_Type label="Current Demand [%s]" icon="text"
@@ -980,6 +985,9 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         // Watch the math happen in real-time
                         Text item=Boiler_Target_Temp label="Calculated Target Temp [%.1f °F]" icon="temperature"
                         Text item=System_Supply_Temp label="Actual Supply Temp [%.1f °F]" icon="temperature"
+                        
+                        // NEW: Monitor the worst room error driving the ODR Boost
+                        Text item=Boiler_Max_Error label="Max Room Error [%.1f °F]" icon="bedroom"
 
                         Text item=Boiler_PID_Output label="Raw PID Output [%.1f %%]" icon="chart"
                         Text item=Boiler_Zone_Limit label="Zone Load Limit [%.1f %%]" icon="speed"
@@ -998,16 +1006,17 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Text item=Boiler_Inlet_Temp label="Inlet Temp (Sensor) [%.1f °F]"
                     }
 
-                    Frame label="PID Tuning (Adjust Live)" {
-                        // Adjust these to tune the loop without restarting rules
-                        // Kp: Proportional Gain (Main Driver)
-                        Setpoint item=Boiler_Kp label="Kp (Proportional) [%.1f]" minValue=0 maxValue=10 step=0.1
+                    // NEW: Dynamic PID Tuning (Only shows the active set)
+                    Frame label="Standard PID Tuning (Supply/Tank)" visibility=[Boiler_High_Efficiency_Enable!=ON] {
+                        Setpoint item=Boiler_Supply_Kp label="Supply Kp (Slow) [%.1f]" minValue=0 maxValue=10 step=0.1
+                        Setpoint item=Boiler_Supply_Ki label="Supply Ki (Slow) [%.2f]" minValue=0 maxValue=1 step=0.01
+                        Setpoint item=Boiler_Supply_Kd label="Supply Kd (Slow) [%.2f]" minValue=0 maxValue=5 step=0.1
+                    }
 
-                        // Ki: Integral Gain (Accumulates error over time to close the gap)
-                        Setpoint item=Boiler_Ki label="Ki (Integral) [%.2f]" minValue=0 maxValue=1 step=0.01
-
-                        // Kd: Derivative (Dampens overshooting - usually 0 for boilers)
-                        Setpoint item=Boiler_Kd label="Kd (Derivative) [%.2f]" minValue=0 maxValue=5 step=0.1
+                    Frame label="High Eff. PID Tuning (Outlet)" visibility=[Boiler_High_Efficiency_Enable==ON] {
+                        Setpoint item=Boiler_Outlet_Kp label="Outlet Kp (Fast) [%.1f]" minValue=0 maxValue=10 step=0.1
+                        Setpoint item=Boiler_Outlet_Ki label="Outlet Ki (Fast) [%.2f]" minValue=0 maxValue=1 step=0.01
+                        Setpoint item=Boiler_Outlet_Kd label="Outlet Kd (Fast) [%.2f]" minValue=0 maxValue=5 step=0.1
                     }
 
                     Frame label="Active Zones (Inputs)" {
