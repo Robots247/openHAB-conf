@@ -156,4 +156,9 @@ Items {
     
     // Manual Graphs
     pGraph* : strategy = everyChange, every15Mins
+
+    //Govener Items
+    Boiler_Gov_Status : strategy = everyChange
+    Boiler_Gov_Rate : strategy = everyChange
+    
 }

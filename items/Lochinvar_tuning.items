@@ -114,3 +114,7 @@ String Boiler_Mode_Name "Control Mode Name" <text>
 Number ODR_Base_Target     "Base ODR Curve [%.1f °F]"
 Number ODR_Req_Baseboard   "Baseboard Requirement (w/ PID) [%.1f °F]"
 Number ODR_Req_Radiant     "Radiant Requirement (w/ PID) [%.1f °F]"
+
+// Governor Status Items for Grafana/sitemap
+Number Boiler_Gov_Rate   "Active Limit Rate [%.1f %%]" <chart>
+String Boiler_Gov_Status "Active Governor [%s]" <text>

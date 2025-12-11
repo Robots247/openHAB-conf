@@ -206,7 +206,51 @@ val org.eclipse.xtext.xbase.lib.Procedures$Procedure3<String, Boolean, Map<Strin
         }
     }
 ]
+rule "Pump Safety Watchdog"
+when
+    // Run this check every minute to ensure safety
+    Time cron "0 0/1 * * * ?" 
+then
+    // ---------------------------------------------------------
+    // STEP 0: Maintenance Check
+    // ---------------------------------------------------------
+    // Adjust "Maintenance_Mode" to your exact Item name
+    if (System_Maintenance_Mode.state == ON) {
+        return; 
+    }
 
+    // ---------------------------------------------------------
+    // STEP 1: Check ZV (Zone Valves) -> SysPump
+    // ---------------------------------------------------------
+    // Condition: Valves are Open + Pump is OFF
+    if (ZV.members.filter[ v | v.state == ON ].size > 0 && SysPump.state != ON) {
+        
+        // Check if the specific SysPump timer is running
+        if (SYSPump_timer !== null && !SYSPump_timer.hasTerminated) {
+            logInfo("Watchdog", "SysPump needs start, but Timer is active. Watchdog skipping.")
+        } else {
+            // Timer is finished or null, but pump is still off. Force it.
+            logWarn("Watchdog", "SAFETY ALERT: ZVs Open + SysPump OFF. Forcing SysPump ON.")
+            SysPump.sendCommand(ON)
+        }
+    }
+
+    // ---------------------------------------------------------
+    // STEP 2: Check RH (Radiant Heat) -> RHP (Radiant Pump)
+    // ---------------------------------------------------------
+    // Condition: Radiant Zones are Open + Pump is OFF
+    if (RH.members.filter[ r | r.state == ON ].size > 0 && RHP.state != ON) {
+
+        // Check if the specific RHP timer is running
+        if (RHP_timer !== null && !RHP_Timer.hasTerminated) {
+            logInfo("Watchdog", "RHP needs start, but Timer is active. Watchdog skipping.")
+        } else {
+            // Timer is finished or null, but pump is still off. Force it.
+            logWarn("Watchdog", "SAFETY ALERT: RH Zones Open + RHP OFF. Forcing RHP ON.")
+            RHP.sendCommand(ON)
+        }
+    }
+end
 
 // =================================================================================
 // RULE 1: UNIVERSAL ZONE MANAGER (Event Driven)
@@ -258,6 +302,7 @@ then
             logError("Tstat.Watchdog", "Error checking room " + room + ": " + e.getMessage())
         }
     ]
+    
 end
 
 // =================================================================================

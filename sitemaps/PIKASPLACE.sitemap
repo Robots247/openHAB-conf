@@ -971,7 +971,9 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Text item=Boiler_Output_BTU label="Heat Output [%.0f BTU/hr]" icon="energy"
                         Text item=Boiler_Block_Status label="Supervisor State [%s]" icon="lock" valuecolor=["Monitoring"="green", "Overrun Detected"="red", "RESCUE"="orange"]
                         Text item=Boiler_Block_Timer_Rem label="Cooldown Timer [%d min]" visibility=[Boiler_Block_Timer_Rem>0] icon="time"
-                    }
+                        Text item=Boiler_Gov_Status label="Active Governor [%s]" icon="settings" valuecolor=["Supply_PID"="green", "Outlet_PID"="green", "Condensing_Opt"="blue", "DeltaT_Gov"="orange", "HighLimit_Gov"="red"]
+                        Text item=Boiler_Gov_Rate label="Active Limit Rate [%.1f %%]" icon="chart"
+                    }   
 
                     Frame label="Active Zones" {
                         

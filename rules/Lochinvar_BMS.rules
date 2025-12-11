@@ -3,7 +3,12 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // ===================================================================================
 // LOCHINVAR UNIFIED MASTER CONTROLLER - PROFESSIONAL EDITION
 // Modes: 0=LEGACY, 1=BMS SETPOINT, 2=BMS FLOW (RATE)
-// Updates: Added PID Initialization for Tank vs Outlet tuning
+// Updates: 
+// 1. Zero-Crossing Protection: 60s Hold when PID hits 0% to prevent short-cycling.
+// 2. Condensing Optimizer: Linear modulation (Soft Guard) instead of hard cut.
+// 3. Hardware Config: Minimum Fire Rate set to 10%.
+// 4. Supervisor Reporting: Added Null-Safe Governor Status Reporting.
+// 5. Minimum Run Time (MRT): Enforces 15-minute cycle to prevent purge losses.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -42,7 +47,7 @@ then
     if (Boiler_Control_Mode.state == NULL || Boiler_Control_Mode.state == UNDEF) {
         Boiler_Control_Mode.postUpdate(0) 
     }
-    // Initialize the Dewpoint Switch (Default to ON for efficiency, but user can toggle)
+    // Initialize the Dewpoint Switch (Default to ON for efficiency)
     if (Boiler_Dewpoint_Enable.state == NULL) {
         Boiler_Dewpoint_Enable.postUpdate(ON)
     }
@@ -185,7 +190,8 @@ end
 
 // -----------------------------------------------------------------------------------
 // RULE 3: HYBRID BOILER PID LOOP (MODE 2)
-// Updates: Integrated "Pump Speed" sensor selection with Mixing Valve Protection
+// Updates: "Condensing Optimizer", Caleffi Protection, Zero-Crossing, Governor Status,
+//          Added Minimum Run Time (MRT) Logic
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop (Mode 2)"
 when
@@ -218,14 +224,11 @@ then
     val double inletTemp   = if(Boiler_Inlet_Temp.state instanceof Number) (Boiler_Inlet_Temp.state as Number).doubleValue else 100.0
     val double pumpSpeed   = if(Boiler_Pump_Speed.state instanceof Number) (Boiler_Pump_Speed.state as Number).doubleValue else 0.0
 
-    // 3. SELECT SENSOR & PID STRATEGY (AUTO-DETECT)
-    // Logic: 
-    // - If Pump < 5% (OFF): We trust the Tank/Supply. Use Relaxed PIDs.
-    // - If Pump >= 5% (ON): We trust the Boiler Loop (Inlet/Outlet). Use Aggressive PIDs.
-
+    // 3. SELECT SENSOR & PID STRATEGY
     var boolean useAggressiveMode = false
     var String tempSource = "Tank(Supply)"
-    var double monitorTemp = supplyTemp // Default to Supply
+    // We use Inlet for Dewpoint logic whenever pump is running, otherwise we trust Tank
+    var double dewpointRefTemp = supplyTemp 
     
     // Configurable PID placeholders
     var double active_Kp = 1.0
@@ -234,20 +237,20 @@ then
     if (pumpSpeed < 5.0) {
         // --- MODE: TANK (RELAXED) ---
         useAggressiveMode = false
-        monitorTemp = supplyTemp
         tempSource = "Tank(Supply)"
+        dewpointRefTemp = supplyTemp
         
-        // Use Relaxed PIDs (Supply Config)
+        // Use Relaxed PIDs
         if (Boiler_Supply_Kp.state instanceof Number) active_Kp = (Boiler_Supply_Kp.state as Number).doubleValue
         if (Boiler_Supply_Ki.state instanceof Number) active_Ki = (Boiler_Supply_Ki.state as Number).doubleValue
     } 
     else {
         // --- MODE: INLET/BOILER (AGGRESSIVE) ---
         useAggressiveMode = true
-        monitorTemp = inletTemp
         tempSource = "Inlet"
+        dewpointRefTemp = inletTemp // Physics: Condensation happens at the inlet!
         
-        // Use Aggressive PIDs (Outlet Config)
+        // Use Aggressive PIDs
         if (Boiler_Outlet_Kp.state instanceof Number) active_Kp = (Boiler_Outlet_Kp.state as Number).doubleValue
         if (Boiler_Outlet_Ki.state instanceof Number) active_Ki = (Boiler_Outlet_Ki.state as Number).doubleValue
     }
@@ -266,11 +269,9 @@ then
         
         // --- CALCULATE ERROR ---
         if (useAggressiveMode) {
-            // In Aggressive Mode, we target the OUTLET temp for fast response
             error = targetTemp - outletTemp
             controlVar = "Outlet"
         } else {
-            // In Relaxed Mode, we target the SUPPLY temp (Tank)
             error = targetTemp - supplyTemp
             controlVar = "Supply"
         }
@@ -283,12 +284,12 @@ then
         if (pidRequest < 0.0) pidRequest = 0.0
         Boiler_PID_Output.postUpdate(pidRequest)
 
-        // --- COMPONENT 2: GOVERNORS (Safety & Dewpoint) ---
+        // --- COMPONENT 2: GOVERNORS ---
         var double govOutletLimit = 100.0
         var double govFlowLimit = 100.0
         var double govDewpointLimit = 100.0 
 
-        // 2A. HIGH LIMIT GOVERNOR
+        // 2A. HIGH LIMIT GOVERNOR (Safety)
         val double safetyTrip = 188.0
         val double modulationStart = 175.0
         if (outletTemp >= safetyTrip) govOutletLimit = 0.0
@@ -297,53 +298,49 @@ then
              govOutletLimit = 100.0 - (ratio * 100.0)
         }
         
-        // 2B. DELTA T GOVERNOR
+        // 2B. DELTA T GOVERNOR (Heat Exchanger Protection)
         var double boilerDeltaT = outletTemp - inletTemp
         if (boilerDeltaT < 10.0 && boilerDeltaT > 0.0) { 
              govFlowLimit = (boilerDeltaT / 10.0) * 100.0
-             if (govFlowLimit < 20.0) govFlowLimit = 20.0 
+             if (govFlowLimit < 10.0) govFlowLimit = 10.0 
         }
 
-      // 2C. DEWPOINT GUARD (EFFICIENCY & SHORT CYCLE PROTECTION)
-        var boolean dewpointEnabled = (Boiler_Dewpoint_Enable.state == ON)
-        var boolean isHighTempRequired = (targetTemp >= 155.0)
+        // 2C. CONDENSING EFFICIENCY OPTIMIZER (Linear Modulation)
+        // REPLACES "Bang-Bang" Logic with Modulating Governor
+        // Goal: Keep Return Temp < 135F for Efficiency, unless High Temp required.
+        
+        var boolean efficiencyEnabled = (Boiler_Dewpoint_Enable.state == ON)
+        // High Temp Requirement: Now lowered to 140F to account for Caleffi Mixing Valve Overhead
+        var boolean isHighTempRequired = (targetTemp >= 140.0) 
+        var boolean mixingValveStarving = (supplyTemp < 135.0 && isHighTempRequired)
 
-        // CRITICAL BYPASS: MIXING VALVE PROTECTION
-        // If the active sensor (Tank or Inlet) is below 130F, we are "Starving".
-        // We MUST fire to protect the mixing valve, ignoring efficiency rules.
-        var boolean mixingValveStarving = (monitorTemp < 130.0)
-
-        if (dewpointEnabled && !isHighTempRequired && !mixingValveStarving) {
-             // We are in the "Efficiency Zone" (Above 130F, but not High Temp)
-             // Goal: Prevent short-cycling when water is already "warm enough" (e.g. 132F).
+        if (efficiencyEnabled && !isHighTempRequired && !mixingValveStarving) {
+             // We want to throttle the boiler as it approaches the Non-Condensing zone (135F)
+             // Throttle Range: Starts at 125F (100% allowed) -> Ends at 135F (10% allowed)
              
-             val double condensing_limit = 132.0   // Upper Limit (Turn off)
-             val double restart_hysteresis = 10.0   // Drop required to restart
-             val double restart_trigger = condensing_limit - restart_hysteresis // 130.0F
-
-             if (monitorTemp >= condensing_limit) {
-                  // CASE 1: TOO HOT - KILL FLAME
-                  govDewpointLimit = 0.0
-                  if (last_firing_rate > 0) {
-                      logInfo("Boiler.Gov", "⛔ DEWPOINT LIMIT: Killing Flame. " + tempSource + " (" + monitorTemp + ") > " + condensing_limit)
-                  }
+             val double eff_throttle_start = 125.0
+             val double eff_throttle_end = 135.0
+             
+             if (dewpointRefTemp > eff_throttle_start) {
+                 var double penaltyRatio = (dewpointRefTemp - eff_throttle_start) / (eff_throttle_end - eff_throttle_start)
+                 if (penaltyRatio > 1.0) penaltyRatio = 1.0
+                 
+                 // Linearly reduce Max Fire from 100% down to 10% (Low Fire)
+                 govDewpointLimit = 100.0 - (penaltyRatio * 90.0) 
+                 
+                 // Hard Cutoff if we really overshoot (138F) to prevent buffer saturation
+                 if (dewpointRefTemp > 138.0) {
+                     govDewpointLimit = 0.0
+                     if (last_firing_rate > 0) {
+                         logInfo("Boiler.Gov", "⛔ EFFICIENCY LIMIT: " + tempSource + " too hot (" + dewpointRefTemp + "F). Killing Flame.")
+                     }
+                 } else if (pidRequest > govDewpointLimit) {
+                     // Log only if we are actively restricting the PID
+                     if (last_firing_rate > govDewpointLimit + 5) { // Debounce log
+                        logInfo("Boiler.Gov", "📉 EFFICIENCY MODULATION: Restricting to " + govDewpointLimit.intValue + "% (Return: " + dewpointRefTemp + "F)")
+                     }
+                 }
              }
-             else if (monitorTemp > restart_trigger) {
-                  // CASE 2: DEADBAND (e.g. 132F) - PREVENT RESTART
-                  
-                  if (last_firing_rate < 1.0) {
-                      // Boiler is OFF. Keep it OFF until we drop below 130F.
-                      govDewpointLimit = 0.0
-                      
-                      // LOGGING: Only shout if the PID is trying to fire
-                      if (pidRequest > 10.0) {
-                         logInfo("Boiler.Gov", "⛔ DEWPOINT BLOCK: Requesting " + pidRequest.intValue + "% but " + tempSource + " is " + monitorTemp + "F. (Waiting for <" + restart_trigger + "F)")
-                      }
-                  } else {
-                      // Boiler is ON. Just restrict it to Low Fire (20%) to extend the run.
-                      govDewpointLimit = 10.0 
-                  }
-             } 
         }
 
         // UPDATE GOV ITEMS
@@ -364,7 +361,24 @@ then
         }
         if (rawProposedRate > govDewpointLimit) {
             rawProposedRate = govDewpointLimit
-            limitingFactor = "Dewpoint_Guard"
+            limitingFactor = "Condensing_Opt"
+        }
+
+        // --- UPDATE SUPERVISOR ITEMS (NULL SAFE) ---
+        // This allows us to see exactly which logic component is capping the boiler
+        // CHECK 1: Ensure Status Item is Initialized
+        if (Boiler_Gov_Status.state == NULL || Boiler_Gov_Status.state == UNDEF || Boiler_Gov_Status.state.toString != limitingFactor) {
+            Boiler_Gov_Status.postUpdate(limitingFactor)
+        }
+        
+        // CHECK 2: Ensure Rate Item is Initialized and Changed > 0.5%
+        var double currentGovRate = 0.0
+        if (Boiler_Gov_Rate.state instanceof Number) {
+            currentGovRate = (Boiler_Gov_Rate.state as Number).doubleValue
+        }
+        
+        if (Boiler_Gov_Rate.state == NULL || Boiler_Gov_Rate.state == UNDEF || Math.abs(currentGovRate - rawProposedRate) > 0.5) {
+             Boiler_Gov_Rate.postUpdate(rawProposedRate)
         }
 
         // --- COMPONENT 4: INTEGRAL MANAGEMENT ---
@@ -375,6 +389,7 @@ then
             if (!governorsActive) {
                 mem_pid_integral = mem_pid_integral + ((active_Ki * 0.5) * error)
             } else {
+                // Anti-Windup: Only accumulate if error helps us get OUT of saturation
                 if (error < 0) mem_pid_integral = mem_pid_integral + ((active_Ki * 0.5) * error)
             }
         }
@@ -386,6 +401,7 @@ then
         // --- COMPONENT 5: SMOOTHING & OUTPUT ---
         var double finalRate = rawProposedRate
         
+        // HARDWARE LIMIT: Minimum Fire Rate = 10%
         if (finalRate < 10.0 && finalRate > 0.1) finalRate = 10.0 
         if (finalRate < 0.1) finalRate = 0.0
 
@@ -406,15 +422,52 @@ then
             )
         }
         
-        // EXECUTION COMMANDS
+        // --- EXECUTION COMMANDS (WITH ZERO-CROSSING PROTECTION & MRT) ---
         var int payload = finalRate.intValue
-        var int desiredEnable = if (payload >= 10) 1 else 0
+        var int desiredEnable = 0
         
-        // HYSTERESIS: Prevent rapid toggling if hovering around 10%
+        // 1. STANDARD HYSTERESIS + ZERO-CROSSING HOLD
         if (Lochinvar_40002_Boiler_Enable_Cmd.state == 1) {
-            if (payload >= 5) desiredEnable = 1 // Stay ON down to 5%
+            if (payload >= 5) {
+                desiredEnable = 1 // Stay ON down to 5%
+                last_demand_time = now.millis // Reset the timer: We have valid demand
+            } 
+            else {
+                // Demand dropped to < 5% (likely 0%).
+                // HOLD ON for 60 seconds to see if it recovers.
+                if (now.millis - last_demand_time < 60000) {
+                    desiredEnable = 1
+                    // Optional: Log this sparingly if you want to see it working
+                    // logInfo("Boiler.PID", "Zero-Crossing Protection: Holding ON (Demand " + payload + "%)") 
+                } else {
+                    desiredEnable = 0
+                }
+            }
         } else {
             if (payload >= 15) desiredEnable = 1 // Require 15% to Start
+        }
+
+        // 2. MINIMUM RUN TIME ENFORCEMENT (BMS STANDARD)
+        // Detect Cycle Start
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1 && desiredEnable == 1) {
+             cycle_start_time = now.millis
+             logInfo("Boiler.Status", "Cycle Started. Min Run Time Active until " + now.plusMinutes(15))
+        }
+
+        // Enforce Hold (If attempting to stop)
+        if (Lochinvar_40002_Boiler_Enable_Cmd.state == 1 && desiredEnable == 0) {
+             val long min_run = 900000 // 15 Minutes
+             val long runtime = now.millis - cycle_start_time
+             
+             // Safety Override: If we are roasting (>188F), kill it immediately.
+             if (outletTemp > 188.0) {
+                 logWarn("Boiler.Safety", "Minimum Run Time ABORTED: High Temp (" + outletTemp + "F)")
+             }
+             else if (runtime < min_run) {
+                 desiredEnable = 1
+                 if (payload < 10) payload = 10 // Force Idle at Min Fire
+                 if (finalRate < 10.0) finalRate = 10.0 // Sync variables for graph
+             }
         }
         
         Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(desiredEnable)
@@ -425,18 +478,6 @@ then
 
     } else {
         // SYSTEM OFF
-        
-        // --- DEBUGGING: Why are we OFF? ---
-        if (callActive || targetTemp > 0) {
-             if (Boiler_Block_Active.state == ON) {
-                 logInfo("Boiler.Debug", "OFF REASON: Block Active (Shutoff Rule Triggered).")
-             } else if (!callActive) {
-                 logInfo("Boiler.Debug", "OFF REASON: No Active Call detected (Check Zone Valves).")
-             } else if (targetTemp <= 0) {
-                 logInfo("Boiler.Debug", "OFF REASON: Target Temp is 0.0 (Check ODR Rule).")
-             }
-        }
-
         if (Boiler_Block_Active.state == ON || !callActive) {
              mem_pid_integral = 0.0
              Boiler_Pid_Integral.postUpdate(0)
