@@ -975,6 +975,11 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Text item=Boiler_Gov_Rate label="Active Limit Rate [%.1f %%]" icon="chart"
                     }   
 
+                    Frame label="Boost"{Text label="Auto-Boost Tuning" icon="settings" {
+                        Setpoint item=AutoBoost_Baseboard_Trigger label="Baseboard Trigger (I-Term) [%.1f]" minValue=2.0 maxValue=10.0 step=0.5
+                        Setpoint item=AutoBoost_Radiant_Trigger   label="Radiant Trigger (I-Term) [%.1f]"   minValue=2.0 maxValue=10.0 step=0.5
+                    }Switch item=Boiler_Boost_Active label="Enable Auto-Boost" icon="switch"}
+
                     Frame label="Active Zones" {
                         
                         // Option C: Dynamic Counts

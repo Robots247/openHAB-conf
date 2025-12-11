@@ -9,6 +9,9 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // 3. Hardware Config: Minimum Fire Rate set to 10%.
 // 4. Supervisor Reporting: Added Null-Safe Governor Status Reporting.
 // 5. Minimum Run Time (MRT): Enforces 15-minute cycle to prevent purge losses.
+// 6. Auto-Boost Logic: Smart Boost for Baseboards + Radiant Fatigue Protection.
+// 7. Dynamic Tuning: Auto-Boost triggers now mapped to Items.
+// 8. Room Feedback: Integrated Boiler_Max_Error from Thermostat.rules for Boost logic.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -51,6 +54,13 @@ then
     if (Boiler_Dewpoint_Enable.state == NULL) {
         Boiler_Dewpoint_Enable.postUpdate(ON)
     }
+    if (Boiler_Boost_Active.state == NULL) {
+        Boiler_Boost_Active.postUpdate(OFF)
+    }
+    
+    // Initialize Auto-Boost Tuning Defaults
+    if (AutoBoost_Baseboard_Trigger.state == NULL) AutoBoost_Baseboard_Trigger.postUpdate(6.0)
+    if (AutoBoost_Radiant_Trigger.state == NULL)   AutoBoost_Radiant_Trigger.postUpdate(4.0)
     
     // --- PID INITIALIZATION ---
     // Supply/Tank (Relaxed Mode - Pump Off or Low Demand)
@@ -189,9 +199,75 @@ then
 end
 
 // -----------------------------------------------------------------------------------
+// RULE 2.5: AUTO-BOOST SUPERVISOR
+// Monitors I-Term and Room Error to engage Boost Mode if struggling.
+// SMART: 
+//   1. Baseboards: Fast Trigger (Default > 6.0) for rapid recovery.
+//   2. Radiant: Fatigue Trigger (Default > 4.0 or Error > 1.5F) if efficiency fails.
+// -----------------------------------------------------------------------------------
+rule "Auto-Boost Supervisor"
+when
+    Item Boiler_Pid_Integral changed or
+    Time cron "0 * * ? * *" // Run every minute as backup
+then
+    if (System_Maintenance_Mode.state == ON) return;
+    
+    var double iTerm = 0.0
+    if (Boiler_Pid_Integral.state instanceof Number) iTerm = (Boiler_Pid_Integral.state as Number).doubleValue
+    
+    // Fetch Tuning Parameters (or use defaults)
+    var double bb_trigger = 6.0
+    if (AutoBoost_Baseboard_Trigger.state instanceof Number) bb_trigger = (AutoBoost_Baseboard_Trigger.state as Number).doubleValue
+    
+    var double rad_trigger = 4.0
+    if (AutoBoost_Radiant_Trigger.state instanceof Number) rad_trigger = (AutoBoost_Radiant_Trigger.state as Number).doubleValue
+    
+    // Fetch Max Room Error (from Thermostat.rules)
+    var double maxRoomError = 0.0
+    if (Boiler_Max_Error.state instanceof Number) maxRoomError = (Boiler_Max_Error.state as Number).doubleValue
+    
+    // Check Active Calls
+    var boolean baseboardActive = (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON)
+    var boolean boostOn = (Boiler_Boost_Active.state == ON)
+    
+    // LOGIC: Dual-Stage Hysteresis Control
+    
+    var boolean needBoost = false
+    
+    // STAGE 1: Fast Track (Baseboards Need Heat NOW)
+    if (baseboardActive && iTerm > bb_trigger) {
+        needBoost = true
+        if (!boostOn) {
+            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Baseboard I-Term windup (" + String::format("%.1f", iTerm) + " > " + String::format("%.1f", bb_trigger) + ") detected.")
+        }
+    }
+    
+    // STAGE 2: Slow Track (Radiant Fatigue / Persistent Failure)
+    // If Radiant has struggled long enough to wind I-Term > Trigger, efficiency has failed.
+    // ADDED: Also trigger if the Room Error is physically large (> 1.5F), meaning the floor is cold.
+    if (!baseboardActive && (iTerm > rad_trigger || maxRoomError > 1.5)) {
+        needBoost = true
+        if (!boostOn) {
+            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Radiant Fatigue detected (I-Term=" + String::format("%.1f", iTerm) + ", MaxError=" + String::format("%.1f", maxRoomError) + "F). Efficiency Override.")
+        }
+    }
+    
+    // EXECUTION
+    if (needBoost && !boostOn) {
+        Boiler_Boost_Active.sendCommand(ON)
+    }
+    else if (!needBoost && boostOn && iTerm < 2.0) {
+        // Disengage when satisfied (Hysteresis < 2.0)
+        Boiler_Boost_Active.sendCommand(OFF)
+        logInfo("Boiler.Boost", "AUTO-BOOST DISENGAGED: System recovered (I-Term " + String::format("%.1f", iTerm) + " < 2.0).")
+    }
+end
+
+
+// -----------------------------------------------------------------------------------
 // RULE 3: HYBRID BOILER PID LOOP (MODE 2)
 // Updates: "Condensing Optimizer", Caleffi Protection, Zero-Crossing, Governor Status,
-//          Added Minimum Run Time (MRT) Logic
+//          Added Minimum Run Time (MRT) Logic, Added Boost Bypass
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop (Mode 2)"
 when
@@ -313,8 +389,12 @@ then
         // High Temp Requirement: Now lowered to 140F to account for Caleffi Mixing Valve Overhead
         var boolean isHighTempRequired = (targetTemp >= 140.0) 
         var boolean mixingValveStarving = (supplyTemp < 135.0 && isHighTempRequired)
+        
+        // BOOST MODE OVERRIDE: Manual Comfort Mode or Auto-Boost
+        // If Boost is ON, we disable the Condensing Optimizer to allow max firing.
+        var boolean isBoostActive = (Boiler_Boost_Active.state == ON)
 
-        if (efficiencyEnabled && !isHighTempRequired && !mixingValveStarving) {
+        if (efficiencyEnabled && !isHighTempRequired && !mixingValveStarving && !isBoostActive) {
              // We want to throttle the boiler as it approaches the Non-Condensing zone (135F)
              // Throttle Range: Starts at 125F (100% allowed) -> Ends at 135F (10% allowed)
              
@@ -448,6 +528,13 @@ then
         }
 
         // 2. MINIMUM RUN TIME ENFORCEMENT (BMS STANDARD)
+
+        // DEBUG: MRT Diagnostics
+        logInfo("Boiler.Debug", "MRT Check: CmdState=" + Lochinvar_40002_Boiler_Enable_Cmd.state + 
+                ", Desired=" + desiredEnable + 
+                ", StartTime=" + cycle_start_time + 
+                ", Now=" + now.millis)
+
         // Detect Cycle Start
         if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1 && desiredEnable == 1) {
              cycle_start_time = now.millis
