@@ -17,6 +17,7 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // 11. Bug Fix: Moved Debug Logging after variable declaration.
 // 12. Efficiency Logic Fix: "High Temp Required" = Baseboards Active AND Baseboard REQ > 140F.
 // 13. Scope Fix: Moved 'desiredEnable' declaration to top level scope.
+// 14. Efficiency Curve Tuning: Relaxed limits (130-145F) to prevent short cycling.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -65,7 +66,9 @@ then
     
     // Initialize Auto-Boost Tuning Defaults
     if (AutoBoost_Baseboard_Trigger.state == NULL) AutoBoost_Baseboard_Trigger.postUpdate(6.0)
-    if (AutoBoost_Radiant_Trigger.state == NULL)   AutoBoost_Radiant_Trigger.postUpdate(4.0)
+    
+    // UPDATED: Lowered Radiant Trigger default to 3.5 for faster response to lagging floors
+    if (AutoBoost_Radiant_Trigger.state == NULL)   AutoBoost_Radiant_Trigger.postUpdate(3.5)
     
     // --- PID INITIALIZATION ---
     // Supply/Tank (Relaxed Mode - Pump Off or Low Demand)
@@ -405,10 +408,11 @@ then
 
         if (efficiencyEnabled && !isHighTempRequired && !mixingValveStarving && !isBoostActive) {
              // We want to throttle the boiler as it approaches the Non-Condensing zone (135F)
-             // Throttle Range: Starts at 125F (100% allowed) -> Ends at 135F (10% allowed)
+             // Throttle Range: Starts at 130F (100% allowed) -> Ends at 140F (10% allowed)
              
-             val double eff_throttle_start = 125.0
-             val double eff_throttle_end = 135.0
+             // UPDATED: Relaxed constraints to allow 160F runs without tripping.
+             val double eff_throttle_start = 130.0
+             val double eff_throttle_end = 140.0
              
              if (dewpointRefTemp > eff_throttle_start) {
                  var double penaltyRatio = (dewpointRefTemp - eff_throttle_start) / (eff_throttle_end - eff_throttle_start)
@@ -417,8 +421,9 @@ then
                  // Linearly reduce Max Fire from 100% down to 10% (Low Fire)
                  govDewpointLimit = 100.0 - (penaltyRatio * 90.0) 
                  
-                 // Hard Cutoff if we really overshoot (138F) to prevent buffer saturation
-                 if (dewpointRefTemp > 138.0) {
+                 // Hard Cutoff if we really overshoot (145F) to prevent buffer saturation
+                 // Raised from 138F to prevent short-cycling at high pump speeds.
+                 if (dewpointRefTemp > 145.0) {
                      govDewpointLimit = 0.0
                      if (last_firing_rate > 0) {
                          logInfo("Boiler.Gov", "⛔ EFFICIENCY LIMIT: " + tempSource + " too hot (" + dewpointRefTemp + "F). Killing Flame.")

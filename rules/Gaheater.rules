@@ -162,7 +162,7 @@ then
             if (vGA_Heating_OFF_Override.state != ON) vGA_Heating_OFF_Override.sendCommand(ON)
             
             if (GA_Heating_TargetTemp.state == NULL || (GA_Heating_TargetTemp.state as Number).doubleValue < 45.0) {
-                GA_Heating_TargetTemp.sendCommand(45.0)
+                GA_Heating_TargetTemp.sendCommand(40.0)
             }
             
             // Direct Valve Control
