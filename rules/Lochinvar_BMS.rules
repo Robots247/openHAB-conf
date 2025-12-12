@@ -12,6 +12,11 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // 6. Auto-Boost Logic: Smart Boost for Baseboards + Radiant Fatigue Protection.
 // 7. Dynamic Tuning: Auto-Boost triggers now mapped to Items.
 // 8. Room Feedback: Integrated Boiler_Max_Error from Thermostat.rules for Boost logic.
+// 9. Standby Hygiene: Clean resets for all calculated items when system is OFF.
+// 10. PID Tuning: Increased Outlet Kp to 2.0 for faster response.
+// 11. Bug Fix: Moved Debug Logging after variable declaration.
+// 12. Efficiency Logic Fix: "High Temp Required" = Baseboards Active AND Baseboard REQ > 140F.
+// 13. Scope Fix: Moved 'desiredEnable' declaration to top level scope.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
@@ -68,6 +73,7 @@ then
     if (Boiler_Supply_Ki.state == NULL || Boiler_Supply_Ki.state == UNDEF) Boiler_Supply_Ki.postUpdate(0.005)
     
     // Outlet (Aggressive Mode - Active Firing)
+    // UPDATE: Increased Kp to 2.0 to improve tracking response and reduce I-Term load
     if (Boiler_Outlet_Kp.state == NULL || Boiler_Outlet_Kp.state == UNDEF) Boiler_Outlet_Kp.postUpdate(2.0)
     if (Boiler_Outlet_Ki.state == NULL || Boiler_Outlet_Ki.state == UNDEF) Boiler_Outlet_Ki.postUpdate(0.05)
 end
@@ -200,10 +206,10 @@ end
 
 // -----------------------------------------------------------------------------------
 // RULE 2.5: AUTO-BOOST SUPERVISOR
-// Monitors I-Term and Room Error to engage Boost Mode if struggling.
+// Monitors Room Error to engage Boost Mode if struggling.
 // SMART: 
-//   1. Baseboards: Fast Trigger (Default > 6.0) for rapid recovery.
-//   2. Radiant: Fatigue Trigger (Default > 4.0 or Error > 1.5F) if efficiency fails.
+//   1. Baseboards: Fast Trigger (> 2.0F Error) for rapid recovery.
+//   2. Radiant: Fatigue Trigger (> 1.5F Error) if efficiency fails.
 // -----------------------------------------------------------------------------------
 rule "Auto-Boost Supervisor"
 when
@@ -211,16 +217,6 @@ when
     Time cron "0 * * ? * *" // Run every minute as backup
 then
     if (System_Maintenance_Mode.state == ON) return;
-    
-    var double iTerm = 0.0
-    if (Boiler_Pid_Integral.state instanceof Number) iTerm = (Boiler_Pid_Integral.state as Number).doubleValue
-    
-    // Fetch Tuning Parameters (or use defaults)
-    var double bb_trigger = 6.0
-    if (AutoBoost_Baseboard_Trigger.state instanceof Number) bb_trigger = (AutoBoost_Baseboard_Trigger.state as Number).doubleValue
-    
-    var double rad_trigger = 4.0
-    if (AutoBoost_Radiant_Trigger.state instanceof Number) rad_trigger = (AutoBoost_Radiant_Trigger.state as Number).doubleValue
     
     // Fetch Max Room Error (from Thermostat.rules)
     var double maxRoomError = 0.0
@@ -235,20 +231,20 @@ then
     var boolean needBoost = false
     
     // STAGE 1: Fast Track (Baseboards Need Heat NOW)
-    if (baseboardActive && iTerm > bb_trigger) {
+    // If a baseboard room is > 2.0F below setpoint, we need Boost.
+    if (baseboardActive && maxRoomError > 2.0) {
         needBoost = true
         if (!boostOn) {
-            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Baseboard I-Term windup (" + String::format("%.1f", iTerm) + " > " + String::format("%.1f", bb_trigger) + ") detected.")
+            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Baseboard Room Error (" + String::format("%.1f", maxRoomError) + "F > 2.0F) detected.")
         }
     }
     
     // STAGE 2: Slow Track (Radiant Fatigue / Persistent Failure)
-    // If Radiant has struggled long enough to wind I-Term > Trigger, efficiency has failed.
-    // ADDED: Also trigger if the Room Error is physically large (> 1.5F), meaning the floor is cold.
-    if (!baseboardActive && (iTerm > rad_trigger || maxRoomError > 1.5)) {
+    // If a radiant room is > 1.5F below setpoint (significant for radiant), we need Boost.
+    if (!baseboardActive && maxRoomError > 1.5) {
         needBoost = true
         if (!boostOn) {
-            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Radiant Fatigue detected (I-Term=" + String::format("%.1f", iTerm) + ", MaxError=" + String::format("%.1f", maxRoomError) + "F). Efficiency Override.")
+            logInfo("Boiler.Boost", "AUTO-BOOST ENGAGED: Radiant Room Error (" + String::format("%.1f", maxRoomError) + "F > 1.5F) detected. Efficiency Override.")
         }
     }
     
@@ -256,18 +252,18 @@ then
     if (needBoost && !boostOn) {
         Boiler_Boost_Active.sendCommand(ON)
     }
-    else if (!needBoost && boostOn && iTerm < 2.0) {
-        // Disengage when satisfied (Hysteresis < 2.0)
+    else if (!needBoost && boostOn && maxRoomError < 0.5) {
+        // Disengage when satisfied (Hysteresis: Room within 0.5F of target)
         Boiler_Boost_Active.sendCommand(OFF)
-        logInfo("Boiler.Boost", "AUTO-BOOST DISENGAGED: System recovered (I-Term " + String::format("%.1f", iTerm) + " < 2.0).")
+        logInfo("Boiler.Boost", "AUTO-BOOST DISENGAGED: Room recovered (Error " + String::format("%.1f", maxRoomError) + "F < 0.5F).")
     }
 end
-
 
 // -----------------------------------------------------------------------------------
 // RULE 3: HYBRID BOILER PID LOOP (MODE 2)
 // Updates: "Condensing Optimizer", Caleffi Protection, Zero-Crossing, Governor Status,
-//          Added Minimum Run Time (MRT) Logic, Added Boost Bypass
+//          Added Minimum Run Time (MRT) Logic, Added Boost Bypass,
+//          Added Standby Hygiene (Resets when OFF)
 // -----------------------------------------------------------------------------------
 rule "Hybrid Boiler PID Loop (Mode 2)"
 when
@@ -386,8 +382,21 @@ then
         // Goal: Keep Return Temp < 135F for Efficiency, unless High Temp required.
         
         var boolean efficiencyEnabled = (Boiler_Dewpoint_Enable.state == ON)
-        // High Temp Requirement: Now lowered to 140F to account for Caleffi Mixing Valve Overhead
-        var boolean isHighTempRequired = (targetTemp >= 140.0) 
+        
+        // Check Active Calls
+        var boolean baseboardActive = (LRZV.state == ON || GBrZV.state == ON || BMTZV.state == ON || GAZV.state == ON || MRZV.state == ON)
+        
+        // FETCH ACTUAL BASEBOARD REQ (from outdoor_reset.rules)
+        var double baseboardReq = 0.0
+        if (ODR_Req_Baseboard.state instanceof Number) {
+            baseboardReq = (ODR_Req_Baseboard.state as Number).doubleValue
+        }
+        
+        // REDEFINED: High Temp is only "Required" if Baseboards are calling AND specific request > 140F.
+        // This handles shoulder season where Baseboards might only need 110F (condensing).
+        // It also ignores the Radiant 152F fixed target, allowing efficiency for radiant-only calls.
+        var boolean isHighTempRequired = (baseboardActive && baseboardReq >= 140.0)
+        
         var boolean mixingValveStarving = (supplyTemp < 135.0 && isHighTempRequired)
         
         // BOOST MODE OVERRIDE: Manual Comfort Mode or Auto-Boost
@@ -504,7 +513,7 @@ then
         
         // --- EXECUTION COMMANDS (WITH ZERO-CROSSING PROTECTION & MRT) ---
         var int payload = finalRate.intValue
-        var int desiredEnable = 0
+        var int desiredEnable = 0 // MOVED TO TOP LEVEL SCOPE
         
         // 1. STANDARD HYSTERESIS + ZERO-CROSSING HOLD
         if (Lochinvar_40002_Boiler_Enable_Cmd.state == 1) {
@@ -526,15 +535,14 @@ then
         } else {
             if (payload >= 15) desiredEnable = 1 // Require 15% to Start
         }
-
-        // 2. MINIMUM RUN TIME ENFORCEMENT (BMS STANDARD)
-
-        // DEBUG: MRT Diagnostics
-        logInfo("Boiler.Debug", "MRT Check: CmdState=" + Lochinvar_40002_Boiler_Enable_Cmd.state + 
+        
+        // DEBUG: MRT Diagnostics (Now valid because desiredEnable is defined)
+         logInfo("Boiler.Debug", "MRT Check: CmdState=" + Lochinvar_40002_Boiler_Enable_Cmd.state + 
                 ", Desired=" + desiredEnable + 
                 ", StartTime=" + cycle_start_time + 
                 ", Now=" + now.millis)
 
+        // 2. MINIMUM RUN TIME ENFORCEMENT (BMS STANDARD)
         // Detect Cycle Start
         if (Lochinvar_40002_Boiler_Enable_Cmd.state != 1 && desiredEnable == 1) {
              cycle_start_time = now.millis
@@ -568,6 +576,13 @@ then
         if (Boiler_Block_Active.state == ON || !callActive) {
              mem_pid_integral = 0.0
              Boiler_Pid_Integral.postUpdate(0)
+             Boiler_PID_Output.postUpdate(0) // New: Reset PID calculation
+             
+             // New: Reset Governors
+             Boiler_Gov_Outlet.postUpdate(100.0)
+             Boiler_Gov_Flow.postUpdate(100.0)
+             Boiler_Gov_Status.postUpdate("Standby")
+             Boiler_Gov_Rate.postUpdate(0)
              
              Lochinvar_40002_Boiler_Enable_Cmd.sendCommand(0)
              Lochinvar_40003_Rate_Command.sendCommand(0)

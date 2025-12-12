@@ -242,7 +242,7 @@ then
     if (RH.members.filter[ r | r.state == ON ].size > 0 && RHP.state != ON) {
 
         // Check if the specific RHP timer is running
-        if (RHP_timer !== null && !RHP_Timer.hasTerminated) {
+        if (RHP_timer !== null && !RHP_timer.hasTerminated) {
             logInfo("Watchdog", "RHP needs start, but Timer is active. Watchdog skipping.")
         } else {
             // Timer is finished or null, but pump is still off. Force it.
