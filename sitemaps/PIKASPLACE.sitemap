@@ -971,6 +971,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                         Text item=Boiler_Output_BTU label="Heat Output [%.0f BTU/hr]" icon="energy"
                         Text item=Boiler_Block_Status label="Supervisor State [%s]" icon="lock" valuecolor=["Monitoring"="green", "Overrun Detected"="red", "RESCUE"="orange"]
                         Text item=Boiler_Block_Timer_Rem label="Cooldown Timer [%d min]" visibility=[Boiler_Block_Timer_Rem>0] icon="time"
+                        Text item=Boiler_MRT_Remaining label="Minimum Runtime Timer [%d min]" visibility=[Boiler_MRT_Remaining>0] icon="time"
                         Text item=Boiler_Gov_Status label="Active Governor [%s]" icon="settings" valuecolor=["Supply_PID"="green", "Outlet_PID"="green", "Condensing_Opt"="blue", "DeltaT_Gov"="orange", "HighLimit_Gov"="red"]
                         Text item=Boiler_Gov_Rate label="Active Limit Rate [%.1f %%]" icon="chart"
                     }   
@@ -1111,6 +1112,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                             Frame label="Radiant (High Inertia)" {
                                 Setpoint item=Room_Radiant_Kp label="Radiant Kp (Boost) [%.1f]" minValue=0.0 maxValue=20.0 step=0.5
                                 Setpoint item=Room_Radiant_Ki label="Radiant Ki (Windup) [%.2f]" minValue=0.00 maxValue=2.00 step=0.01
+                                Setpoint item=Room_Radiant_Kd label="Radiant Kd (Damping) [%.2f]" minValue=0.00 maxValue=1.00 step=0.01
                             }
                         }
 
@@ -1124,6 +1126,7 @@ sitemap PIKASPLACE label="PikasPlace Main Sitemap" {
                                 Text label="Active during High Demand / Firing" icon="fire"
                                 Setpoint item=Boiler_Outlet_Kp label="Outlet Kp [%.1f]" minValue=0.0 maxValue=10.0 step=0.1
                                 Setpoint item=Boiler_Outlet_Ki label="Outlet Ki [%.3f]" minValue=0.000 maxValue=1.000 step=0.001
+                                Setpoint item=Boiler_Outlet_Kd label="Outlet Kd [%.3f]" minValue=0.000 maxValue=1.000 step=0.1
                             }
                         }
 

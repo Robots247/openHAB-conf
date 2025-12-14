@@ -4,11 +4,13 @@ import org.openhab.core.model.script.ScriptServiceUtil
 // PROFESSIONAL OUTDOOR RESET MANAGER (ODR)
 // Architecture: Max-Select Arbitration with Shared Room Feedback
 // Updates: Radiant now uses ODR Curve + Valve Overhead (Prevents overheating on mild days)
+//          Added Room Feedback Trend Freezing and D-Term for stability.
 // ===================================================================================
 
 // --- GLOBAL VARIABLES ---
 var double last_outdoor_smooth = 40.0 
 var double room_integral_mem = 0.0    // Persistent Memory for PID
+var double last_effective_error = 0.0 // To track error trend
 
 // ===================================================================================
 // RULE 1: INITIALIZATION
@@ -108,26 +110,45 @@ then
     
     var double active_Kp = Kp_std
     var double active_Ki = Ki_std
+    // Use a fixed D-Term for now, can be exposed later
+    var double active_Kd = 10.0 
+    
     if (radiantCall) {
         active_Kp = Kp_rad 
         active_Ki = Ki_rad 
+        // Radiant needs stronger D action due to thermal mass lag
+        active_Kd = 20.0 
     }
     
     // 1. Proportional Term (P)
     var double P_room = active_Kp * effectiveError
     if (P_room > 20.0) P_room = 20.0 
     
-    // 2. Integral Term (I) with DYNAMIC RANGE
+    // 2. Derivative Term (D)
+    // Calculate rate of change (Error Delta per minute)
+    var double errorDelta = effectiveError - last_effective_error
+    // If error is shrinking (errorDelta < 0), D_room will be negative, braking the output.
+    var double D_room = active_Kd * errorDelta
+    
+    // 3. Integral Term (I) with DYNAMIC RANGE & TREND FREEZING
     var double integral_limit_high = 5.0
     if (effectiveError > 1.0) integral_limit_high = 30.0 // Allow wind-up for deep recovery
     
     if (baseboardCall || radiantCall) {
         if (!boilerIsBusy) {
-            if (effectiveError > 0.5) {
+            // TREND FREEZING Logic:
+            // If the error is decreasing (we are winning), STOP integrating.
+            // Only integrate if error is steady or growing.
+            var boolean isRecovering = (errorDelta < -0.05) // Error shrinking by >0.05F/min
+            
+            if (effectiveError > 0.5 && !isRecovering) {
+                // Accumulate only if not recovering
                 room_integral_mem = room_integral_mem + (active_Ki * effectiveError)
             } else if (effectiveError < 0.2) {
+                // Decay logic (Deadband widened from <0.2 to include holding range)
                 room_integral_mem = room_integral_mem * 0.70 
             }
+            // HOLDING: If 0.2 <= error <= 0.5 OR isRecovering, do nothing (Hold I value)
         }
         if (room_integral_mem > integral_limit_high) room_integral_mem = integral_limit_high
         if (room_integral_mem < -5.0) room_integral_mem = -5.0
@@ -136,7 +157,13 @@ then
         room_integral_mem = room_integral_mem * 0.90
     }
     
-    var double totalRoomCorrection = P_room + room_integral_mem
+    // Update State for next loop
+    last_effective_error = effectiveError
+    
+    var double totalRoomCorrection = P_room + room_integral_mem + D_room
+    
+    // Prevent negative correction from fighting the ODR base too much
+    if (totalRoomCorrection < -5.0) totalRoomCorrection = -5.0
 
     // ---------------------------------------------------------
     // 1. CALCULATE INDIVIDUAL ZONE REQUIREMENTS
@@ -172,9 +199,8 @@ then
     // FIXED: Calculate Radiant ODR Curve (Lower Slope)
     // Slope -0.6 is typical for radiant (vs -1.2 for baseboard)
     // Intercept 130 means at 0F outside, we want 130F mixed water
-    // rad_Slope should be -.6, but is set to 0 due to Non-linear mixing valve.  CHange to -.6 when valve is replaced.
-    val double rad_Slope = 0.0 
-    val double rad_Intercept = 125.0 
+    val double rad_Slope = -0.6 
+    val double rad_Intercept = 130.0 
     
     radiantBase = rad_Intercept + (rad_Slope * outdoorInput)
     
@@ -222,11 +248,35 @@ then
     }
 
     // ---------------------------------------------------------
-    // 3. EXECUTION & LOGGING
+    // 3. EXECUTION & LOGGING (UPDATED WITH SLEW RATE LIMITER)
     // ---------------------------------------------------------
+    
+    // NEW: SLEW RATE LIMITER
+    // Prevents "Teleporting" Targets when arbitration switches between Zones
+    var double currentTarget = 0.0
+    if (Boiler_Target_Temp.state instanceof Number) currentTarget = (Boiler_Target_Temp.state as Number).doubleValue
+    
+    // Only apply ramping if the boiler is ALREADY active (> 80F).
+    // This allows instant startup from Standby (0 -> 140), but smooths transitions (130 -> 145).
+    if (currentTarget > 80.0 && finalTarget > 80.0) {
+        var double max_step = 2.0 // Max change per minute
+        var double diff = finalTarget - currentTarget
+        
+        if (diff > max_step) {
+             finalTarget = currentTarget + max_step
+        } else if (diff < -max_step) {
+             finalTarget = currentTarget - max_step
+        }
+    }
+
     Boiler_Room_Integral.postUpdate(room_integral_mem)
     Boiler_Demand_Type.postUpdate(demandSource)
     Boiler_Target_Temp.postUpdate(finalTarget)
+    
+    // === NEW: PID Diagnostic Updates ===
+    Boiler_Room_P.postUpdate(P_room)
+    Boiler_Room_I.postUpdate(room_integral_mem)
+    Boiler_Room_D.postUpdate(D_room)
     
     try { ODR_Base_Target.postUpdate(baseTarget) } catch(Exception e) {}
     try { ODR_Req_Baseboard.postUpdate(reqBaseboard) } catch(Exception e) {}
@@ -238,6 +288,9 @@ then
             "|Base:" + String::format("%.1f", baseTarget) + 
             "|RadBase:" + String::format("%.1f", radiantBase) +
             "|Boost:" + String::format("%.1f", totalRoomCorrection) + 
+            "|P:" + String::format("%.1f", P_room) +
+            "|I:" + String::format("%.1f", room_integral_mem) +
+            "|D:" + String::format("%.1f", D_room) +
             "|ReqRad:" + String::format("%.1f", reqRadiant) + 
             "|WIN:" + demandSource +
             "|FINAL:" + String::format("%.1f", finalTarget)

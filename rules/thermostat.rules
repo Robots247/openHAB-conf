@@ -526,6 +526,11 @@ then
     } else {
         logInfo("Boiler.Error", ">>> NO CHANGE. Max: " + String::format("%.1f", maxError) + "F (" + worstRoom + ")") // DEBUG
     }
+    
+    // UPDATE WORST ROOM ITEM (Added for Tracking)
+    if (Boiler_Max_Error_Room.state.toString != worstRoom) {
+        Boiler_Max_Error_Room.postUpdate(worstRoom)
+    }
 end
 
 // =================================================================================

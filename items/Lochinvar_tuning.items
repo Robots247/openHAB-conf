@@ -83,6 +83,11 @@ Number Boiler_Last_Outlet_Temp  "Last Outlet Temp [%.1f F]"     (gBoiler)
 // PID Internal Memory (Needed to persist integral across rule runs)
 Number Boiler_Room_Integral "Room PID Integral Accumulator [%.2f]"
 
+// === NEW: PID DIAGNOSTIC ITEMS (Visibility for Grafana) ===
+Number Boiler_Room_P "Room PID P-Term [%.2f]" <chart>
+Number Boiler_Room_I "Room PID I-Term [%.2f]" <chart>
+Number Boiler_Room_D "Room PID D-Term [%.2f]" <chart>
+
 // Calculated Error (The "Worst Case" room) - Useful for UI
 Number Boiler_Max_Error "Max Room Error [%.1f °F]" <bedroom>
 String Boiler_Max_Error_Room "Worst Performing Room [%s]" <bedroom>
@@ -120,3 +125,6 @@ Number ODR_Req_Radiant     "Radiant Requirement (w/ PID) [%.1f °F]"
 // Governor Status Items for Grafana/sitemap
 Number Boiler_Gov_Rate   "Active Limit Rate [%.1f %%]" <chart>
 String Boiler_Gov_Status "Active Governor [%s]" <text>
+
+Number Boiler_MRT_Remaining "MRT Remaining Time [%d min]" <time> (gLochinvar_tuning)
+String Boiler_Limiting_Factor "Current Limiting Factor [%s]" <text> (gLochinvar_tuning)

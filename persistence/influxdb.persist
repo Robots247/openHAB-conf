@@ -160,5 +160,10 @@ Items {
     //Govener Items
     Boiler_Gov_Status : strategy = everyChange
     Boiler_Gov_Rate : strategy = everyChange
+
+    Boiler_Room_P : strategy = everyMinute, everyChange
+    Boiler_Room_I : strategy = everyMinute, everyChange
+    Boiler_Room_D : strategy = everyMinute, everyChange
+    
     
 }
