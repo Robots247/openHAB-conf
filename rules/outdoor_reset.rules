@@ -199,14 +199,18 @@ then
     // FIXED: Calculate Radiant ODR Curve (Lower Slope)
     // Slope -0.6 is typical for radiant (vs -1.2 for baseboard)
     // Intercept 130 means at 0F outside, we want 130F mixed water
-    val double rad_Slope = -0.6 
+
+    //set slope from -.6 to 0 to avoid radiant valve malfunction at high outdoor temps
+    //Change back when valve is replaced
+    val double rad_Slope = 0 
     val double rad_Intercept = 130.0 
     
     radiantBase = rad_Intercept + (rad_Slope * outdoorInput)
     
     if (radiantCall) {
         // CALEFFI OVERHEAD
-        val double mixingValveDelta = 27.0
+        //changed from 27 to 20 to avoid overheating
+        val double mixingValveDelta = 20.0
         
         // 1. Apply PID to the Radiant Curve
         var double mixedTarget = radiantBase + totalRoomCorrection

@@ -131,16 +131,31 @@ then
         else {
             // CASE B: NORMAL BLOCK (Or Smart Timer Expired)
             
+            // --- NEW: FETCH OUTDOOR TEMP FOR HYSTERESIS ---
+            var double outdoorTemp = 32.0
+            if (Outdoor_Temperature.state instanceof Number) outdoorTemp = (Outdoor_Temperature.state as Number).doubleValue
+            
+            // "Efficiency Hold": True if Mild Day (>40F) + Tank still Hot (>120F)
+            // Using System_Supply_Temp (Tank) as requested for accuracy.
+            var boolean efficiency_hold = (outdoorTemp > 40.0 && supply > 120.0)
+
             if (Boiler_SmartOverrun_Enable.state == ON) {
-                // FIX #2: Smart Release Logic
-                // Even if the timer is done, DO NOT release if we are still in overrun condition.
-                // UNLESS the boiler is in Standby (Target < 40).
                 
+                // 1. SAFETY CHECK (Overrun still active?)
                 if ((supply > (target + ovr_thresh)) && (target > 40.0)) {
                     // Still too hot AND we still have a call for heat. Stay blocked.
                     Boiler_Block_Status.postUpdate("Timer Done: Waiting for Cooling (<" + (target+ovr_thresh).intValue + ")")
                     Boiler_Block_Timer_Rem.postUpdate(0)
-                } else {
+                } 
+                // 2. EFFICIENCY CHECK (New Smart Hysteresis)
+                else if (efficiency_hold && target > 40.0) {
+                     // We are safe (Safety Check passed), but we want to cool the tank deeper for efficiency.
+                     // Only applies if we have valid demand (target > 40).
+                     Boiler_Block_Active.postUpdate(ON) // Maintain Block
+                     Boiler_Block_Status.postUpdate("Efficiency Hold: Cooling Tank to 120F (Cur: " + supply.intValue + "F)")
+                     Boiler_Block_Timer_Rem.postUpdate(0)
+                }
+                else {
                     // Safe to release (Cooled down OR Demand ended)
                     Boiler_Block_Active.postUpdate(OFF)
                     Boiler_Block_Status.postUpdate("Monitoring")
